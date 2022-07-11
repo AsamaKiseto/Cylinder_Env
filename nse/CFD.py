@@ -83,9 +83,9 @@ class MySolver:
         sol = Function(V)
         u , p = split(sol)
         sol_n = Function(V)
-        u_n, p_n = split(sol_n)
+        u_n,   p_n = split(sol_n)
         sol_1 =  Function(V)
-        u_1, p_1 = split(sol_1)
+        u_1,p_1 = split(sol_1)
         
         u_t,   p_t = TestFunctions(V)
         theta = 0.5
@@ -162,7 +162,7 @@ class MySolver:
     def set_sol_value(self, sol_value):
         self.sol.vector()[:] = sol_value
 
-    def init_solve(self):
+    def init_solve(self):       # dt T param
         dt = 1e-6
         T  = 1e-5
         n_ts = int(-(T // -dt))
