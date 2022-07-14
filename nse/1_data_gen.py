@@ -1,3 +1,7 @@
+import sys
+sys.path.append("..")
+sys.path.append("../env")
+
 from env.Cylinder_Rotation_Env import Cylinder_Rotation_Env
 import numpy as np
 import torch
