@@ -1,3 +1,4 @@
 nse/__pycache__/
 nse/data/
-Environment/__pycache__/
+nse/logs/
+env/__pycache__/

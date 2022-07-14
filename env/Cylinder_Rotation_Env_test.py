@@ -1,4 +1,4 @@
-from Cylinder_Env import Cylinder_Rotation_Env
+from Cylinder_Rotation_Env import Cylinder_Rotation_Env
 import matplotlib.pyplot as plt
 from fenics import plot
 

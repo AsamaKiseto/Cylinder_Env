@@ -1,4 +1,8 @@
-from Cylinder_Env import Cylinder_Rotation_Env
+import sys
+sys.path.append("..")
+sys.path.append("../env")
+
+from env.Cylinder_Rotation_Env import Cylinder_Rotation_Env
 import numpy as np
 import torch
 from timeit import default_timer
@@ -52,4 +56,4 @@ C_L_tensor = torch.Tensor(C_L)
 ang_vel_tensor = torch.Tensor(ang_vel)
 
 # save data
-torch.save([obs_tensor, reward_tensor, C_D_tensor, C_L_tensor, ang_vel_tensor], '/home/fenics/shared/nse/data/nse_data_N0_25_dtr_{}_T_{}'.format(env.params['dtr'], env.params['T']))
+torch.save([obs_tensor, reward_tensor, C_D_tensor, C_L_tensor, ang_vel_tensor], './data/nse_data_N0_{}_dtr_{}_T_{}'.format(N0, env.params['dtr'], env.params['T']))
