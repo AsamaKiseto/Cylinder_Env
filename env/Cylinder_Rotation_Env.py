@@ -11,7 +11,7 @@ import math
 import torch.nn as nn
 
 from CFD import *
-from Cylinder_Env_Sim import *
+from Cylinder_Rotation_Env_Sim import *
 import time
 
 class Cylinder_Rotation_Env(gym.Env):
