@@ -35,7 +35,7 @@ def get_args(argv=None):
     return parser.parse_args(argv)
 
 # env init
-env = Cylinder_Rotation_Env(params={'dtr': 0.01, 'T': 5, 'rho_0': 1, 'mu' : 1/1000,
+env = Cylinder_Rotation_Env(params={'dtr': 0.05, 'T': 5, 'rho_0': 1, 'mu' : 1/1000,
                                     'traj_max_T': 20, 'dimx': 128, 'dimy': 64,
                                     'min_x' : 0,  'max_x' : 2.2, 
                                     'min_y' : 0,  'max_y' : 0.41, 
@@ -80,9 +80,9 @@ if __name__ == '__main__':
     nx = data.shape[3]
     s = data.shape[2] * data.shape[3]     # ny * nx
     N0 = data.shape[0]                    # num of data sets
-    # nt = data.shape[1] - 1                # nt
-    nt = 20
+    nt = data.shape[1] - 1                # nt
     print('N0: {}, nt: {}, ny: {}, nx: {}'.format(N0, nt, ny, nx))
+    nt = 20
 
     # load model
     load_model = FNO(modes, modes, width, L).to(device)
@@ -123,13 +123,13 @@ if __name__ == '__main__':
             ang_nn = ang_optim[i].reshape(1, 1, 1).repeat(ny, nx, 1)
             in_nn = torch.cat((out_nn.squeeze(), ang_nn), dim=-1).unsqueeze(0)
             out_nn, Cd_nn[i], Cl_nn[i] = load_model(in_nn)
-            _, _, Cd_obs[i], Cl_obs[i] = env.step(ang_optim[i].numpy())
+            out_obs, _, Cd_obs[i], Cl_obs[i] = env.step(ang_optim[i].detach().numpy())
             # print(f"epoch: {epoch} | Cd_nn: {Cd_nn} | Cl_nn: {Cl_nn} | i: {i}")
         
     
         loss = torch.mean(Cd_nn ** 2) + 0.1 * torch.mean(Cl_nn ** 2)
         # loss += 0.01 * torch.sum(ang_optim.squeeze() ** 2)
-        print("epoch: {:4}  loss: {:1.6f}  Cd_nn: {:1.6f}  Cd_obs: {:1.6f}  Cl_nn: {:1.6f}  Cd_nn: {:1.6f}  ang_optim: {:1.6f}"
+        print("epoch: {:4}  loss: {:1.6f}  Cd_nn: {:1.6f}  Cd_obs: {:1.6f}  Cl_nn: {:1.6f}  Cl_obs: {:1.6f}  ang_optim: {:1.6f}"
               .format(epoch, loss, Cd_nn.mean(), Cd_obs.mean(), Cl_nn.mean(), Cl_obs.mean(), ang_optim.mean()))
 
         loss.backward()
@@ -137,6 +137,6 @@ if __name__ == '__main__':
         # scheduler.step()
         
         # save log
-        ftext.write("epoch: {:4}  loss: {:1.6f}  Cd_nn: {:1.6f}  Cd_obs: {:1.6f}  Cl_nn: {:1.6f}  Cd_nn: {:1.6f}  ang_optim: {:1.6f}"
+        ftext.write("epoch: {:4}  loss: {:1.6f}  Cd_nn: {:1.6f}  Cd_obs: {:1.6f}  Cl_nn: {:1.6f}  Cl_obs: {:1.6f}  ang_optim: {:1.6f}"
                     .format(epoch, loss, Cd_nn.mean(), Cd_obs.mean(), Cl_nn.mean(), Cl_obs.mean(), ang_optim.mean()))
     ftext.close()

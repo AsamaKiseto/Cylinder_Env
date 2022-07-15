@@ -165,12 +165,12 @@ if __name__=='__main__':
         logs['train_mse'].append(train_mse.avg)
         logs['test_loss'].append(test_loss1.avg)
 
-        ftext.write('epoch {} | (time) epoch_time: {:1.4e} | (train) mse: {:1.4e},  loss1: {:1.4e},  loss2: {:1.4e} | (test) loss1: {:1.4e}, loss2: {:1.4e}'
-                    .format(epoch, t2-t1, train_mse.avg, train_loss1.avg, train_loss2.avg, test_loss1.avg, test_loss2.avg))
+        ftext.write('epoch {} | (train) loss1: {:1.4e},  loss2: {:1.4e} | (test) loss1: {:1.4e}, loss2: {:1.4e}\n'
+                    .format(epoch, train_loss1.avg, train_loss2.avg, test_loss1.avg, test_loss2.avg))
         
         end = '\r'
-        pbar.set_description('epoch {} | (time) epoch_time: {:1.4e} | (train) mse: {:1.4e},  loss1: {:1.4e},  loss2: {:1.4e} | (test) loss1: {:1.4e}, loss2: {:1.4e}'
-                             .format(epoch, t2-t1, train_mse.avg, train_loss1.avg, train_loss2.avg, test_loss1.avg, test_loss2.avg))
+        pbar.set_description('epoch {} | (train) loss1: {:1.4e},  loss2: {:1.4e} | (test) loss1: {:1.4e}, loss2: {:1.4e}'
+                             .format(epoch, train_loss1.avg, train_loss2.avg, test_loss1.avg, test_loss2.avg))
         pbar.update()
         
     ftext.close()
