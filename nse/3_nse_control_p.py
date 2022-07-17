@@ -29,13 +29,13 @@ def get_args(argv=None):
     parser.add_argument('--gpu', default=-1, type=int, help='device number')
     parser.add_argument('--epochs', default=500, type=int, help='number of Epochs')
     parser.add_argument('--lr', default=5e-1, type=float, help='learning rate')
-    parser.add_argument('--step_size', default=200, type=int, help='scheduler step size')
+    parser.add_argument('--step_size', default=100, type=int, help='scheduler step size')
     parser.add_argument('--gamma', default=0.5, type=float, help='scheduler factor')
 
     return parser.parse_args(argv)
 
 # env init
-env = Cylinder_Rotation_Env(params={'dtr': 0.05, 'T': 5, 'rho_0': 1, 'mu' : 1/1000,
+env = Cylinder_Rotation_Env(params={'dtr': 0.01, 'T': 2, 'rho_0': 1, 'mu' : 1/1000,
                                     'traj_max_T': 20, 'dimx': 128, 'dimy': 64,
                                     'min_x' : 0,  'max_x' : 2.2, 
                                     'min_y' : 0,  'max_y' : 0.41, 
@@ -62,6 +62,7 @@ if __name__ == '__main__':
         device = torch.device('cuda:{}'.format(args.gpu))
     operator_path = args.operator_path
     data_path = args.data_path
+    data_num = args.data_num
     L = args.L
     modes = args.modes
     width = args.width
@@ -71,9 +72,11 @@ if __name__ == '__main__':
     gamma = args.gamma
     
     # load_data
-    data, Cd, Cl, _, ang_vel = torch.load(data_path, map_location=lambda storage, loc: storage)
-    data_in = data[args.data_num].squeeze()[0].to(device)
-    data_fin = data[args.data_num].squeeze()[0].to(device)
+    data_path = './data/nse_data_N0_25_dtr_0.01_T_2'
+    data_num = 5
+    data, _, Cd, Cl, ang_vel = torch.load(data_path, map_location=lambda storage, loc: storage)
+    data_in = data[data_num].squeeze()[0].to(device)
+    data_fin = data[data_num].squeeze()[0].to(device)
 
     # data params
     ny = data.shape[2] 
@@ -82,7 +85,7 @@ if __name__ == '__main__':
     N0 = data.shape[0]                    # num of data sets
     nt = data.shape[1] - 1                # nt
     print('N0: {}, nt: {}, ny: {}, nx: {}'.format(N0, nt, ny, nx))
-    nt = 20
+    nt = 10
 
     # load model
     load_model = FNO(modes, modes, width, L).to(device)
