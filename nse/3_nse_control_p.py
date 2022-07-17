@@ -72,8 +72,8 @@ if __name__ == '__main__':
     gamma = args.gamma
     
     # load_data
-    data_path = './data/nse_data_N0_25_dtr_0.01_T_2'
-    data_num = 5
+    # data_path = './data/nse_data_N0_25_dtr_0.01_T_2'
+    # data_num = 5
     data, _, Cd, Cl, ang_vel = torch.load(data_path, map_location=lambda storage, loc: storage)
     data_in = data[data_num].squeeze()[0].to(device)
     data_fin = data[data_num].squeeze()[0].to(device)
