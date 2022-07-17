@@ -18,7 +18,7 @@ def get_args(argv=None):
     return parser.parse_args(argv)
 
 # env init
-env = Cylinder_Rotation_Env(params={'dtr': 0.01, 'T': 5, 'rho_0': 1, 'mu' : 1/1000,
+env = Cylinder_Rotation_Env(params={'dtr': 0.01, 'T': 2, 'rho_0': 1, 'mu' : 1/1000,
                                     'traj_max_T': 20, 'dimx': 128, 'dimy': 64,
                                     'min_x' : 0,  'max_x' : 2.2, 
                                     'min_y' : 0,  'max_y' : 0.41, 
@@ -28,6 +28,7 @@ env = Cylinder_Rotation_Env(params={'dtr': 0.01, 'T': 5, 'rho_0': 1, 'mu' : 1/10
                                     'U_max': 1.5, })
 
 if __name__ == '__main__':
+    print('start')
     # argparser
     args = get_args()
     
@@ -37,6 +38,8 @@ if __name__ == '__main__':
     # param setting
     phase = args.phase
     N0 = args.N0     # N0 set of data
+    if phase == 2:
+        N0 = 1
     dt = env.params['dtr'] * env.params['T']
     nt = int(- (env.params['T'] // -dt))
     nx = env.params['dimx']
