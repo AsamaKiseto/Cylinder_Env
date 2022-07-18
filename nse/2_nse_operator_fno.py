@@ -23,7 +23,7 @@ def get_args(argv=None):
     parser.add_argument('--width', default=20, type=int, help='the number of width of FNO layer')
     
     parser.add_argument('--batch', default=20, type=int, help = 'batch size')
-    parser.add_argument('--epochs', default=1000, type=int, help = 'Number of Epochs')
+    parser.add_argument('--epochs', default=500, type=int, help = 'Number of Epochs')
     parser.add_argument('--lr', default=1e-2, type=float, help='learning rate')
     parser.add_argument('--wd', default=1e-4, type=float, help='weight decay')
     parser.add_argument('--step_size', default=100, type=int, help='scheduler step size')
@@ -62,7 +62,7 @@ if __name__=='__main__':
     data, _, Cd, Cl, ang_vel = torch.load('data/nse_data_N0_25_dtr_0.05_T_5')
     Cd = Cd[:, 1:]
     Cl = Cl[:, 1:]
-    ang_vel = ang_vel[:, 1:]
+    ang_vel = ang_vel[:, :-1]
     # u_data = data[:, :, :, :, :-1]
     # p_data = data[:, :, :, :, -1]
 
@@ -82,7 +82,7 @@ if __name__=='__main__':
             Cl = Cl.reshape(N0, nt, 1, 1, 1).repeat([1, 1, ny, nx, 1]).reshape(-1, ny, nx, 1)
             ang_vel = ang_vel.reshape(N0, nt, 1, 1, 1).repeat([1, 1, ny, nx, 1]).reshape(-1, ny, nx, 1)
             input_data = data[:, :-1].reshape(-1, ny, nx, 3)
-            output_data = data[:, :-1].reshape(-1, ny, nx, 3)
+            output_data = data[:, 1:].reshape(-1, ny, nx, 3)
 
             self.input_data = torch.cat((input_data, ang_vel), dim=-1)
             self.output_data = torch.cat((output_data, Cd, Cl), dim=-1)

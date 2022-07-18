@@ -35,7 +35,7 @@ def get_args(argv=None):
     return parser.parse_args(argv)
 
 # env init
-env = Cylinder_Rotation_Env(params={'dtr': 0.01, 'T': 2, 'rho_0': 1, 'mu' : 1/1000,
+env = Cylinder_Rotation_Env(params={'dtr': 0.05, 'T': 5, 'rho_0': 1, 'mu' : 1/1000,
                                     'traj_max_T': 20, 'dimx': 128, 'dimy': 64,
                                     'min_x' : 0,  'max_x' : 2.2, 
                                     'min_y' : 0,  'max_y' : 0.41, 
@@ -72,8 +72,8 @@ if __name__ == '__main__':
     gamma = args.gamma
     
     # load_data
-    # data_path = './data/nse_data_N0_25_dtr_0.01_T_2'
-    # data_num = 5
+    data_path = './data/nse_data_N0_25_dtr_0.05_T_5'
+    data_num = 5
     data, _, Cd, Cl, ang_vel = torch.load(data_path, map_location=lambda storage, loc: storage)
     data_in = data[data_num].squeeze()[0].to(device)
     data_fin = data[data_num].squeeze()[0].to(device)
