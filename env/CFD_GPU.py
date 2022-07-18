@@ -179,6 +179,7 @@ class MySolver:
         bs3 = cupy.array(self.b3)
         self.u_.vector()[:] = cupy.asnumpy(cupyx.scipy.sparse.linalg.lsqr(As3, bs3)[:1][0])
 
+        assign(self.sol_, [self.u_, self.p_])
         self.sol_n.assign(self.sol_)
 
     def init_solve(self):
