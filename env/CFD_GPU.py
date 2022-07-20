@@ -1,3 +1,4 @@
+from re import A
 from fenics import *
 import mshr
 import numpy as np
@@ -141,6 +142,10 @@ class MySolver:
         a3 = dot(u, v)*dx
         L3 = dot(u_, v)*dx - k*dot(nabla_grad(p_ - p_n), v)*dx
 
+        self.L1 = L1
+        self.L2 = L2
+        self.L3 = L3
+
         # Assemble matrices
         self.A1 = assemble(a1)
         self.A2 = assemble(a2)
@@ -154,10 +159,12 @@ class MySolver:
         [bc.apply(self.A1) for bc in self.bcu]
         [bc.apply(self.A2) for bc in self.bcp]
 
+        #Converting to Sparse Matrix
         self.A1 = tran2SparseMatrix(self.A1)
         self.A2 = tran2SparseMatrix(self.A2)
         self.A3 = tran2SparseMatrix(self.A3)
-
+        print(self.A1)
+        
         self.sol = sol
         self.sol_n = sol_n
         self.sol_ = sol_
@@ -165,22 +172,39 @@ class MySolver:
         self.v, self.q = v, q
 
     def solve_step(self):
-        [bc.apply(self.b1) for bc in self.bcu]
-        As1 = cupyx.scipy.sparse.csr_matrix(self.A1)
-        bs1 = cupy.array(self.b1)
-        self.u_.vector()[:] = cupy.asnumpy(cupyx.scipy.sparse.linalg.lsqr(As1, bs1)[:1][0])
         
+        self.b1 = assemble(self.L1)
+        [bc.apply(self.b1) for bc in self.bcu]
+        b1 = self.b1[:]
+        As1 = cupyx.scipy.sparse.csr_matrix(self.A1)
+        print(As1)
+        print(b1)
+        # bs1 = cupy.array(self.b1)
+        bs1 = cupy.array(b1)
+        self.u_.vector()[:] = cupy.asnumpy(cupyx.scipy.sparse.linalg.lsqr(As1, bs1)[:1][0])
+        print('u_', self.u_.vector()[:])
+
+        self.b2 = assemble(self.L2)
         [bc.apply(self.b2) for bc in self.bcp]
+        b2 = self.b2[:]
         As2 = cupyx.scipy.sparse.csr_matrix(self.A2)
-        bs2 = cupy.array(self.b2)
+        # bs2 = cupy.array(self.b2)
+        bs2 = cupy.array(b2)
         self.p_.vector()[:] = cupy.asnumpy(cupyx.scipy.sparse.linalg.lsqr(As2, bs2)[:1][0])
 
+        self.b3 = assemble(self.L3)
         As3 = cupyx.scipy.sparse.csr_matrix(self.A3)
-        bs3 = cupy.array(self.b3)
+        b3 = self.b3[:]
+        # bs3 = cupy.array(self.b3)
+        bs3 = cupy.array(b3)
         self.u_.vector()[:] = cupy.asnumpy(cupyx.scipy.sparse.linalg.lsqr(As3, bs3)[:1][0])
 
         assign(self.sol_, [self.u_, self.p_])
         self.sol_n.assign(self.sol_)
+
+        # print('u max:', self.u_.vector().max())
+        # print('p max:', self.p_.vector().max())
+        # print('sol max', self.sol_.vector().max())
 
     def init_solve(self):
         n_ts = 10

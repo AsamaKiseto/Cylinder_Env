@@ -21,7 +21,7 @@ class MyGeometry:
 
         cylinder = mshr.Circle(self.center, self.r)
         domain = channel  - cylinder
-        self.mesh = mshr.generate_mesh(domain, 128)
+        self.mesh = mshr.generate_mesh(domain, 64)
         bndry = MeshFunction("size_t", self.mesh, self.mesh.topology().dim()-1)
         for f in facets(self.mesh):
             mp = f.midpoint()
@@ -81,11 +81,11 @@ class MySolver:
         mu = params['mu']
         V = self.function_space.V
         sol = Function(V)
-        u , p = split(sol)
+        u, p = split(sol)
         sol_n = Function(V)
-        u_n,   p_n = split(sol_n)
+        u_n, p_n = split(sol_n)
         sol_1 =  Function(V)
-        u_1,p_1 = split(sol_1)
+        u_1, p_1 = split(sol_1)
         
         u_t,   p_t = TestFunctions(V)
         theta = 0.5
@@ -148,16 +148,16 @@ class MySolver:
         self.sol_n.vector()[:] = self.sol.vector()
         self.time += dt 
         
-    def solve(self):
-        params = self.params
-        dt = params['dt'] * params['T']
-        T  = params['T']
-        n_ts = int(-(T // -dt))
+    # def solve(self):
+    #     params = self.params
+    #     dt = params['dt'] * params['T']
+    #     T  = params['T']
+    #     n_ts = int(-(T // -dt))
         
-        for i_step in range(n_ts):
-            self.solver.solve()
-            self.sol_1.vector()[:] = self.sol_n.vector()
-            self.sol_n.vector()[:] = self.sol.vector()
+    #     for i_step in range(n_ts):
+    #         self.solver.solve()
+    #         self.sol_1.vector()[:] = self.sol_n.vector()
+    #         self.sol_n.vector()[:] = self.sol.vector()
         
     def set_sol_value(self, sol_value):
         self.sol.vector()[:] = sol_value

@@ -39,7 +39,7 @@ if __name__=='__main__':
     print(args)
     
     # output
-    ftext = open('./logs/nse_operator_fno.txt', 'w', encoding='utf-8')
+    ftext = open('./logs/nse_operator_fno.txt', 'a', encoding='utf-8')
     
     # param setting
     device = torch.device('cuda:{}'.format(args.gpu) if torch.cuda.is_available() else 'cpu')
@@ -59,7 +59,7 @@ if __name__=='__main__':
     fname = './logs/{}'.format(args.name)
         
     # load data
-    data, _, Cd, Cl, ang_vel = torch.load('data/nse_data_N0_25_dtr_0.05_T_5')
+    data, _, Cd, Cl, ang_vel = torch.load('data/nse_data_N0_25_dtr_0.01_T_2')
     Cd = Cd[:, 1:]
     Cl = Cl[:, 1:]
     ang_vel = ang_vel[:, :-1]
@@ -120,7 +120,6 @@ if __name__=='__main__':
         train_loss2 = AverageMeter()
         test_loss1 = AverageMeter()
         test_loss2 = AverageMeter()
-        train_mse = AverageMeter()
 
         for x_train, y_train in train_loader:
             x_train, y_train = x_train.to(device), y_train.to(device)
@@ -130,9 +129,8 @@ if __name__=='__main__':
             out_train, Cd_train, Cl_train = y_train[:, :, :, :3], y_train[:, 0, 0, 3], y_train[:, 0, 0, 4]
             out_pred, Cd_pred, Cl_pred = model(x_train)
             loss1 = rel_error(out_pred, out_train).mean()
-            loss2 = F.mse_loss(Cd_train, Cd_pred, reduction='mean') + F.mse_loss(Cl_train, Cl_pred, reduction='mean')
+            loss2 = rel_error(Cd_pred, Cd_train).mean() + rel_error(Cl_pred, Cl_train).mean()
             # loss2 = (Cd_train - Cd_pred) ** 2 + (Cl_train - Cl_pred) ** 2
-            mse = F.mse_loss(out_pred.reshape(batch_size, -1), out_train.reshape(batch_size, -1), reduction='mean')
             loss = loss1 + loss2
             loss.backward()
 
@@ -140,7 +138,6 @@ if __name__=='__main__':
 
             train_loss1.update(loss1.item(), x_train.shape[0])
             train_loss2.update(loss2.item(), x_train.shape[0])
-            train_mse.update(mse.item(), x_train.shape[0])
         
         scheduler.step()
 
@@ -152,7 +149,7 @@ if __name__=='__main__':
                 out_test, Cd_test, Cl_test = y_test[:, :, :, :3], y_test[:, 0, 0, 3], y_test[:, 0, 0, 4]
                 out_pred, Cd_pred, Cl_pred = model(x_test)
                 loss1 = rel_error(out_pred, out_test).mean()
-                loss2 = F.mse_loss(Cd_test, Cd_pred, reduction='mean') + F.mse_loss(Cl_test, Cl_pred, reduction='mean')
+                loss2 = rel_error(Cd_pred, Cd_test).mean() + rel_error(Cl_pred, Cl_test).mean()
                 loss = loss1 + loss2
 
                 test_loss1.update(loss1.item(), x_test.shape[0])
@@ -162,7 +159,6 @@ if __name__=='__main__':
         
         logs['epoch_time'].append(t2 - t1)
         logs['train_loss'].append(train_loss1.avg)
-        logs['train_mse'].append(train_mse.avg)
         logs['test_loss'].append(test_loss1.avg)
 
         ftext.write('epoch {} | (train) loss1: {:1.4e},  loss2: {:1.4e} | (test) loss1: {:1.4e}, loss2: {:1.4e}\n'
@@ -174,6 +170,4 @@ if __name__=='__main__':
         pbar.update()
         
     ftext.close()
-    # if not os.path.exists('./logs/{}'.format(args.name)):
-    #     os.mkdir('./logs/{}'.format(args.name))
     torch.save([model.state_dict(), logs], fname)

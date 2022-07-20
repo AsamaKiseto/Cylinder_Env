@@ -2,3 +2,4 @@ nse/__pycache__/
 nse/data/
 nse/logs/
 env/__pycache__/
+nse/navier_GPU/
