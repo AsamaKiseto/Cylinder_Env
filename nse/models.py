@@ -129,66 +129,23 @@ class FNO(nn.Module):
         gridt = gridt.reshape(1, 1, size_t, 1).repeat([batchsize, size_x, 1, 1])
         return torch.cat((gridx, gridt), dim=-1).to(device)      
     
-class Dense(nn.Module):
-    def __init__(self, d_in, d_out, activate):
-        super(Dense, self).__init__()
-        self.linear = nn.Linear(d_in, d_out)
-        self.activate = activate
-        nn.init.normal_(self.linear.weight, std=1.0 / np.sqrt(d_in + d_out))
+
+class policy_net_cnn(nn.Module):
+    def __init__(self):
+        super(policy_net_cnn, self).__init__()
+        width = 5
+        self.nn = nn.Sequential(
+            nn.Conv2d(3, 64, width, padding=2),
+            nn.Tanh(),
+            nn.Conv2d(64, 16, width, padding=2),
+            nn.Tanh(),
+            nn.Conv2d(16, 1, width, padding=2),
+            # nn.Tanh()
+        )
 
     def forward(self, x):
-        x = self.linear(x)
-        if self.activate is not None:
-            x = self.activate(x)
-        return x
-
-
-class policy_net(nn.Module):
-    def __init__(self, activate, num_hiddens):
-        super(policy_net, self).__init__()
-        self.layers = [Dense(num_hiddens[i - 1], num_hiddens[i], activate=activate) for i in
-                       range(1, len(num_hiddens) - 1)]
-        self.layers += [Dense(num_hiddens[-2], num_hiddens[-1], activate=None)]
-        self.layers = nn.Sequential(*self.layers)
-
-    def forward(self, x):
-        x = self.layers(x)
-        return x
-
-
-class policy_fno_net(nn.Module):
-    def __init__(self, modes1, modes2, width, L):
-        super(policy_fno_net, self).__init__()
-
-        self.modes1 = modes1
-        self.modes2 = modes2
-        self.width = width
-        self.L = L
-        self.fc0 = nn.Linear(3, self.width)       # input dim
-
-        self.net = [ FNO_layer(modes1, modes2, width) for i in range(self.L-1) ]
-        self.net += [ FNO_layer(modes1, modes2, width, last=True) ]
-        self.net = nn.Sequential(*self.net)
-
-        self.fc1 = nn.Linear(self.width, 16)
-        self.fc2 = nn.Linear(16, 1)
-        
-        # self.fc3 = nn.Linear(ny*nx*3, 2)
-        # self.fcC = C_net(activate=nn.ReLU(), num_hiddens=[ny*nx*3, 1024, 512, 64, 2])
-
-    def forward(self, x):
-        """ 
-        - x: (dim_x, dim_y, feature)
-        """
-        x = self.fc0(x)
+        # print(x.shape)
         x = x.permute(0, 3, 1, 2)
-
-        x = self.net(x)
-
-        x = x.permute(0, 2, 3, 1) # pad the domain if input is non-periodic
-        x = self.fc1(x)
-        x = F.gelu(x)
-        x = self.fc2(x)
-        
-        return torch.mean(x).reshape(1, 1, 1).repeat(x.shape[1], x.shape[2], 1)
-
+        x = self.nn(x).mean()
+        # print(x.shape, x)
+        return x

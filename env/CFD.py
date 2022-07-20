@@ -21,7 +21,7 @@ class MyGeometry:
 
         cylinder = mshr.Circle(self.center, self.r)
         domain = channel  - cylinder
-        self.mesh = mshr.generate_mesh(domain, 64)
+        self.mesh = mshr.generate_mesh(domain, 128)
         bndry = MeshFunction("size_t", self.mesh, self.mesh.topology().dim()-1)
         for f in facets(self.mesh):
             mp = f.midpoint()
@@ -166,7 +166,7 @@ class MySolver:
         dt = 1e-6
         T  = 1e-5
         n_ts = int(-(T // -dt))
-        n_ts = 1
+        # n_ts = 1
         
         for i_step in range(n_ts):
 
