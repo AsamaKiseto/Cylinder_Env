@@ -126,7 +126,8 @@ if __name__ == '__main__':
             ang_nn = ang_optim[i].reshape(1, 1, 1).repeat(ny, nx, 1)
             in_nn = torch.cat((out_nn.squeeze(), ang_nn), dim=-1).unsqueeze(0)
             out_nn, Cd_nn[i], Cl_nn[i] = load_model(in_nn)
-            out_obs, _, Cd_obs[i], Cl_obs[i] = env.step(ang_optim[i].detach().numpy())
+            ang_obs = ang_optim[i].to(torch.device('cpu')).detach().numpy()
+            out_obs, _, Cd_obs[i], Cl_obs[i] = env.step(ang_obs)
             # print(f"epoch: {epoch} | Cd_nn: {Cd_nn} | Cl_nn: {Cl_nn} | i: {i}")
         
     

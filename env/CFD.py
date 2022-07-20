@@ -166,6 +166,7 @@ class MySolver:
         dt = 1e-6
         T  = 1e-5
         n_ts = int(-(T // -dt))
+        n_ts = 1
         
         for i_step in range(n_ts):
 
