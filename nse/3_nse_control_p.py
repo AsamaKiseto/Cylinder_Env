@@ -75,6 +75,7 @@ if __name__ == '__main__':
     data_num = 0
     data, _, Cd, Cl, ang_vel = torch.load(data_path, map_location=lambda storage, loc: storage)
     data_in = data[data_num].squeeze()[0].to(device)
+    ang_in = ang_vel[data_num][0]
     data_fin = data[data_num].squeeze()[0].to(device)
 
     # data params
@@ -84,11 +85,11 @@ if __name__ == '__main__':
     N0 = data.shape[0]                    # num of data sets
     nt = data.shape[1] - 1                # nt
     print('N0: {}, nt: {}, ny: {}, nx: {}'.format(N0, nt, ny, nx))
-    nt = 20
+    nt = 10
 
     # load model
     load_model = FNO(modes, modes, width, L).to(device)
-    state_dict, _ = torch.load(operator_path)
+    state_dict = torch.load(operator_path)
     load_model.load_state_dict(state_dict)
     load_model.eval()
 
@@ -97,7 +98,8 @@ if __name__ == '__main__':
     
     # set policy net
     # num_hiddens = [3 * s, 1024, 1024, 128, 1]       # last dim nt
-    p_net = torch.nn.ModuleList([policy_net_cnn().to(device) for _ in range(nt)])
+    # p_net = torch.nn.ModuleList([policy_net_cnn().to(device) for _ in range(nt)])
+    p_net = policy_net_cnn().to(device)
     # p_net = policy_net(activate=nn.Tanh(), num_hiddens=num_hiddens).to(device)
     # p_net = policy_fno_net(8, 8, 16, 3).to(device)
     
@@ -107,6 +109,7 @@ if __name__ == '__main__':
     
     for epoch in range(1, epochs + 1):
         env.reset()
+        env.step(ang_in.to(torch.device('cpu')).detach().numpy())
 
         p_net.train()
         optimizer.zero_grad()
@@ -120,25 +123,24 @@ if __name__ == '__main__':
         for i in range(nt):
             # print('ang_optim[i]: {}'.format(ang_optim[i].size()))
             # ang_optim[i] = p_net(out_nn.reshape(1, -1))
-            ang_optim[i] = p_net[i](out_nn.reshape(1, ny, nx, 3)) * 3
+            ang_optim[i] = p_net(out_nn.reshape(1, ny, nx, 3)) 
             ang_nn = ang_optim[i].reshape(1, 1, 1).repeat(ny, nx, 1)
             in_nn = torch.cat((out_nn.squeeze(), ang_nn), dim=-1).unsqueeze(0)
             out_nn, Cd_nn[i], Cl_nn[i] = load_model(in_nn)
             ang_obs = ang_optim[i].to(torch.device('cpu')).detach().numpy()
             out_obs, _, Cd_obs[i], Cl_obs[i] = env.step(ang_obs)
+            print(ang_optim[i].item(), Cd_nn[i].item(), Cd_obs[i].item(), Cl_nn[i].item(), Cl_obs[i].item())
             # print(f"epoch: {epoch} | Cd_nn: {Cd_nn} | Cl_nn: {Cl_nn} | i: {i}")
-        
     
         loss = torch.mean(Cd_nn ** 2) + 0.1 * torch.mean(Cl_nn ** 2)
         # loss += 0.01 * torch.mean(ang_optim.squeeze() ** 2)
         print("epoch: {:4}  loss: {:1.6f}  Cd_nn: {:1.6f}  Cd_obs: {:1.6f}  Cl_nn: {:1.6f}  Cl_obs: {:1.6f}  ang_optim: {:1.6f}"
               .format(epoch, loss, Cd_nn.mean(), Cd_obs.mean(), Cl_nn.mean(), Cl_obs.mean(), ang_optim.mean()))
-
         loss.backward()
         optimizer.step()
         scheduler.step()
         
         # save log
-        ftext.write("epoch: {:4}  loss: {:1.6f}  Cd_nn: {:1.6f}  Cd_obs: {:1.6f}  Cl_nn: {:1.6f}  Cl_obs: {:1.6f}  ang_optim: {:1.6f}"
-                    .format(epoch, loss, Cd_nn.mean(), Cd_obs.mean(), Cl_nn.mean(), Cl_obs.mean(), ang_optim.mean()))
+        ftext.write("epoch: {:4}  loss: {:1.6f}  Cd_nn: {:1.6f}  Cd_obs: {:1.6f}  Cl_nn: {:1.6f}  Cl_obs: {:1.6f}  ang_optim: {}"
+                    .format(epoch, loss, Cd_nn.mean(), Cd_obs.mean(), Cl_nn.mean(), Cl_obs.mean(), ang_optim))
     ftext.close()

@@ -69,7 +69,7 @@ if __name__=='__main__':
     data, _, Cd, Cl, ang_vel = torch.load(data_path)
     Cd = Cd[:, 1:]
     Cl = Cl[:, 1:]
-    ang_vel = ang_vel[:, :-1]
+    ang_vel = ang_vel[:, 1:]
     # u_data = data[:, :, :, :, :-1]
     # p_data = data[:, :, :, :, -1]
 
