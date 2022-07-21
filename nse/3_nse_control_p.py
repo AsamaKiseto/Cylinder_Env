@@ -76,6 +76,7 @@ if __name__ == '__main__':
     data, _, Cd, Cl, ang_vel = torch.load(data_path, map_location=lambda storage, loc: storage)
     data_in = data[data_num].squeeze()[0].to(device)
     ang_in = ang_vel[data_num][0]
+    print('ang: {}'.format(ang_vel[data_num]))
     data_fin = data[data_num].squeeze()[0].to(device)
 
     # data params
@@ -133,7 +134,7 @@ if __name__ == '__main__':
             # print(f"epoch: {epoch} | Cd_nn: {Cd_nn} | Cl_nn: {Cl_nn} | i: {i}")
     
         loss = torch.mean(Cd_nn ** 2) + 0.1 * torch.mean(Cl_nn ** 2)
-        # loss += 0.01 * torch.mean(ang_optim.squeeze() ** 2)
+        # loss += 0.001 * torch.mean(ang_optim.squeeze() ** 2)
         print("epoch: {:4}  loss: {:1.6f}  Cd_nn: {:1.6f}  Cd_obs: {:1.6f}  Cl_nn: {:1.6f}  Cl_obs: {:1.6f}  ang_optim: {:1.6f}"
               .format(epoch, loss, Cd_nn.mean(), Cd_obs.mean(), Cl_nn.mean(), Cl_obs.mean(), ang_optim.mean()))
         loss.backward()
