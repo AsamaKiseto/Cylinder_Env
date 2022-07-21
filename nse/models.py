@@ -145,6 +145,6 @@ class policy_net_cnn(nn.Module):
 
     def forward(self, x):
         x = x.permute(0, 3, 1, 2)
-        x = self.nn(x).mean() #* 0.5 + 0.5
+        x = self.nn(x).mean() * 0.5 + 0.5
         # print(x.item())
         return x
