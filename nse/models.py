@@ -133,13 +133,13 @@ class FNO(nn.Module):
 class policy_net_cnn(nn.Module):
     def __init__(self):
         super(policy_net_cnn, self).__init__()
-        width = 40
+        width = 10
         self.nn = nn.Sequential(
-            nn.Conv2d(3, 32, width, padding=2),
+            nn.Conv2d(3, 32, width, padding=5),
             nn.Tanh(),
-            nn.Conv2d(32, 16, width, padding=2),
+            nn.Conv2d(32, 16, width, padding=5),
             nn.Tanh(),
-            nn.Conv2d(16, 1, width, padding=2),
+            nn.Conv2d(16, 1, width, padding=5),
             nn.Tanh()
         )
 
