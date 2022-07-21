@@ -109,7 +109,6 @@ if __name__ == '__main__':
         print('start epoch {}'.format(epoch))
         env.reset()
         out_obs, _, Cd, Cl = env.step(ang_in.to(torch.device('cpu')).detach().numpy())
-        print("ang_in: {}, Cd: {}, Cl: {}".format(ang_in.item(), Cd, Cl))
 
         p_net.train()
         optimizer.zero_grad()

@@ -133,7 +133,7 @@ class FNO(nn.Module):
 class policy_net_cnn(nn.Module):
     def __init__(self):
         super(policy_net_cnn, self).__init__()
-        width = 20
+        width = 40
         self.nn = nn.Sequential(
             nn.Conv2d(3, 32, width, padding=2),
             nn.Tanh(),
@@ -145,6 +145,6 @@ class policy_net_cnn(nn.Module):
 
     def forward(self, x):
         x = x.permute(0, 3, 1, 2)
-        x = self.nn(x).mean() * 0.5 + 0.5
+        x = self.nn(x).mean() #* 0.5 + 0.5
         # print(x.item())
         return x
