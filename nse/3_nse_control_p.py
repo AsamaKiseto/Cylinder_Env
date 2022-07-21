@@ -110,7 +110,7 @@ if __name__ == '__main__':
     
     for epoch in range(1, epochs + 1):
         env.reset()
-        env.step(ang_in.to(torch.device('cpu')).detach().numpy())
+        # env.step(ang_in.to(torch.device('cpu')).detach().numpy())
 
         p_net.train()
         optimizer.zero_grad()
@@ -134,9 +134,9 @@ if __name__ == '__main__':
             # print(f"epoch: {epoch} | Cd_nn: {Cd_nn} | Cl_nn: {Cl_nn} | i: {i}")
     
         loss = torch.mean(Cd_nn ** 2) + 0.1 * torch.mean(Cl_nn ** 2)
-        # loss += 0.001 * torch.mean(ang_optim.squeeze() ** 2)
-        print("epoch: {:4}  loss: {:1.6f}  Cd_nn: {:1.6f}  Cd_obs: {:1.6f}  Cl_nn: {:1.6f}  Cl_obs: {:1.6f}  ang_optim: {:1.6f}"
-              .format(epoch, loss, Cd_nn.mean(), Cd_obs.mean(), Cl_nn.mean(), Cl_obs.mean(), ang_optim.mean()))
+        loss += 0.01 * torch.mean(ang_optim.squeeze() ** 2)
+        print("epoch: {:4}  loss: {:1.6f}  Cd_nn: {:1.4f}  Cd_obs: {:1.4f}  Cd_mse: {:1.4f}  Cl_nn: {:1.4f}  Cl_obs: {:1.4f}  Cd_mse: {:1.4f}  ang_optim: {:1.3f}"
+              .format(epoch, loss, Cd_nn.mean(), Cd_obs.mean(), ((Cd_nn-Cd_obs)**2).mean(), Cl_nn.mean(), Cl_obs.mean(), ((Cl_nn-Cl_obs)**2).mean(), ang_optim.mean()))
         loss.backward()
         optimizer.step()
         scheduler.step()
