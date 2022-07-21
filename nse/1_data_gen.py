@@ -61,9 +61,10 @@ if __name__ == '__main__':
         
         for i in range(nt):
             # obs, reward, C_D, C_L, episode_over, _ = env.step(ang_vel[i])
-            obs[k, i], reward[k, i], C_D[k, i], C_L[k, i] = env.step(ang_v[i])
-            # obs[k, i], reward[k, i], C_D[k, i], C_L[k, i] = env.step(0.00)
+            # obs[k, i], reward[k, i], C_D[k, i], C_L[k, i] = env.step(ang_v[i])
+            obs[k, i], reward[k, i], C_D[k, i], C_L[k, i] = env.step(0.00)
         
+        print(C_D[k], C_L[k])
         # u_ = obs[k, i, :, :, :2]
         # p_ = obs[k, i, :, :, 2]
         # # Plot solution

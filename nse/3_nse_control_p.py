@@ -98,19 +98,18 @@ if __name__ == '__main__':
         param.requires_grad = False
     
     # set policy net
-    # num_hiddens = [3 * s, 1024, 1024, 128, 1]       # last dim nt
     # p_net = torch.nn.ModuleList([policy_net_cnn().to(device) for _ in range(nt)])
     p_net = policy_net_cnn().to(device)
-    # p_net = policy_net(activate=nn.Tanh(), num_hiddens=num_hiddens).to(device)
-    # p_net = policy_fno_net(8, 8, 16, 3).to(device)
     
     # training
     optimizer = torch.optim.Adam(p_net.parameters(), lr=lr)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=step_size, gamma=gamma)
     
     for epoch in range(1, epochs + 1):
+        print('start epoch {}'.format(epoch))
         env.reset()
-        # env.step(ang_in.to(torch.device('cpu')).detach().numpy())
+        out_obs, _, Cd, Cl = env.step(ang_in.to(torch.device('cpu')).detach().numpy())
+        print("ang_in: {}, Cd: {}, Cl: {}".format(ang_in.item(), Cd, Cl))
 
         p_net.train()
         optimizer.zero_grad()
@@ -132,9 +131,9 @@ if __name__ == '__main__':
             out_obs, _, Cd_obs[i], Cl_obs[i] = env.step(ang_obs)
             print(ang_optim[i].item(), Cd_nn[i].item(), Cd_obs[i].item(), Cl_nn[i].item(), Cl_obs[i].item())
             # print(f"epoch: {epoch} | Cd_nn: {Cd_nn} | Cl_nn: {Cl_nn} | i: {i}")
-    
+
         loss = torch.mean(Cd_nn ** 2) + 0.1 * torch.mean(Cl_nn ** 2)
-        loss += 0.01 * torch.mean(ang_optim.squeeze() ** 2)
+        loss += torch.mean(ang_optim.squeeze() ** 2)
         print("epoch: {:4}  loss: {:1.6f}  Cd_nn: {:1.4f}  Cd_obs: {:1.4f}  Cd_mse: {:1.4f}  Cl_nn: {:1.4f}  Cl_obs: {:1.4f}  Cd_mse: {:1.4f}  ang_optim: {:1.3f}"
               .format(epoch, loss, Cd_nn.mean(), Cd_obs.mean(), ((Cd_nn-Cd_obs)**2).mean(), Cl_nn.mean(), Cl_obs.mean(), ((Cl_nn-Cl_obs)**2).mean(), ang_optim.mean()))
         loss.backward()
@@ -143,5 +142,5 @@ if __name__ == '__main__':
         
         # save log
         ftext.write("epoch: {:4}  loss: {:1.6f}  Cd_nn: {:1.6f}  Cd_obs: {:1.6f}  Cl_nn: {:1.6f}  Cl_obs: {:1.6f}  ang_optim: {}"
-                    .format(epoch, loss, Cd_nn.mean(), Cd_obs.mean(), Cl_nn.mean(), Cl_obs.mean(), ang_optim))
+                     .format(epoch, loss, Cd_nn.mean(), Cd_obs.mean(), Cl_nn.mean(), Cl_obs.mean(), ang_optim))
     ftext.close()
