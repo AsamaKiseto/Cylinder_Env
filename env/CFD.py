@@ -1,4 +1,5 @@
 from fenics import *
+import matplotlib.pyplot as plt 
 import mshr
 import numpy as np
 
@@ -21,7 +22,7 @@ class MyGeometry:
 
         cylinder = mshr.Circle(self.center, self.r)
         domain = channel  - cylinder
-        self.mesh = mshr.generate_mesh(domain, 128)
+        self.mesh = mshr.generate_mesh(domain, 64)
         bndry = MeshFunction("size_t", self.mesh, self.mesh.topology().dim()-1)
         for f in facets(self.mesh):
             mp = f.midpoint()
@@ -180,4 +181,25 @@ class MySolver:
         self.solver.solve()
         self.sol_1.vector()[:] = self.sol_n.vector()
         self.sol_n.vector()[:] = self.sol.vector()
+
+        params = self.params
+        dt = params['dtr'] * params['T']
+        T  = params['T']
+        # n_ts = int(-(T // -dt))
+        # for i in range(n_ts):
+        #     self.solver.solve()
+        #     self.sol_1.vector()[:] = self.sol_n.vector()
+        #     self.sol_n.vector()[:] = self.sol.vector()
+
+        #     # Plot solution
+        #     u_, p_ = split(self.sol)
+        #     # plot(self.sol, title='State')
+        #     # plt.show()
+        #     plot(u_, title='Velocity')
+        #     plt.show()
+        #     plot(p_, title='Pressure')
+        #     plt.show()
+
+            
+        
     

@@ -17,16 +17,17 @@ def get_args(argv=None):
     parser = argparse.ArgumentParser(description = 'Put your hyperparameters')
 
     parser.add_argument('--name', default='nse_operator_fno', type=str, help='experiments name')
-    
+    parser.add_argument('--data', default='nse_data_N0_25_dtr_0.01_T_2', type=str, help='data name')
+
     parser.add_argument('--L', default=4, type=int, help='the number of layers')
     parser.add_argument('--modes', default=12, type=int, help='the number of modes of Fourier layer')
     parser.add_argument('--width', default=20, type=int, help='the number of width of FNO layer')
     
     parser.add_argument('--batch', default=20, type=int, help = 'batch size')
-    parser.add_argument('--epochs', default=500, type=int, help = 'Number of Epochs')
+    parser.add_argument('--epochs', default=200, type=int, help = 'Number of Epochs')
     parser.add_argument('--lr', default=1e-2, type=float, help='learning rate')
     parser.add_argument('--wd', default=1e-4, type=float, help='weight decay')
-    parser.add_argument('--step_size', default=100, type=int, help='scheduler step size')
+    parser.add_argument('--step_size', default=50, type=int, help='scheduler step size')
     parser.add_argument('--gamma', default=0.5, type=float, help='scheduler factor')
     parser.add_argument('--weight', default=1.0, type=float, help='weight of recon loss')
     parser.add_argument('--gpu', default=0, type=int, help='device number')
@@ -57,9 +58,15 @@ if __name__=='__main__':
     # weight = args.weight
     
     fname = './logs/{}'.format(args.name)
+    data_path = './data/{}'.format(args.data)
         
+    # model setting
+    model = FNO(modes, modes, width, L).to(device)
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=wd)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=step_size, gamma=gamma)
+
     # load data
-    data, _, Cd, Cl, ang_vel = torch.load('data/nse_data_N0_25_dtr_0.01_T_2')
+    data, _, Cd, Cl, ang_vel = torch.load(data_path)
     Cd = Cd[:, 1:]
     Cl = Cl[:, 1:]
     ang_vel = ang_vel[:, :-1]
@@ -100,17 +107,7 @@ if __name__=='__main__':
     train_loader = DataLoader(dataset=train_data, batch_size=batch_size, shuffle=True)
     test_loader = DataLoader(dataset=test_data, batch_size=batch_size, shuffle=False)
     
-    # model setting
-    model = FNO(modes, modes, width, L).to(device)
-    optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=wd)
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=step_size, gamma=gamma)
     
-    logs = dict()
-    logs['epoch_time'] = []
-    logs['train_loss'] = []
-    logs['train_mse'] = []
-    logs['test_loss'] = []
-
     pbar = tqdm(total=epochs, file=sys.stdout)
     for epoch in range(1, epochs+1):
         model.train()
@@ -128,9 +125,9 @@ if __name__=='__main__':
 
             out_train, Cd_train, Cl_train = y_train[:, :, :, :3], y_train[:, 0, 0, 3], y_train[:, 0, 0, 4]
             out_pred, Cd_pred, Cl_pred = model(x_train)
-            loss1 = rel_error(out_pred, out_train).mean()
-            loss2 = rel_error(Cd_pred, Cd_train).mean() + rel_error(Cl_pred, Cl_train).mean()
-            # loss2 = (Cd_train - Cd_pred) ** 2 + (Cl_train - Cl_pred) ** 2
+            loss1 = F.mse_loss(out_pred, out_train, reduction='mean')
+            loss2 = F.mse_loss(Cd_pred, Cd_train, reduction='mean') + F.mse_loss(Cl_pred, Cl_train, reduction='mean')
+            # loss2 = rel_error(Cd_pred, Cd_train).mean() + rel_error(Cl_pred, Cl_train).mean()
             loss = loss1 + loss2
             loss.backward()
 
@@ -148,18 +145,14 @@ if __name__=='__main__':
 
                 out_test, Cd_test, Cl_test = y_test[:, :, :, :3], y_test[:, 0, 0, 3], y_test[:, 0, 0, 4]
                 out_pred, Cd_pred, Cl_pred = model(x_test)
-                loss1 = rel_error(out_pred, out_test).mean()
-                loss2 = rel_error(Cd_pred, Cd_test).mean() + rel_error(Cl_pred, Cl_test).mean()
+                loss1 = F.mse_loss(out_pred, out_test, reduction='mean')
+                loss2 = F.mse_loss(Cd_pred, Cd_test, reduction='mean') + F.mse_loss(Cl_pred, Cl_test, reduction='mean')
                 loss = loss1 + loss2
 
                 test_loss1.update(loss1.item(), x_test.shape[0])
                 test_loss2.update(loss2.item(), x_test.shape[0])
             
         t2 = default_timer()
-        
-        logs['epoch_time'].append(t2 - t1)
-        logs['train_loss'].append(train_loss1.avg)
-        logs['test_loss'].append(test_loss1.avg)
 
         ftext.write('epoch {} | (train) loss1: {:1.4e},  loss2: {:1.4e} | (test) loss1: {:1.4e}, loss2: {:1.4e}\n'
                     .format(epoch, train_loss1.avg, train_loss2.avg, test_loss1.avg, test_loss2.avg))
@@ -170,4 +163,4 @@ if __name__=='__main__':
         pbar.update()
         
     ftext.close()
-    torch.save([model.state_dict(), logs], fname)
+    torch.save(model.state_dict(), fname)

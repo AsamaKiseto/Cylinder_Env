@@ -140,7 +140,7 @@ class policy_net_cnn(nn.Module):
             nn.Conv2d(64, 16, width, padding=2),
             nn.Tanh(),
             nn.Conv2d(16, 1, width, padding=2),
-            # nn.Tanh()
+            nn.Tanh()
         )
 
     def forward(self, x):

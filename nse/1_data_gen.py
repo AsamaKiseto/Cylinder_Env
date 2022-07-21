@@ -4,7 +4,9 @@ sys.path.append("../env")
 
 from env.Cylinder_Rotation_Env import Cylinder_Rotation_Env
 import numpy as np
+import matplotlib.pyplot as plt 
 import torch
+from fenics import * 
 from timeit import default_timer
 
 import argparse
@@ -41,7 +43,7 @@ if __name__ == '__main__':
     if phase == 2:
         N0 = 1
     dt = env.params['dtr'] * env.params['T']
-    nt = int(- (env.params['T'] // -dt))
+    nt = 10
     nx = env.params['dimx']
     ny = env.params['dimy']
     print(f'dt: {dt} | nt: {nt}')
@@ -50,7 +52,7 @@ if __name__ == '__main__':
     obs = np.zeros((N0, nt, nx, ny, 3))
     print(f'state_data_size :{obs.shape}')
     C_D, C_L, reward = np.zeros((N0, nt)), np.zeros((N0, nt)), np.zeros((N0, nt))
-    ang_vel = np.random.rand(N0, nt)
+    ang_vel = 3 * (2 * np.random.rand(N0, nt) - 1)
     for k in range(N0):
         start = default_timer()
         obs[k] = env.reset()
@@ -61,6 +63,12 @@ if __name__ == '__main__':
             # obs, reward, C_D, C_L, episode_over, _ = env.step(ang_vel[i])
             obs[k, i], reward[k, i], C_D[k, i], C_L[k, i] = env.step(ang_v[i])
             # obs[k, i], reward[k, i], C_D[k, i], C_L[k, i] = env.step(0.00)
+        
+        # u_ = obs[k, i, :, :, :2]
+        # p_ = obs[k, i, :, :, 2]
+        # # Plot solution
+        # plt.plot(u_, title='Velocity')
+        # plt.plot(p_, title='Pressure')
             
         
         end = default_timer()
@@ -80,7 +88,7 @@ if __name__ == '__main__':
 
     # save data
     if phase==1:
-        torch.save(data, './data/nse_data_N0_{}_dtr_{}_T_{}'.format(N0, env.params['dtr'], env.params['T']))
+        torch.save(data, './data/nse_data_N0_{}_nT_{}'.format(N0, nt))
     elif phase==2:
         torch.save(data, './data/nse_control_samples')
     
