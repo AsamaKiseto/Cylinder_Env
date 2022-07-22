@@ -51,8 +51,8 @@ if __name__ == '__main__':
     args = get_args()
 
     # log text
-    ftext = open('logs/nse_control_p.txt', mode="w", encoding="utf-8")
-    ftext.write(f"{args.name} | data_num: {args.data_num}")
+    ftext = open('logs/nse_control_p.txt', mode="a", encoding="utf-8")
+    ftext.write(f"{args.name} | data_num: {args.data_num}\n")
 
     # param setting
     if args.gpu==-1:
@@ -130,9 +130,11 @@ if __name__ == '__main__':
             out_obs, _, Cd_obs[i], Cl_obs[i] = env.step(ang_obs)
             print("| {}  ang_vel: {:1.3f}  Cd_nn: {:1.4f}  Cd_obs: {:1.4f}  Cl_nn: {:1.4f}  Cl_obs: {:1.4f}"
                   .format(i, ang_optim[i].item(), Cd_nn[i].item(), Cd_obs[i].item(), Cl_nn[i].item(), Cl_obs[i].item()))
+            ftext.write("| {}  ang_vel: {:1.3f}  Cd_nn: {:1.4f}  Cd_obs: {:1.4f}  Cl_nn: {:1.4f}  Cl_obs: {:1.4f}\n"
+                        .format(i, ang_optim[i].item(), Cd_nn[i].item(), Cd_obs[i].item(), Cl_nn[i].item(), Cl_obs[i].item()))
 
         loss = torch.mean(Cd_nn ** 2) + 0.1 * torch.mean(Cl_nn ** 2)
-        loss += 0.1 * torch.mean(ang_optim.squeeze() ** 2)
+        loss += 0.05 * torch.mean(ang_optim.squeeze() ** 2)
         print("# epoch: {}  loss: {:1.6f}  ang_optim: {:1.3f}  Cd_nn: {:1.4f}  Cd_mse: {:1.4f}  Cl_nn: {:1.4f}  Cl_mse: {:1.4f}"
               .format(epoch, loss, ang_optim.mean(), Cd_nn.mean(), ((Cd_nn-Cd_obs)**2).mean(), Cl_nn.mean(), ((Cl_nn-Cl_obs)**2).mean()))
         loss.backward()

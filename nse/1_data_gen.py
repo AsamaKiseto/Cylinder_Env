@@ -20,7 +20,7 @@ def get_args(argv=None):
     return parser.parse_args(argv)
 
 # env init
-env = Cylinder_Rotation_Env(params={'dtr': 0.1, 'T': 1, 'rho_0': 1, 'mu' : 1/1000,
+env = Cylinder_Rotation_Env(params={'dtr': 0.1, 'T': 0.5, 'rho_0': 1, 'mu' : 1/1000,
                                     'traj_max_T': 20, 'dimx': 128, 'dimy': 64,
                                     'min_x' : 0,  'max_x' : 2.2, 
                                     'min_y' : 0,  'max_y' : 0.41, 
@@ -61,16 +61,10 @@ if __name__ == '__main__':
         
         for i in range(nt):
             # obs, reward, C_D, C_L, episode_over, _ = env.step(ang_vel[i])
-            # obs[k, i], reward[k, i], C_D[k, i], C_L[k, i] = env.step(ang_v[i])
-            obs[k, i], reward[k, i], C_D[k, i], C_L[k, i] = env.step(0.00)
+            obs[k, i], reward[k, i], C_D[k, i], C_L[k, i] = env.step(ang_v[i])
+            # obs[k, i], reward[k, i], C_D[k, i], C_L[k, i] = env.step(0.00)
         
-        print(C_D[k], C_L[k])
-        # u_ = obs[k, i, :, :, :2]
-        # p_ = obs[k, i, :, :, 2]
-        # # Plot solution
-        # plt.plot(u_, title='Velocity')
-        # plt.plot(p_, title='Pressure')
-            
+        # print(C_D[k], C_L[k])
         
         end = default_timer()
 
