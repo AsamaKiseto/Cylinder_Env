@@ -109,7 +109,7 @@ class control_de(nn.Module):
         x = x.permute(0, 3, 1, 2)
         x = self.net(x)
         x = x.permute(0, 2, 3, 1)
-        x = x.mean()
+        x = torch.mean(x.reshape(x.shape[0], -1), 1)
         return x
 
 
@@ -188,7 +188,9 @@ class FNO_ensemble(nn.Module):
         # x: (batch, dim_x, dim_y, dim_feature)
         f = f.reshape(f.shape[0], f.shape[1], f.shape[2], 1)    # [batch_size, ny, nx, 1]
         f = self.ctr_en(f)
+        # print(f'f.shape:{f.shape}')
         f_rec = self.ctr_de(f)
+        # print(f'f_rec.shape:{f_rec.shape}')
         x = torch.cat((x, f), dim=-1)
         x = self.fc0(x)
         x = x.permute(0, 3, 1, 2)
