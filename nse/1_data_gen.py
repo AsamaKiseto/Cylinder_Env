@@ -55,7 +55,7 @@ if __name__ == '__main__':
     ang_vel = 3 * (2 * np.random.rand(N0, nt) - 1)
     for k in range(N0):
         start = default_timer()
-        obs[k] = env.reset()
+        env.reset()
         
         ang_v = ang_vel[k]
         

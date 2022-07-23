@@ -80,7 +80,6 @@ class control_en(nn.Module):
             nn.Conv2d(32, 16, width, padding=2),
             nn.Tanh(),
             nn.Conv2d(16, 1, width, padding=2),
-            # nn.Tanh()
         )
 
     def forward(self, x):
@@ -102,7 +101,6 @@ class control_de(nn.Module):
             nn.Conv2d(32, 16, width, padding=2),
             nn.Tanh(),
             nn.Conv2d(16, 1, width, padding=2),
-            # nn.Tanh()
         )
 
     def forward(self, x):
@@ -210,19 +208,21 @@ class FNO_ensemble(nn.Module):
 class policy_net_cnn(nn.Module):
     def __init__(self):
         super(policy_net_cnn, self).__init__()
-        width = 10
-        self.nn = nn.Sequential(
-            nn.Conv2d(3, 32, width, padding=5),
+        width = 5
+        self.net = nn.Sequential(
+            nn.Conv2d(3, 64, width, padding=2),
             nn.Tanh(),
-            nn.Conv2d(32, 16, width, padding=5),
+            nn.Conv2d(64, 32, width, padding=2),
             nn.Tanh(),
-            nn.Conv2d(16, 1, width, padding=5),
-            nn.Tanh()
+            nn.Conv2d(32, 16, width, padding=2),
+            nn.Tanh(),
+            nn.Conv2d(16, 1, width, padding=2),
+            # nn.Tanh()
         )
 
     def forward(self, x):
         x = x.permute(0, 3, 1, 2)
-        x = self.nn(x).mean() * 0.5 + 0.5
+        x = self.net(x).mean()
         # print(x.item())
         return x
 
