@@ -69,17 +69,17 @@ class FNO_layer(nn.Module):
 
 
 class control_en(nn.Module):
-    def __init__(self):
+    def __init__(self, out_channels):
         super(control_en, self).__init__()
-        width = 5
+        self.out_channels = out_channels
         self.net = nn.Sequential(
-            nn.Conv2d(1, 64, width, padding=2),
+            nn.Conv2d(1, 64, 5, padding=2),
             nn.Tanh(),
-            nn.Conv2d(64, 32, width, padding=2),
+            nn.Conv2d(64, 32, 5, padding=2),
             nn.Tanh(),
-            nn.Conv2d(32, 16, width, padding=2),
+            nn.Conv2d(32, 16, 5, padding=2),
             nn.Tanh(),
-            nn.Conv2d(16, 1, width, padding=2),
+            nn.Conv2d(16, out_channels, 5, padding=2),
             # nn.Tanh()
         )
 
@@ -91,17 +91,17 @@ class control_en(nn.Module):
 
 
 class control_de(nn.Module):
-    def __init__(self):
+    def __init__(self, in_channels):
         super(control_de, self).__init__()
-        width = 5
+        self.in_channels = in_channels
         self.net = nn.Sequential(
-            nn.Conv2d(1, 64, width, padding=2),
+            nn.Conv2d(in_channels, 64, 5, padding=2),
             nn.Tanh(),
-            nn.Conv2d(64, 32, width, padding=2),
+            nn.Conv2d(64, 32, 5, padding=2),
             nn.Tanh(),
-            nn.Conv2d(32, 16, width, padding=2),
+            nn.Conv2d(32, 16, 5, padding=2),
             nn.Tanh(),
-            nn.Conv2d(16, 1, width, padding=2),
+            nn.Conv2d(16, 1, 5, padding=2),
             # nn.Tanh()
         )
 
@@ -173,10 +173,10 @@ class FNO_ensemble(nn.Module):
         self.modes2 = modes2
         self.width = width
         self.L = L
-
-        self.ctr_en = control_en()
-        self.ctr_de = control_de()
-        self.fc0 = nn.Linear(4, self.width)       # input dim: state_dim=3, control_dim=1
+        self.f_channels = 1
+        self.ctr_en = control_en(self.f_channels)
+        self.ctr_de = control_de(self.f_channels)
+        self.fc0 = nn.Linear(3 + self.f_channels, self.width)       # input dim: state_dim=3, control_dim=1
         self.net = [ FNO_layer(modes1, modes2, width) for i in range(self.L-1) ]
         self.net += [ FNO_layer(modes1, modes2, width, last=True) ]
         self.net = nn.Sequential(*self.net)
@@ -186,7 +186,8 @@ class FNO_ensemble(nn.Module):
 
     def forward(self, x, f):
         # x: (batch, dim_x, dim_y, dim_feature)
-        f = f.reshape(f.shape[0], f.shape[1], f.shape[2], 1)    # [batch_size, ny, nx, 1]
+        batch_size, ny, nx = x.shape[0], x.shape[1], x.shape[2]
+        f = f.reshape(-1, 1, 1, 1).repeat(1, ny, nx, 1)    # [batch_size, ny, nx, 1]
         f = self.ctr_en(f)
         # print(f'f.shape:{f.shape}')
         f_rec = self.ctr_de(f)

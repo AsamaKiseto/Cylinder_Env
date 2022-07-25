@@ -178,18 +178,18 @@ class MySolver:
             self.time += dt
 
     def solve_step(self):
-        self.solver.solve()
-        self.sol_1.vector()[:] = self.sol_n.vector()
-        self.sol_n.vector()[:] = self.sol.vector()
+        # self.solver.solve()
+        # self.sol_1.vector()[:] = self.sol_n.vector()
+        # self.sol_n.vector()[:] = self.sol.vector()
 
         params = self.params
         dt = params['dtr'] * params['T']
         T  = params['T']
-        # n_ts = int(-(T // -dt))
-        # for i in range(n_ts):
-        #     self.solver.solve()
-        #     self.sol_1.vector()[:] = self.sol_n.vector()
-        #     self.sol_n.vector()[:] = self.sol.vector()
+        n_ts = int(-(T // -dt))
+        for i in range(n_ts):
+            self.solver.solve()
+            self.sol_1.vector()[:] = self.sol_n.vector()
+            self.sol_n.vector()[:] = self.sol.vector()
 
         #     # Plot solution
         #     u_, p_ = split(self.sol)
