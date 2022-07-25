@@ -199,7 +199,3 @@ class MySolver:
         #     plt.show()
         #     plot(p_, title='Pressure')
         #     plt.show()
-
-            
-        
-    
