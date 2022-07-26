@@ -262,3 +262,24 @@ class FNO_ensemble(nn.Module):
         gridx = torch.tensor(np.linspace(0, 0.41, nx), dtype=torch.float)
         gridx = gridx.reshape(1, 1, nx, 1).repeat([batchsize, ny, 1, 1])
         return torch.cat((gridy, gridx), dim=-1).to(device)
+
+
+class policy_net_cnn(nn.Module):
+    def __init__(self):
+        super(policy_net_cnn, self).__init__()
+
+        self.net = nn.Sequential(
+            nn.Conv2d(3, 64, 5, padding=2),
+            # nn.Tanh(),
+            nn.Conv2d(64, 32, 5, padding=2),
+            # nn.Tanh(),
+            nn.Conv2d(32, 16, 5, padding=2),
+            # nn.Tanh(),
+            nn.Conv2d(16, 1, 5, padding=2),
+        )
+
+    def forward(self, x):
+        x = x.permute(0, 3, 1, 2)
+        f = self.net(x)
+        f = torch.mean(f.reshape(f.shape[0], -1), 1)
+        return f
