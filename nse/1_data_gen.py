@@ -14,7 +14,7 @@ import argparse
 def get_args(argv=None):
     parser = argparse.ArgumentParser(description='Put your hyperparameters')
     
-    parser.add_argument('--N0', default=25, type=int, help='number of data set')
+    parser.add_argument('--N0', default=100, type=int, help='number of data set')
     parser.add_argument('--phase', default=1, type=int, help='mode of phase for data')
 
     return parser.parse_args(argv)
@@ -43,7 +43,7 @@ if __name__ == '__main__':
     if phase == 2:
         N0 = 1
     dt = env.params['dtr'] * env.params['T']
-    nT = 20
+    nT = 100
     nx = env.params['dimx']
     ny = env.params['dimy']
     print(f'dt: {dt} | nt: {nT}')

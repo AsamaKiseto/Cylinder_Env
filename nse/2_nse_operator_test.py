@@ -9,7 +9,7 @@ import sys
 
 import argparse
 
-from models import FNO, FNO_ensemble
+from models import FNO, FNO_ensemble, f_net, state_net, trans_net, u_net
 from utils import *
 
 def get_args(argv=None):
@@ -26,7 +26,7 @@ def get_args(argv=None):
     parser.add_argument('--lr', default=1e-2, type=float, help='learning rate')
     parser.add_argument('--wd', default=1e-4, type=float, help='weight decay')
     parser.add_argument('--step_size', default=100, type=int, help='scheduler step size')
-    parser.add_argument('--gamma', default=0.5, type=float, help='scheduler factor')
+    parser.add_argument('--gamma', default=0.8, type=float, help='scheduler factor')
     parser.add_argument('--weight', default=1.0, type=float, help='weight of recon loss')
     parser.add_argument('--gpu', default=0, type=int, help='device number')
     
@@ -38,7 +38,21 @@ if __name__=='__main__':
     print(args)
     
     # output
-    ftext = open('./logs/nse_operator_fno_test.txt', 'w', encoding='utf-8')
+    ftext = open('./logs/nse_operator_fno_test.txt', 'a', encoding='utf-8')
+    logs_fname = './logs/nse_operator_fno_test_logs'
+    logs = dict()
+
+    logs['train_loss']=[]
+    logs['train_loss_f_t_rec']=[]
+    logs['train_loss_u_t_rec']=[]
+    logs['train_loss_trans']=[]
+    logs['train_loss_trans_latent']=[]
+
+    logs['test_loss']=[]
+    logs['test_loss_f_t_rec']=[]
+    logs['test_loss_u_t_rec']=[]
+    logs['test_loss_trans']=[]
+    logs['test_loss_trans_latent']=[]
     
     # param setting
     device = torch.device('cuda:{}'.format(args.gpu) if torch.cuda.is_available() else 'cpu')
@@ -54,8 +68,9 @@ if __name__=='__main__':
     step_size = args.step_size
     gamma = args.gamma
     # weight = args.weight
-    lambda1 = 5
-    lambda2 = 10
+    lambda1 = 1
+    lambda2 = 1
+    lambda3 = 1
 
     fname = './logs/{}'.format(args.name)
         
@@ -97,7 +112,7 @@ if __name__=='__main__':
     test_loader = DataLoader(dataset=test_data, batch_size=batch_size, shuffle=False)
     
     # model setting
-    model = FNO_ensemble(modes, modes, width, L).to(device)
+    model = FNO_ensemble(modes, modes, width, L, f_channels=4).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=wd)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=step_size, gamma=gamma)
 
@@ -106,32 +121,58 @@ if __name__=='__main__':
         model.train()
         
         t1 = default_timer()
+        train_loss = AverageMeter()
         train_loss1 = AverageMeter()
         train_loss2 = AverageMeter()
         train_loss3 = AverageMeter()
+        train_loss4 = AverageMeter()
+        test_loss = AverageMeter()
         test_loss1 = AverageMeter()
         test_loss2 = AverageMeter()
         test_loss3 = AverageMeter()
+        test_loss4 = AverageMeter()
 
         for x_train, y_train in train_loader:
             x_train, y_train = x_train.to(device), y_train.to(device)
             
             optimizer.zero_grad()
 
+            # split data read in train_loader
             in_train, f_train = x_train[:, :, :, :3], x_train[:, 0, 0, 3]
             out_train, Cd_train, Cl_train = y_train[:, :, :, :3], y_train[:, 0, 0, 3], y_train[:, 0, 0, 4]
-            out_pred, Cd_pred, Cl_pred, f_rec = model(in_train, f_train)
-            loss1 = F.mse_loss(out_pred, out_train, reduction='mean')
-            loss2 = F.mse_loss(Cd_pred, Cd_train, reduction='mean') + F.mse_loss(Cl_pred, Cl_train, reduction='mean')
+            # put data into model
+            pred, x_rec, f_rec, trans_out = model(in_train, f_train)
+            out_latent = model.stat_en(out_train)
+            in_rec = x_rec[:, :, :, :3]
+            # prediction items
+            out_pred = pred[:, :, :, :3]
+            Cd_pred = torch.mean(pred[:, :, :, 3].reshape(batch_size, -1), 1)
+            Cl_pred = torch.mean(pred[:, :, :, 4].reshape(batch_size, -1), 1)
+
+            # loss1: prediction loss; loss2: rec loss of state
+            # loss3: rec loss of f; loss4: latent loss
+            loss1 = F.mse_loss(out_pred, out_train, reduction='mean')\
+                    + F.mse_loss(Cd_pred, Cd_train, reduction='mean') \
+                    + F.mse_loss(Cl_pred, Cl_train, reduction='mean')
+            loss2 = F.mse_loss(in_train, in_rec, reduction='mean')
             loss3 = F.mse_loss(f_train, f_rec, reduction='mean')
-            loss = loss1 + lambda1 * loss2 + lambda2 * loss3
+            loss4 = F.mse_loss(out_latent, trans_out, reduction='mean')
+            loss = loss1 + lambda1 * loss2 + lambda2 * loss3 + lambda3 * loss4
             
             loss.backward()
             optimizer.step()
 
+            train_loss.update(loss.item(), x_train.shape[0])
             train_loss1.update(loss1.item(), x_train.shape[0])
             train_loss2.update(loss2.item(), x_train.shape[0])
             train_loss3.update(loss3.item(), x_train.shape[0])
+            train_loss4.update(loss3.item(), x_train.shape[0])
+        
+        logs['train_loss'].append(train_loss.avg)
+        logs['train_loss_f_t_rec'].append(train_loss3.avg)
+        logs['train_loss_u_t_rec'].append(train_loss2.avg)
+        logs['train_loss_trans'].append(train_loss1.avg)
+        logs['train_loss_trans_latent'].append(train_loss4.avg)
         
         scheduler.step()
         model.eval()
@@ -140,26 +181,47 @@ if __name__=='__main__':
             for x_test, y_test in test_loader:
                 x_test, y_test = x_test.to(device), y_test.to(device)
 
+                # split data read in test_loader
                 in_test, f_test = x_test[:, :, :, :3], x_test[:, 0, 0, 3]
                 out_test, Cd_test, Cl_test = y_test[:, :, :, :3], y_test[:, 0, 0, 3], y_test[:, 0, 0, 4]
-                out_pred, Cd_pred, Cl_pred, f_rec = model(in_test, f_test)
-                loss1 = F.mse_loss(out_pred, out_test, reduction='mean')
-                loss2 = F.mse_loss(Cd_pred, Cd_test, reduction='mean') + F.mse_loss(Cl_pred, Cl_test, reduction='mean')
+                # put data into model
+                pred, x_rec, f_rec, trans_out = model(in_test, f_test)
+                out_latent = model.stat_en(out_test)
+                in_rec = x_rec[:, :, :, :3]
+                # prediction items
+                out_pred = pred[:, :, :, :3]
+                Cd_pred = torch.mean(pred[:, :, :, 3].reshape(batch_size, -1), 1)
+                Cl_pred = torch.mean(pred[:, :, :, 4].reshape(batch_size, -1), 1)
+                loss1 = F.mse_loss(out_pred, out_test, reduction='mean')\
+                        + F.mse_loss(Cd_pred, Cd_test, reduction='mean') \
+                        + F.mse_loss(Cl_pred, Cl_test, reduction='mean')
+                loss2 = F.mse_loss(in_test, in_rec, reduction='mean')
                 loss3 = F.mse_loss(f_test, f_rec, reduction='mean')
+                loss4 = F.mse_loss(out_latent, trans_out, reduction='mean')
+                loss = loss1 + lambda1 * loss2 + lambda2 * loss3 + lambda3 * loss4
 
+                test_loss.update(loss.item(), x_test.shape[0])
                 test_loss1.update(loss1.item(), x_test.shape[0])
                 test_loss2.update(loss2.item(), x_test.shape[0])
                 test_loss3.update(loss3.item(), x_test.shape[0])
+                test_loss4.update(loss3.item(), x_test.shape[0])
             
+            logs['test_loss'].append(test_loss.avg)
+            logs['test_loss_f_t_rec'].append(test_loss3.avg)
+            logs['test_loss_u_t_rec'].append(test_loss2.avg)
+            logs['test_loss_trans'].append(test_loss1.avg)
+            logs['test_loss_trans_latent'].append(test_loss4.avg)
+                
         t2 = default_timer()
 
-        ftext.write('epoch {} | (train) loss1: {:1.4e},  loss2: {:1.4e},  loss3: {:1.4e} | (test) loss1: {:1.4e}, loss2: {:1.4e},  loss3: {:1.4e}\n'
-                    .format(epoch, train_loss1.avg, train_loss2.avg, train_loss3.avg, test_loss1.avg, test_loss2.avg, test_loss3.avg))
+        ftext.write('# {} | (train) loss1: {:1.2e}  loss2: {:1.2e}  loss3: {:1.2e} loss4: {:1.2e} | (test) loss1: {:1.2e} loss2: {:1.2e}  loss3: {:1.2e} loss4: {:1.2e}\n'
+                    .format(epoch, train_loss1.avg, train_loss2.avg, train_loss3.avg, train_loss4.avg, test_loss1.avg, test_loss2.avg, test_loss3.avg, test_loss4.avg))
         
         end = '\r'
-        pbar.set_description('epoch {} | (train) loss1: {:1.4e},  loss2: {:1.4e},  loss3: {:1.4e} | (test) loss1: {:1.4e}, loss2: {:1.4e},  loss3: {:1.4e}'
-                            .format(epoch, train_loss1.avg, train_loss2.avg, train_loss3.avg, test_loss1.avg, test_loss2.avg, test_loss3.avg))
+        pbar.set_description('# {} | (train) loss1: {:1.2e}  loss2: {:1.2e}  loss3: {:1.2e} loss4: {:1.2e} | (test) loss1: {:1.2e} loss2: {:1.2e}  loss3: {:1.2e} loss4: {:1.2e}\n'
+                             .format(epoch, train_loss1.avg, train_loss2.avg, train_loss3.avg, train_loss4.avg, test_loss1.avg, test_loss2.avg, test_loss3.avg, test_loss4.avg))
         pbar.update()
         
     ftext.close()
     torch.save(model.state_dict(), fname)
+    torch.save(logs, logs_fname)
