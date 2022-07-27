@@ -18,15 +18,15 @@ def get_args(argv=None):
     parser.add_argument('--name', default='nse_operator_fno_test', type=str, help='experiments name')
     
     parser.add_argument('--L', default=4, type=int, help='the number of layers')
-    parser.add_argument('--modes', default=12, type=int, help='the number of modes of Fourier layer')
-    parser.add_argument('--width', default=20, type=int, help='the number of width of FNO layer')
+    parser.add_argument('--modes', default=8, type=int, help='the number of modes of Fourier layer')
+    parser.add_argument('--width', default=16, type=int, help='the number of width of FNO layer')
     
-    parser.add_argument('--batch', default=50, type=int, help = 'batch size')
+    parser.add_argument('--batch', default=200, type=int, help = 'batch size')
     parser.add_argument('--epochs', default=500, type=int, help = 'Number of Epochs')
     parser.add_argument('--lr', default=1e-2, type=float, help='learning rate')
     parser.add_argument('--wd', default=1e-4, type=float, help='weight decay')
     parser.add_argument('--step_size', default=100, type=int, help='scheduler step size')
-    parser.add_argument('--gamma', default=0.8, type=float, help='scheduler factor')
+    parser.add_argument('--gamma', default=0.5, type=float, help='scheduler factor')
     parser.add_argument('--weight', default=1.0, type=float, help='weight of recon loss')
     parser.add_argument('--gpu', default=0, type=int, help='device number')
     
@@ -38,7 +38,7 @@ if __name__=='__main__':
     print(args)
     
     # output
-    ftext = open('./logs/nse_operator_fno_test.txt', 'a', encoding='utf-8')
+    ftext = open('./logs/nse_operator_fno_test.txt', 'w', encoding='utf-8')
     logs_fname = './logs/nse_operator_fno_test_logs'
     logs = dict()
 
@@ -69,9 +69,10 @@ if __name__=='__main__':
     step_size = args.step_size
     gamma = args.gamma
     # weight = args.weight
-    lambda1 = 1
-    lambda2 = 1
-    lambda3 = 1
+    lambda1 = 0.3
+    lambda2 = 0.3
+    lambda3 = 0.1
+    print(f'lambda: {lambda1}, {lambda2}, {lambda3}')
 
     fname = './logs/{}'.format(args.name)
         
@@ -176,7 +177,7 @@ if __name__=='__main__':
             train_loss1.update(loss1.item(), x_train.shape[0])
             train_loss2.update(loss2.item(), x_train.shape[0])
             train_loss3.update(loss3.item(), x_train.shape[0])
-            train_loss4.update(loss3.item(), x_train.shape[0])
+            train_loss4.update(loss4.item(), x_train.shape[0])
         
         logs['train_loss'].append(train_loss.avg)
         logs['train_loss_f_t_rec'].append(train_loss3.avg)
@@ -214,7 +215,7 @@ if __name__=='__main__':
                 test_loss1.update(loss1.item(), x_test.shape[0])
                 test_loss2.update(loss2.item(), x_test.shape[0])
                 test_loss3.update(loss3.item(), x_test.shape[0])
-                test_loss4.update(loss3.item(), x_test.shape[0])
+                test_loss4.update(loss4.item(), x_test.shape[0])
             
             logs['test_loss'].append(test_loss.avg)
             logs['test_loss_f_t_rec'].append(test_loss3.avg)
