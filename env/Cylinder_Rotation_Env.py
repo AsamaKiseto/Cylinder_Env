@@ -89,4 +89,7 @@ class Cylinder_Rotation_Env(gym.Env):
     def get_down(self):
         pass
         # return self.env.getDown()
+    
+    def draw(self):
+        self.sim.plot_vel()
  

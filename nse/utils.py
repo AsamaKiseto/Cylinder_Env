@@ -1,6 +1,8 @@
 import torch
+import operator
 import numpy as np
 import os, sys
+from functools import reduce
 
 def rel_error(x, _x):
     """
@@ -118,3 +120,10 @@ class AverageMeter(object):
         self.sum += val * n
         self.count += n
         self.avg = self.sum / self.count
+
+# print the number of parameters
+def count_params(model):
+    c = 0
+    for p in list(model.parameters()):
+        c += reduce(operator.mul, list(p.size()))
+    return c

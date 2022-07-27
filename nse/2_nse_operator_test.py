@@ -9,7 +9,7 @@ import sys
 
 import argparse
 
-from models import FNO, FNO_ensemble, f_net, state_net, trans_net, u_net
+from models import *
 from utils import *
 
 def get_args(argv=None):
@@ -57,9 +57,10 @@ if __name__=='__main__':
     # param setting
     device = torch.device('cuda:{}'.format(args.gpu) if torch.cuda.is_available() else 'cpu')
     
-    L = args.L
-    modes = args.modes
-    width = args.width
+    model_params = dict()
+    model_params['modes'] = args.modes
+    model_params['width'] = args.width
+    model_params['L'] = args.L
     
     epochs = args.epochs
     batch_size = args.batch
@@ -75,7 +76,7 @@ if __name__=='__main__':
     fname = './logs/{}'.format(args.name)
         
     # load data
-    data, _, Cd, Cl, ang_vel = torch.load('data/nse_data_N0_25_nT_20')
+    data, _, Cd, Cl, ang_vel = torch.load('data/nse_data_N0_100_nT_100')
 
     # data param
     ny = data.shape[2] 
@@ -83,6 +84,12 @@ if __name__=='__main__':
     s = data.shape[2] * data.shape[3]     # ny * nx
     N0 = data.shape[0]                    # num of data sets
     nt = data.shape[1] - 1             # nt
+    
+    nt = 50
+    data = data[:, :nt+1, :, :]
+    Cd = Cd[:, :nt]
+    Cl = Cl[:, :nt]
+    ang_vel = ang_vel[:, :nt]
     Ndata = N0 * nt
     
     print('N0: {}, nt: {}, ny: {}, nx: {}, device: {}'.format(N0, nt, ny, nx, device))
@@ -112,7 +119,10 @@ if __name__=='__main__':
     test_loader = DataLoader(dataset=test_data, batch_size=batch_size, shuffle=False)
     
     # model setting
-    model = FNO_ensemble(modes, modes, width, L, f_channels=4).to(device)
+    shape = [ny, nx]
+    model = FNO_ensemble(model_params, shape, f_channels=4).to(device)
+    params_num = count_params(model)
+    print(f'param numbers of the model: {params_num}')
     optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=wd)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=step_size, gamma=gamma)
 

@@ -46,14 +46,38 @@ class SpectralConv2d(nn.Module):
 
 
 class FNO_layer(nn.Module):
-    def __init__(self, modes1, modes2, width, last=False):
+    def __init__(self, modes1, modes2, width, extra_channels=0, last=False):
         super(FNO_layer, self).__init__()
         """ ...
         """
         self.last = last
 
+        width = width + extra_channels
         self.conv = SpectralConv2d(width, width, modes1, modes2)
         self.w = nn.Conv2d(width, width, 1)
+        # self.bn = torch.nn.BatchNorm2d(width)
+
+    def forward(self, x):
+        """ x: (batch, hidden_channels, dim_x, dim_t)"""
+
+        x1 = self.conv(x)
+        x2 = self.w(x)
+        x = x1 + x2
+        if not self.last:
+            x = F.gelu(x)
+            
+        return x
+
+
+class FNO_layer_trans(nn.Module):
+    def __init__(self, modes1, modes2, width, extra_channels=0, last=False):
+        super(FNO_layer_trans, self).__init__()
+        """ ...
+        """
+        self.last = last
+
+        self.conv = SpectralConv2d(width+extra_channels, width, modes1, modes2)
+        self.w = nn.Conv2d(width+extra_channels, width, 1)
         # self.bn = torch.nn.BatchNorm2d(width)
 
     def forward(self, x):
@@ -128,7 +152,7 @@ class state_en(nn.Module):
         super(state_en, self).__init__()
 
         self.fc0 = nn.Linear(5, width)
-        self.down = [ FNO_layer(modes1, modes2, width) for i in range(self.L-1) ]
+        self.down = [ FNO_layer(modes1, modes2, width) for i in range(L-1) ]
         self.down += [ FNO_layer(modes1, modes2, width, last=True) ]
         self.down = nn.Sequential(*self.down)
 
@@ -154,7 +178,7 @@ class state_de(nn.Module):
     def __init__(self, modes1, modes2, width, L):
         super(state_de, self).__init__()
 
-        self.up = [ FNO_layer(modes1, modes2, width) for i in range(self.L-1) ]
+        self.up = [ FNO_layer(modes1, modes2, width) for i in range(L-1) ]
         self.up += [ FNO_layer(modes1, modes2, width, last=True) ]
         self.up = nn.Sequential(*self.up)
 
@@ -215,41 +239,52 @@ class control_de(nn.Module):
 
 
 class trans_net(nn.Module):
-    def __init__(self, modes1, modes2, width, L):
+    def __init__(self, modes1, modes2, width, L, f_channels):
         super(trans_net, self).__init__()
 
-        self.trans = [ FNO_layer(modes1, modes2, width) for i in range(self.L-1) ]
-        self.trans += [ FNO_layer(modes1, modes2, width, last=True) ]
+        self.trans = [ FNO_layer(modes1, modes2, width, f_channels) for i in range(L-1) ]
+        self.trans += [ FNO_layer_trans(modes1, modes2, width, f_channels, last=True) ]
         self.trans = nn.Sequential(*self.trans)
 
     def forward(self, x_latent, f_latent):
         trans_in = torch.cat((x_latent, f_latent), dim=1)
+        # print(f'trans_in: {trans_in.size()}')
         trans_out = self.trans(trans_in)
 
         return trans_out
 
 
 class FNO_ensemble(nn.Module):
-    def __init__(self, modes1, modes2, width, L, f_channels = 4):
+    def __init__(self, params, shape, f_channels = 4):
         super(FNO_ensemble, self).__init__()
 
-        self.stat_en = state_en(modes1, modes2, width, L)
-        self.stat_de = state_de(modes1, modes2, width, L)
+        modes1 = params['modes']
+        modes2 = params['modes']
+        width = params['width']
+        L = params['L']
+        ny, nx = shape[0], shape[1]
 
-        self.ctr_en = control_en(f_channels)
+        self.stat_en = state_en(modes1, modes2, width, L-1)
+        self.stat_de = state_de(modes1, modes2, width, L-1)
+
+        self.ctr_en = control_en(ny, nx, f_channels)
         self.ctr_de = control_de(f_channels)
 
-        self.trans = trans_net(modes1, modes2, width, L)
+        self.trans = trans_net(modes1, modes2, width, L-2, f_channels)
 
     def forward(self, x, f):
         # x: [batch_size, ny, nx, 3]; f: [1]
                 
+        # print(f'x: {x.size()}')
         x_latent = self.stat_en(x)
         x_rec = self.stat_de(x_latent)
+        # print(f'x_rec: {x_rec.size()}')
 
         f_latent = self.ctr_en(f)
         f_rec = self.ctr_de(f_latent)
+        # print(f'f_rec: {f_rec.size()}')
 
+        # print(f'x_latent: {x_latent.size()}, f_latent: {f_latent.size()}')
         trans_out = self.trans(x_latent, f_latent)
         pred = self.stat_de(trans_out)
 
