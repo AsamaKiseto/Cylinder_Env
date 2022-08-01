@@ -60,10 +60,10 @@ class Cylinder_Rotation_Env(gym.Env):
                             'center':(0.2, 0.2),
                             'U_max': 1.5, }
         
-    def step(self, action):
+    def step(self, action, mode='grid'):
         self.sim.do_simulation(action)
         reward, C_D, C_L = self._get_reward()
-        obs = self.sim.get_observation('grid')
+        obs = self.sim.get_observation(mode)
         # episode_over = False
         return obs, reward, C_D, C_L
 
@@ -90,6 +90,20 @@ class Cylinder_Rotation_Env(gym.Env):
         pass
         # return self.env.getDown()
     
-    def draw(self):
+    def draw(self, mode):
+        plt.show()
+        u, p = self.sim.solver.sol.split()
+        if mode =='u':
+            plot(u, title='u')
+            plt.style.use('classic')
+        elif mode == 'p':
+            plot(p, title='p')
+            plt.style.use('classic')
+        
+    
+    def draw_vel(self):
         self.sim.plot_vel()
+        
+    def draw_pressure(self):
+        self.sim.plot_pressure()
  

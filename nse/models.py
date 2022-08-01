@@ -117,8 +117,8 @@ class FNO(nn.Module):
         """ 
         - x: (batch, dim_x, dim_y, dim_feature)
         """
-        batch_size, ny, nx = x.shape[0], x.shape[1], x.shape[2]
-        f = f.reshape(-1, 1, 1, 1).repeat(1, ny, nx, 1)
+        batch_size, nx, ny = x.shape[0], x.shape[1], x.shape[2]
+        f = f.reshape(-1, 1, 1, 1).repeat(1, nx, ny, 1)
         grid = self.get_grid(x.shape, x.device)
         x = torch.cat((x, grid), dim=-1)
         x = torch.cat((x, f), dim=-1)
@@ -139,11 +139,11 @@ class FNO(nn.Module):
         return x[:, :, :, :3], Cd, Cl
 
     def get_grid(self, shape, device):
-        batchsize, ny, nx = shape[0], shape[1], shape[2]
-        gridy = torch.tensor(np.linspace(0, 2.2, ny), dtype=torch.float)
-        gridy = gridy.reshape(1, ny, 1, 1).repeat([batchsize, 1, nx, 1])
-        gridx = torch.tensor(np.linspace(0, 1, nx), dtype=torch.float)
-        gridx = gridx.reshape(1, 1, nx, 1).repeat([batchsize, ny, 1, 1])
+        batchsize, nx, ny = shape[0], shape[1], shape[2]
+        gridy = torch.tensor(np.linspace(0, 2.2, nx), dtype=torch.float)
+        gridy = gridy.reshape(1, nx, 1, 1).repeat([batchsize, 1, ny, 1])
+        gridx = torch.tensor(np.linspace(0, 1, ny), dtype=torch.float)
+        gridx = gridx.reshape(1, 1, ny, 1).repeat([batchsize, nx, 1, 1])
         return torch.cat((gridy, gridx), dim=-1).to(device)      
 
 
@@ -158,20 +158,20 @@ class state_en(nn.Module):
 
     def forward(self, x):
         grid = self.get_grid(x.shape, x.device)
-        x = torch.cat((x, grid), dim=-1)    # [batch_size, ny, nx, 5]
+        x = torch.cat((x, grid), dim=-1)    # [batch_size, nx, ny, 5]
         x = self.fc0(x)
         x = x.permute(0, 3, 1, 2)
         x_latent = self.down(x) 
 
-        return x_latent     # [batch_size, width, ny, nx]
+        return x_latent     # [batch_size, width, nx, ny]
     
     def get_grid(self, shape, device):
-        batchsize, ny, nx = shape[0], shape[1], shape[2]
-        gridy = torch.tensor(np.linspace(0, 2.2, ny), dtype=torch.float)
-        gridy = gridy.reshape(1, ny, 1, 1).repeat([batchsize, 1, nx, 1])
-        gridx = torch.tensor(np.linspace(0, 0.41, nx), dtype=torch.float)
-        gridx = gridx.reshape(1, 1, nx, 1).repeat([batchsize, ny, 1, 1])
-        return torch.cat((gridy, gridx), dim=-1).to(device)
+        batchsize, nx, ny = shape[0], shape[1], shape[2]
+        gridy = torch.tensor(np.linspace(0, 2.2, nx), dtype=torch.float)
+        gridy = gridy.reshape(1, nx, 1, 1).repeat([batchsize, 1, ny, 1])
+        gridx = torch.tensor(np.linspace(0, 1, ny), dtype=torch.float)
+        gridx = gridx.reshape(1, 1, ny, 1).repeat([batchsize, nx, 1, 1])
+        return torch.cat((gridy, gridx), dim=-1).to(device)      
 
 
 class state_de(nn.Module):
@@ -192,30 +192,30 @@ class state_de(nn.Module):
         x = F.gelu(x)
         x = self.fc2(x)
 
-        return x    # [batch_size, ny, nx, 5]
+        return x    # [batch_size, nx, ny, 5]
 
 
 class control_en(nn.Module):
-    def __init__(self, ny, nx, out_channels):
+    def __init__(self, nx, ny, out_channels):
         super(control_en, self).__init__()
-        self.ny, self.nx = ny, nx
+        self.nx, self.ny = nx, ny
         self.out_channels = out_channels
         self.net = nn.Sequential(
             nn.Conv2d(1, 64, 5, padding=2),
-            # nn.Tanh(),
+            nn.Tanh(),
             nn.Conv2d(64, 32, 5, padding=2),
-            # nn.Tanh(),
+            nn.Tanh(),
             nn.Conv2d(32, 16, 5, padding=2),
-            # nn.Tanh(),
+            nn.Tanh(),
             nn.Conv2d(16, out_channels, 5, padding=2),
         )
 
     def forward(self, f):
-        # [batch_size] ——> [batch_size, ny, nx, 1]
-        f = f.reshape(f.shape[0], 1, 1, 1).repeat(1, self.ny, self.nx, 1)   
+        # [batch_size] ——> [batch_size, nx, ny, 1]
+        f = f.reshape(f.shape[0], 1, 1, 1).repeat(1, self.nx, self.ny, 1)   
         f = f.permute(0, 3, 1, 2)
         f = self.net(f)
-        return f    # [batch_size, out_channels, ny, nx]
+        return f    # [batch_size, out_channels, nx, ny]
     
 
 class control_de(nn.Module):
@@ -224,11 +224,11 @@ class control_de(nn.Module):
         self.in_channels = in_channels
         self.net = nn.Sequential(
             nn.Conv2d(in_channels, 64, 5, padding=2),
-            # nn.Tanh(),
+            nn.Tanh(),
             nn.Conv2d(64, 32, 5, padding=2),
-            # nn.Tanh(),
+            nn.Tanh(),
             nn.Conv2d(32, 16, 5, padding=2),
-            # nn.Tanh(),
+            nn.Tanh(),
             nn.Conv2d(16, 1, 5, padding=2),
         )
 
@@ -262,18 +262,18 @@ class FNO_ensemble(nn.Module):
         modes2 = params['modes']
         width = params['width']
         L = params['L']
-        ny, nx = shape[0], shape[1]
+        nx, ny = shape[0], shape[1]
 
         self.stat_en = state_en(modes1, modes2, width, L-2)
         self.stat_de = state_de(modes1, modes2, width, L-2)
 
-        self.ctr_en = control_en(ny, nx, f_channels)
+        self.ctr_en = control_en(nx, ny, f_channels)
         self.ctr_de = control_de(f_channels)
 
         self.trans = trans_net(modes1, modes2, width, L-2, f_channels)
 
     def forward(self, x, f):
-        # x: [batch_size, ny, nx, 3]; f: [1]
+        # x: [batch_size, nx, ny, 3]; f: [1]
                 
         # print(f'x: {x.size()}')
         x_latent = self.stat_en(x)
@@ -291,12 +291,12 @@ class FNO_ensemble(nn.Module):
         return pred, x_rec, f_rec, trans_out 
 
     def get_grid(self, shape, device):
-        batchsize, ny, nx = shape[0], shape[1], shape[2]
-        gridy = torch.tensor(np.linspace(0, 2.2, ny), dtype=torch.float)
-        gridy = gridy.reshape(1, ny, 1, 1).repeat([batchsize, 1, nx, 1])
-        gridx = torch.tensor(np.linspace(0, 0.41, nx), dtype=torch.float)
-        gridx = gridx.reshape(1, 1, nx, 1).repeat([batchsize, ny, 1, 1])
-        return torch.cat((gridy, gridx), dim=-1).to(device)
+        batchsize, nx, ny = shape[0], shape[1], shape[2]
+        gridy = torch.tensor(np.linspace(0, 2.2, nx), dtype=torch.float)
+        gridy = gridy.reshape(1, nx, 1, 1).repeat([batchsize, 1, ny, 1])
+        gridx = torch.tensor(np.linspace(0, 1, ny), dtype=torch.float)
+        gridx = gridx.reshape(1, 1, ny, 1).repeat([batchsize, nx, 1, 1])
+        return torch.cat((gridy, gridx), dim=-1).to(device)      
 
 
 class policy_net_cnn(nn.Module):

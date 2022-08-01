@@ -98,8 +98,8 @@ class Cylinder_Rotation_Sim:
                         out[i, j] = self.solver.sol(xy)         # sol & sol_n
                     else:
                         out[i, j] = 0
-            # self.current_obs = np.concatenate([self.grids, out], axis=-1)
-            self.current_obs = out
+            self.current_obs = np.concatenate([self.grids, out], axis=-1)
+            # self.current_obs = out
             self.observation_mode = 'grid'
 
         return self.current_obs

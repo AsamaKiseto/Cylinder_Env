@@ -1,3 +1,4 @@
+from multiprocessing import reduction
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -18,15 +19,15 @@ def get_args(argv=None):
     parser.add_argument('--name', default='nse_operator_fno_test', type=str, help='experiments name')
     
     parser.add_argument('--L', default=4, type=int, help='the number of layers')
-    parser.add_argument('--modes', default=8, type=int, help='the number of modes of Fourier layer')
-    parser.add_argument('--width', default=16, type=int, help='the number of width of FNO layer')
+    parser.add_argument('--modes', default=12, type=int, help='the number of modes of Fourier layer')
+    parser.add_argument('--width', default=20, type=int, help='the number of width of FNO layer')
     
     parser.add_argument('--batch', default=200, type=int, help = 'batch size')
-    parser.add_argument('--epochs', default=500, type=int, help = 'Number of Epochs')
-    parser.add_argument('--lr', default=1e-2, type=float, help='learning rate')
+    parser.add_argument('--epochs', default=5000, type=int, help = 'Number of Epochs')
+    parser.add_argument('--lr', default=1e-3, type=float, help='learning rate')
     parser.add_argument('--wd', default=1e-4, type=float, help='weight decay')
-    parser.add_argument('--step_size', default=100, type=int, help='scheduler step size')
-    parser.add_argument('--gamma', default=0.5, type=float, help='scheduler factor')
+    parser.add_argument('--step_size', default=1000, type=int, help='scheduler step size')
+    parser.add_argument('--gamma', default=0.8, type=float, help='scheduler factor')
     parser.add_argument('--weight', default=1.0, type=float, help='weight of recon loss')
     parser.add_argument('--gpu', default=0, type=int, help='device number')
     
@@ -68,9 +69,10 @@ if __name__=='__main__':
     wd = args.wd
     step_size = args.step_size
     gamma = args.gamma
+    print(f'epochs: {epochs}, batch_size: {batch_size}, lr: {lr}, step_size: {step_size}, gamma: {gamma}')
     # weight = args.weight
-    lambda1 = 0.3
-    lambda2 = 0.3
+    lambda1 = 0.1
+    lambda2 = 1
     lambda3 = 0.1
     print(f'lambda: {lambda1}, {lambda2}, {lambda3}')
 
@@ -80,9 +82,9 @@ if __name__=='__main__':
     data, _, Cd, Cl, ang_vel = torch.load('data/nse_data_N0_100_nT_100')
 
     # data param
-    ny = data.shape[2] 
-    nx = data.shape[3]
-    s = data.shape[2] * data.shape[3]     # ny * nx
+    nx = data.shape[2] 
+    ny = data.shape[3]
+    s = data.shape[2] * data.shape[3]     # nx * ny
     N0 = data.shape[0]                    # num of data sets
     nt = data.shape[1] - 1             # nt
     
@@ -93,15 +95,15 @@ if __name__=='__main__':
     ang_vel = ang_vel[:, :nt]
     Ndata = N0 * nt
     
-    print('N0: {}, nt: {}, ny: {}, nx: {}, device: {}'.format(N0, nt, ny, nx, device))
+    print('N0: {}, nt: {}, nx: {}, ny: {}, device: {}'.format(N0, nt, nx, ny, device))
     
     class NSE_Dataset(Dataset):
         def __init__(self, data, Cd, Cl, ang_vel):
-            Cd = Cd.reshape(N0, nt, 1, 1, 1).repeat([1, 1, ny, nx, 1]).reshape(-1, ny, nx, 1)
-            Cl = Cl.reshape(N0, nt, 1, 1, 1).repeat([1, 1, ny, nx, 1]).reshape(-1, ny, nx, 1)
-            ang_vel = ang_vel.reshape(N0, nt, 1, 1, 1).repeat([1, 1, ny, nx, 1]).reshape(-1, ny, nx, 1)
-            input_data = data[:, :-1].reshape(-1, ny, nx, 3)
-            output_data = data[:, 1:].reshape(-1, ny, nx, 3)
+            Cd = Cd.reshape(N0, nt, 1, 1, 1).repeat([1, 1, nx, ny, 1]).reshape(-1, nx, ny, 1)
+            Cl = Cl.reshape(N0, nt, 1, 1, 1).repeat([1, 1, nx, ny, 1]).reshape(-1, nx, ny, 1)
+            ang_vel = ang_vel.reshape(N0, nt, 1, 1, 1).repeat([1, 1, nx, ny, 1]).reshape(-1, nx, ny, 1)
+            input_data = data[:, :-1].reshape(-1, nx, ny, 3)
+            output_data = data[:, 1:].reshape(-1, nx, ny, 3)
 
             self.input_data = torch.cat((input_data, ang_vel), dim=-1)
             self.output_data = torch.cat((output_data, Cd, Cl), dim=-1)
@@ -120,8 +122,8 @@ if __name__=='__main__':
     test_loader = DataLoader(dataset=test_data, batch_size=batch_size, shuffle=False)
     
     # model setting
-    shape = [ny, nx]
-    model = FNO_ensemble(model_params, shape, f_channels=4).to(device)
+    shape = [nx, ny]
+    model = FNO_ensemble(model_params, shape, f_channels=8).to(device)
     params_num = count_params(model)
     print(f'param numbers of the model: {params_num}')
     optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=wd)
@@ -162,12 +164,13 @@ if __name__=='__main__':
 
             # loss1: prediction loss; loss2: rec loss of state
             # loss3: rec loss of f; loss4: latent loss
-            loss1 = F.mse_loss(out_pred, out_train, reduction='mean')\
-                    + F.mse_loss(Cd_pred, Cd_train, reduction='mean') \
-                    + F.mse_loss(Cl_pred, Cl_train, reduction='mean')
-            loss2 = F.mse_loss(in_train, in_rec, reduction='mean')
-            loss3 = F.mse_loss(f_train, f_rec, reduction='mean')
-            loss4 = F.mse_loss(out_latent, trans_out, reduction='mean')
+            loss1 = rel_error(out_pred, out_train).mean()\
+                    + rel_error(Cd_pred, Cd_train).mean()\
+                    + rel_error(Cl_pred, Cl_train).mean()
+            loss2 = rel_error(in_rec, in_train).mean()
+            loss3 = rel_error(f_rec, f_train).mean()
+            # loss3 = F.mse_loss(f_rec, f_train, reduction='mean')
+            loss4 = rel_error(trans_out, out_latent).mean()
             loss = loss1 + lambda1 * loss2 + lambda2 * loss3 + lambda3 * loss4
             
             loss.backward()
@@ -203,12 +206,12 @@ if __name__=='__main__':
                 out_pred = pred[:, :, :, :3]
                 Cd_pred = torch.mean(pred[:, :, :, 3].reshape(batch_size, -1), 1)
                 Cl_pred = torch.mean(pred[:, :, :, 4].reshape(batch_size, -1), 1)
-                loss1 = F.mse_loss(out_pred, out_test, reduction='mean')\
-                        + F.mse_loss(Cd_pred, Cd_test, reduction='mean') \
-                        + F.mse_loss(Cl_pred, Cl_test, reduction='mean')
-                loss2 = F.mse_loss(in_test, in_rec, reduction='mean')
-                loss3 = F.mse_loss(f_test, f_rec, reduction='mean')
-                loss4 = F.mse_loss(out_latent, trans_out, reduction='mean')
+                loss1 = rel_error(out_pred, out_test).mean()\
+                        + rel_error(Cd_pred, Cd_test).mean()\
+                        + rel_error(Cl_pred, Cl_test).mean()
+                loss2 = rel_error(in_rec, in_test).mean()
+                loss3 = rel_error(f_rec, f_test).mean()
+                loss4 = rel_error(trans_out, out_latent).mean()
                 loss = loss1 + lambda1 * loss2 + lambda2 * loss3 + lambda3 * loss4
 
                 test_loss.update(loss.item(), x_test.shape[0])
