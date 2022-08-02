@@ -101,7 +101,7 @@ class FNO(nn.Module):
         self.width = width
         self.L = L
         self.padding = 6
-        self.fc0 = nn.Linear(4, self.width)       # input dim: state_dim=3, control_dim=1
+        self.fc0 = nn.Linear(6, self.width)       # input dim: state_dim=3, control_dim=1
 
         self.net = [ FNO_layer(modes1, modes2, width) for i in range(self.L-1) ]
         self.net += [ FNO_layer(modes1, modes2, width, last=True) ]
@@ -167,11 +167,11 @@ class state_en(nn.Module):
     
     def get_grid(self, shape, device):
         batchsize, nx, ny = shape[0], shape[1], shape[2]
-        gridy = torch.tensor(np.linspace(0, 2.2, nx), dtype=torch.float)
-        gridy = gridy.reshape(1, nx, 1, 1).repeat([batchsize, 1, ny, 1])
-        gridx = torch.tensor(np.linspace(0, 1, ny), dtype=torch.float)
-        gridx = gridx.reshape(1, 1, ny, 1).repeat([batchsize, nx, 1, 1])
-        return torch.cat((gridy, gridx), dim=-1).to(device)      
+        gridx = torch.tensor(np.linspace(0, 2.2, nx), dtype=torch.float)
+        gridx = gridx.reshape(1, nx, 1, 1).repeat([batchsize, 1, ny, 1])
+        gridy = torch.tensor(np.linspace(0, 0.41, ny), dtype=torch.float)
+        gridy = gridy.reshape(1, 1, ny, 1).repeat([batchsize, nx, 1, 1])
+        return torch.cat((gridx, gridy), dim=-1).to(device)      
 
 
 class state_de(nn.Module):
@@ -196,18 +196,18 @@ class state_de(nn.Module):
 
 
 class control_en(nn.Module):
-    def __init__(self, nx, ny, out_channels):
+    def __init__(self, nx, ny, out_channels, width=5):
         super(control_en, self).__init__()
         self.nx, self.ny = nx, ny
         self.out_channels = out_channels
         self.net = nn.Sequential(
-            nn.Conv2d(1, 64, 5, padding=2),
+            nn.Conv2d(1, 64, width, padding=2),
             nn.Tanh(),
-            nn.Conv2d(64, 32, 5, padding=2),
+            nn.Conv2d(64, 32, width, padding=2),
             nn.Tanh(),
-            nn.Conv2d(32, 16, 5, padding=2),
+            nn.Conv2d(32, 16, width, padding=2),
             nn.Tanh(),
-            nn.Conv2d(16, out_channels, 5, padding=2),
+            nn.Conv2d(16, out_channels, width, padding=2),
         )
 
     def forward(self, f):
@@ -219,17 +219,17 @@ class control_en(nn.Module):
     
 
 class control_de(nn.Module):
-    def __init__(self, in_channels):
+    def __init__(self, in_channels, width=5):
         super(control_de, self).__init__()
         self.in_channels = in_channels
         self.net = nn.Sequential(
-            nn.Conv2d(in_channels, 64, 5, padding=2),
+            nn.Conv2d(in_channels, 64, width, padding=2),
             nn.Tanh(),
-            nn.Conv2d(64, 32, 5, padding=2),
+            nn.Conv2d(64, 32, width, padding=2),
             nn.Tanh(),
-            nn.Conv2d(32, 16, 5, padding=2),
+            nn.Conv2d(32, 16, width, padding=2),
             nn.Tanh(),
-            nn.Conv2d(16, 1, 5, padding=2),
+            nn.Conv2d(16, 1, width, padding=2),
         )
 
     def forward(self, f):
@@ -242,8 +242,9 @@ class trans_net(nn.Module):
     def __init__(self, modes1, modes2, width, L, f_channels):
         super(trans_net, self).__init__()
 
-        self.trans = [ FNO_layer(modes1, modes2, width, f_channels) for i in range(L-1) ]
-        self.trans += [ FNO_layer_trans(modes1, modes2, width, f_channels, last=True) ]
+        self.trans = [ FNO_layer_trans(modes1, modes2, width, f_channels) ]
+        self.trans += [ FNO_layer(modes1, modes2, width) for i in range(L-2) ]
+        self.trans += [ FNO_layer(modes1, modes2, width, last=True) ]
         self.trans = nn.Sequential(*self.trans)
 
     def forward(self, x_latent, f_latent):

@@ -23,10 +23,10 @@ def get_args(argv=None):
     parser.add_argument('--width', default=20, type=int, help='the number of width of FNO layer')
     
     parser.add_argument('--batch', default=200, type=int, help = 'batch size')
-    parser.add_argument('--epochs', default=5000, type=int, help = 'Number of Epochs')
-    parser.add_argument('--lr', default=1e-3, type=float, help='learning rate')
+    parser.add_argument('--epochs', default=1000, type=int, help = 'Number of Epochs')
+    parser.add_argument('--lr', default=1e-2, type=float, help='learning rate')
     parser.add_argument('--wd', default=1e-4, type=float, help='weight decay')
-    parser.add_argument('--step_size', default=1000, type=int, help='scheduler step size')
+    parser.add_argument('--step_size', default=200, type=int, help='scheduler step size')
     parser.add_argument('--gamma', default=0.8, type=float, help='scheduler factor')
     parser.add_argument('--weight', default=1.0, type=float, help='weight of recon loss')
     parser.add_argument('--gpu', default=0, type=int, help='device number')
@@ -39,7 +39,8 @@ if __name__=='__main__':
     print(args)
     
     # output
-    ftext = open('./logs/nse_operator_fno_test.txt', 'w', encoding='utf-8')
+    ftext = open('./logs/nse_operator_fno_test.txt', 'a', encoding='utf-8')
+    ftext.write(f'{args}')
     logs_fname = './logs/nse_operator_fno_test_logs'
     logs = dict()
 
@@ -70,11 +71,15 @@ if __name__=='__main__':
     step_size = args.step_size
     gamma = args.gamma
     print(f'epochs: {epochs}, batch_size: {batch_size}, lr: {lr}, step_size: {step_size}, gamma: {gamma}')
+    ftext.write(f'epochs: {epochs}, batch_size: {batch_size}, lr: {lr}, step_size: {step_size}, gamma: {gamma}')
     # weight = args.weight
-    lambda1 = 0.1
-    lambda2 = 1
-    lambda3 = 0.1
-    print(f'lambda: {lambda1}, {lambda2}, {lambda3}')
+    lambda1 = 1
+    lambda2 = 0
+    lambda3 = 0
+    lambda4 = 0
+    f_channels = 1
+    print(f'lambda: {lambda1}, {lambda2}, {lambda3}, f_channels: {f_channels}')
+    ftext.write(f'lambda: {lambda1}, {lambda2}, {lambda3}, f_channels: {f_channels}')
 
     fname = './logs/{}'.format(args.name)
         
@@ -88,7 +93,7 @@ if __name__=='__main__':
     N0 = data.shape[0]                    # num of data sets
     nt = data.shape[1] - 1             # nt
     
-    nt = 50
+    nt = 20
     data = data[:, :nt+1, :, :]
     Cd = Cd[:, :nt]
     Cl = Cl[:, :nt]
@@ -123,7 +128,7 @@ if __name__=='__main__':
     
     # model setting
     shape = [nx, ny]
-    model = FNO_ensemble(model_params, shape, f_channels=8).to(device)
+    model = FNO_ensemble(model_params, shape, f_channels=f_channels).to(device)
     params_num = count_params(model)
     print(f'param numbers of the model: {params_num}')
     optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=wd)
@@ -167,11 +172,15 @@ if __name__=='__main__':
             loss1 = rel_error(out_pred, out_train).mean()\
                     + rel_error(Cd_pred, Cd_train).mean()\
                     + rel_error(Cl_pred, Cl_train).mean()
+            # loss1 = F.mse_loss(out_pred, out_train, reduction='mean')\
+            #         + F.mse_loss(Cd_pred, Cd_train, reduction='mean')\
+            #         + F.mse_loss(Cl_pred, Cl_train, reduction='mean')
             loss2 = rel_error(in_rec, in_train).mean()
             loss3 = rel_error(f_rec, f_train).mean()
             # loss3 = F.mse_loss(f_rec, f_train, reduction='mean')
-            loss4 = rel_error(trans_out, out_latent).mean()
-            loss = loss1 + lambda1 * loss2 + lambda2 * loss3 + lambda3 * loss4
+            # loss4 = rel_error(trans_out, out_latent).mean()
+            loss4 = F.mse_loss(trans_out, out_latent, reduction='mean')
+            loss = lambda1 * loss1 + lambda2 * loss2 + lambda3 * loss3 + lambda4 * loss4
             
             loss.backward()
             optimizer.step()
@@ -232,7 +241,7 @@ if __name__=='__main__':
                     .format(epoch, train_loss1.avg, train_loss2.avg, train_loss3.avg, train_loss4.avg, test_loss1.avg, test_loss2.avg, test_loss3.avg, test_loss4.avg))
         
         end = '\r'
-        pbar.set_description('# {} | (train) loss1: {:1.2e}  loss2: {:1.2e}  loss3: {:1.2e} loss4: {:1.2e} | (test) loss1: {:1.2e} loss2: {:1.2e}  loss3: {:1.2e} loss4: {:1.2e}\n'
+        pbar.set_description('# {} | loss1: {:1.2e}  loss2: {:1.2e}  loss3: {:1.2e} loss4: {:1.2e} | loss1: {:1.2e} loss2: {:1.2e}  loss3: {:1.2e} loss4: {:1.2e}'
                              .format(epoch, train_loss1.avg, train_loss2.avg, train_loss3.avg, train_loss4.avg, test_loss1.avg, test_loss2.avg, test_loss3.avg, test_loss4.avg))
         pbar.update()
         
