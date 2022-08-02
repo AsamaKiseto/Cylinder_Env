@@ -11,6 +11,14 @@ from timeit import default_timer
 
 import argparse
 
+def get_args(argv=None):
+    parser = argparse.ArgumentParser(description='Put your hyperparameters')
+    
+    parser.add_argument('--f1', default=-3, type=float)
+    parser.add_argument('--f2', default=-3, type=float)
+
+    return parser.parse_args(argv)
+
 # env init
 env = Cylinder_Rotation_Env(params={'dtr': 0.01, 'T': 1, 'rho_0': 1, 'mu' : 1/1000,
                                     'traj_max_T': 20, 'dimx': 128, 'dimy': 64,
@@ -23,24 +31,29 @@ env = Cylinder_Rotation_Env(params={'dtr': 0.01, 'T': 1, 'rho_0': 1, 'mu' : 1/10
 
 if __name__ == '__main__':
     print('start')
-    
+    args = get_args()
+
     # env params
     print(env.params)
 
     # param setting
     dt = env.params['dtr'] * env.params['T']
     nT = 400
-    hf_nT = 200
+    hf_nT = int(nT/2)
     nx = env.params['dimx']
     ny = env.params['dimy']
     print(f'dt: {dt} | nt: {nT}')
 
     # data generate
-    Nf = 41
-    f1 = np.linspace(-2, 2, Nf)
-    f2 = np.linspace(-2, 2, Nf)
+    Nf = 8
+    f1 = np.linspace(args.f1, args.f1+2, Nf+1)
+    f2 = np.linspace(args.f2, args.f2+2, Nf+1)
+    f1 = f1[:-1]
+    f2 = f2[:-1]
+    print(f'f1: {f1}')
+    print(f'f2: {f2}')
     N0 = Nf * Nf
-    obs = np.zeros((N0, nT+1, nx, ny, 5), dtype='uint8')
+    obs = np.zeros((N0, nT+1, nx, ny, 5), dtype='float32')
     print(f'state_data_size :{obs.shape}')
     f = np.zeros((N0, nT))
     C_D, C_L, reward = np.zeros((N0, nT)), np.zeros((N0, nT)), np.zeros((N0, nT))
@@ -75,5 +88,5 @@ if __name__ == '__main__':
     data = [obs_tensor, reward_tensor, C_D_tensor, C_L_tensor, f]
 
     # save data
-    torch.save(data, './data/nse_data_N0_{}_nT_{}'.format(N0, nT))
+    torch.save(data, './data/nse_data_N0_{}_nT_{}_f1_{}_f2_{}'.format(N0, nT, args.f1, args.f2))
     
