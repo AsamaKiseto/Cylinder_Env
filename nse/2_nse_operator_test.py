@@ -22,12 +22,12 @@ def get_args(argv=None):
     parser.add_argument('--modes', default=12, type=int, help='the number of modes of Fourier layer')
     parser.add_argument('--width', default=20, type=int, help='the number of width of FNO layer')
     
-    parser.add_argument('--batch', default=200, type=int, help = 'batch size')
-    parser.add_argument('--epochs', default=1000, type=int, help = 'Number of Epochs')
+    parser.add_argument('--batch_size', default=256, type=int, help = 'batch size')
+    parser.add_argument('--epochs', default=500, type=int, help = 'Number of Epochs')
     parser.add_argument('--lr', default=1e-2, type=float, help='learning rate')
     parser.add_argument('--wd', default=1e-4, type=float, help='weight decay')
-    parser.add_argument('--step_size', default=200, type=int, help='scheduler step size')
-    parser.add_argument('--gamma', default=0.8, type=float, help='scheduler factor')
+    parser.add_argument('--step_size', default=100, type=int, help='scheduler step size')
+    parser.add_argument('--gamma', default=0.5, type=float, help='scheduler factor')
     parser.add_argument('--weight', default=1.0, type=float, help='weight of recon loss')
     parser.add_argument('--gpu', default=0, type=int, help='device number')
     
@@ -65,14 +65,15 @@ if __name__=='__main__':
     model_params['L'] = args.L
     
     epochs = args.epochs
-    batch_size = args.batch
+    batch_size = args.batch_size
     lr = args.lr
     wd = args.wd
     step_size = args.step_size
     gamma = args.gamma
+
     print(f'epochs: {epochs}, batch_size: {batch_size}, lr: {lr}, step_size: {step_size}, gamma: {gamma}')
     ftext.write(f'epochs: {epochs}, batch_size: {batch_size}, lr: {lr}, step_size: {step_size}, gamma: {gamma}')
-    # weight = args.weight
+
     lambda1 = 1
     lambda2 = 0
     lambda3 = 0
@@ -84,7 +85,13 @@ if __name__=='__main__':
     fname = './logs/{}'.format(args.name)
         
     # load data
-    data, _, Cd, Cl, ang_vel = torch.load('data/nse_data_N0_100_nT_100')
+    data, _, Cd, Cl, ang_vel = torch.load('data/nse_data_N0_256_nT_400')
+    print('load data finished')
+    tg = 40     # sample evrey 10 timestamps
+    data = data[:, ::tg, :, :, 2:]  
+    Cd = Cd[:, ::tg]
+    Cl = Cl[:, ::tg]
+    ang_vel = ang_vel[:, ::10]
 
     # data param
     nx = data.shape[2] 
@@ -93,7 +100,6 @@ if __name__=='__main__':
     N0 = data.shape[0]                    # num of data sets
     nt = data.shape[1] - 1             # nt
     
-    nt = 20
     data = data[:, :nt+1, :, :]
     Cd = Cd[:, :nt]
     Cl = Cl[:, :nt]
@@ -156,16 +162,16 @@ if __name__=='__main__':
             optimizer.zero_grad()
 
             # split data read in train_loader
-            in_train, f_train = x_train[:, :, :, :3], x_train[:, 0, 0, 3]
-            out_train, Cd_train, Cl_train = y_train[:, :, :, :3], y_train[:, 0, 0, 3], y_train[:, 0, 0, 4]
+            in_train, f_train = x_train[:, :, :, :-1], x_train[:, 0, 0, -1]
+            out_train, Cd_train, Cl_train = y_train[:, :, :, :-2], y_train[:, 0, 0, -2], y_train[:, 0, 0, -1]
             # put data into model
             pred, x_rec, f_rec, trans_out = model(in_train, f_train)
             out_latent = model.stat_en(out_train)
             in_rec = x_rec[:, :, :, :3]
             # prediction items
             out_pred = pred[:, :, :, :3]
-            Cd_pred = torch.mean(pred[:, :, :, 3].reshape(batch_size, -1), 1)
-            Cl_pred = torch.mean(pred[:, :, :, 4].reshape(batch_size, -1), 1)
+            Cd_pred = torch.mean(pred[:, :, :, -2].reshape(batch_size, -1), 1)
+            Cl_pred = torch.mean(pred[:, :, :, -1].reshape(batch_size, -1), 1)
 
             # loss1: prediction loss; loss2: rec loss of state
             # loss3: rec loss of f; loss4: latent loss
@@ -178,8 +184,8 @@ if __name__=='__main__':
             loss2 = rel_error(in_rec, in_train).mean()
             loss3 = rel_error(f_rec, f_train).mean()
             # loss3 = F.mse_loss(f_rec, f_train, reduction='mean')
-            # loss4 = rel_error(trans_out, out_latent).mean()
-            loss4 = F.mse_loss(trans_out, out_latent, reduction='mean')
+            loss4 = rel_error(trans_out, out_latent).mean()
+            # loss4 = F.mse_loss(trans_out, out_latent, reduction='mean')
             loss = lambda1 * loss1 + lambda2 * loss2 + lambda3 * loss3 + lambda4 * loss4
             
             loss.backward()
@@ -205,8 +211,8 @@ if __name__=='__main__':
                 x_test, y_test = x_test.to(device), y_test.to(device)
 
                 # split data read in test_loader
-                in_test, f_test = x_test[:, :, :, :3], x_test[:, 0, 0, 3]
-                out_test, Cd_test, Cl_test = y_test[:, :, :, :3], y_test[:, 0, 0, 3], y_test[:, 0, 0, 4]
+                in_test, f_test = x_test[:, :, :, :-1], x_test[:, 0, 0, -1]
+                out_test, Cd_test, Cl_test = y_test[:, :, :, :-2], y_test[:, 0, 0, -2], y_test[:, 0, 0, -1]
                 # put data into model
                 pred, x_rec, f_rec, trans_out = model(in_test, f_test)
                 out_latent = model.stat_en(out_test)

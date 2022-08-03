@@ -265,8 +265,8 @@ class FNO_ensemble(nn.Module):
         L = params['L']
         nx, ny = shape[0], shape[1]
 
-        self.stat_en = state_en(modes1, modes2, width, L-2)
-        self.stat_de = state_de(modes1, modes2, width, L-2)
+        self.stat_en = state_en(modes1, modes2, width, L-3)
+        self.stat_de = state_de(modes1, modes2, width, L-3)
 
         self.ctr_en = control_en(nx, ny, f_channels)
         self.ctr_de = control_de(f_channels)
