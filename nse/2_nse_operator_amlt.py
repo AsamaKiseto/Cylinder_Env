@@ -4,7 +4,6 @@ import torch
 import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
 from torch.utils.data.dataset import random_split
-from tqdm import tqdm
 from timeit import default_timer
 import sys
 
@@ -23,10 +22,10 @@ def get_args(argv=None):
     parser.add_argument('--width', default=20, type=int, help='the number of width of FNO layer')
     
     parser.add_argument('--batch_size', default=256, type=int, help = 'batch size')
-    parser.add_argument('--epochs', default=1000, type=int, help = 'Number of Epochs')
-    parser.add_argument('--lr', default=1e-2, type=float, help='learning rate')
+    parser.add_argument('--epochs', default=2000, type=int, help = 'Number of Epochs')
+    parser.add_argument('--lr', default=1e-3, type=float, help='learning rate')
     parser.add_argument('--wd', default=1e-4, type=float, help='weight decay')
-    parser.add_argument('--step_size', default=200, type=int, help='scheduler step size')
+    parser.add_argument('--step_size', default=400, type=int, help='scheduler step size')
     parser.add_argument('--gamma', default=0.5, type=float, help='scheduler factor')
     parser.add_argument('--weight', default=1.0, type=float, help='weight of recon loss')
     parser.add_argument('--gpu', default=0, type=int, help='device number')
@@ -139,7 +138,6 @@ if __name__=='__main__':
     optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=wd)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=step_size, gamma=gamma)
 
-    pbar = tqdm(total=epochs, file=sys.stdout)
     for epoch in range(1, epochs+1):
         model.train()
         
@@ -177,14 +175,10 @@ if __name__=='__main__':
             loss1 = rel_error(out_pred, out_train).mean()\
                     + rel_error(Cd_pred, Cd_train).mean()\
                     + rel_error(Cl_pred, Cl_train).mean()
-            # loss1 = F.mse_loss(out_pred, out_train, reduction='mean')\
-            #         + F.mse_loss(Cd_pred, Cd_train, reduction='mean')\
-            #         + F.mse_loss(Cl_pred, Cl_train, reduction='mean')
             loss2 = rel_error(in_rec, in_train).mean()
             loss3 = rel_error(f_rec, f_train).mean()
             # loss3 = F.mse_loss(f_rec, f_train, reduction='mean')
             loss4 = rel_error(trans_out, out_latent).mean()
-            # loss4 = F.mse_loss(trans_out, out_latent, reduction='mean')
             loss = lambda1 * loss1 + lambda2 * loss2 + lambda3 * loss3 + lambda4 * loss4
             
             loss.backward()
@@ -242,10 +236,8 @@ if __name__=='__main__':
                 
         t2 = default_timer()
 
-        end = '\r'
-        pbar.set_description('# {} | loss1: {:1.2e}  loss2: {:1.2e}  loss3: {:1.2e} loss4: {:1.2e} | loss1: {:1.2e} loss2: {:1.2e}  loss3: {:1.2e} loss4: {:1.2e}'
-                             .format(epoch, train_loss1.avg, train_loss2.avg, train_loss3.avg, train_loss4.avg, test_loss1.avg, test_loss2.avg, test_loss3.avg, test_loss4.avg))
-        pbar.update()
+        print('# {} | loss1: {:1.2e}  loss2: {:1.2e}  loss3: {:1.2e} loss4: {:1.2e} | loss1: {:1.2e} loss2: {:1.2e}  loss3: {:1.2e} loss4: {:1.2e}'
+              .format(epoch, train_loss1.avg, train_loss2.avg, train_loss3.avg, train_loss4.avg, test_loss1.avg, test_loss2.avg, test_loss3.avg, test_loss4.avg))
         
     torch.save(model.state_dict(), fname)
     torch.save(logs, logs_fname)
