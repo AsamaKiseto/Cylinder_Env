@@ -265,13 +265,13 @@ class FNO_ensemble(nn.Module):
         L = params['L']
         nx, ny = shape[0], shape[1]
 
-        self.stat_en = state_en(modes1, modes2, width, L-2)
-        self.stat_de = state_de(modes1, modes2, width, L-2)
+        self.stat_en = state_en(modes1, modes2, width, L)
+        self.stat_de = state_de(modes1, modes2, width, L)
 
         self.ctr_en = control_en(nx, ny, f_channels)
         self.ctr_de = control_de(f_channels)
 
-        self.trans = trans_net(modes1, modes2, width, L-2, f_channels)
+        self.trans = trans_net(modes1, modes2, width, L, f_channels)
 
     def forward(self, x, f):
         # x: [batch_size, nx, ny, 3]; f: [1]
