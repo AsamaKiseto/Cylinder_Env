@@ -58,16 +58,22 @@ if __name__=='__main__':
     fname = './logs/{}'.format(args.name)
         
     # load data
-    data, _, Cd, Cl, ang_vel = torch.load('data/nse_data_N0_100_nT_100')
+    data, _, Cd, Cl, ang_vel = torch.load('data/nse_data_N0_256_nT_400')
+    print('load data finished')
+    tg = 40     # sample evrey 10 timestamps
+    N0 = 16
+    data = data[:N0, ::tg, :, :, 2:]  
+    Cd = Cd[:N0, ::tg]
+    Cl = Cl[:N0, ::tg]
+    ang_vel = ang_vel[:N0, ::10]
 
     # data param
     ny = data.shape[2] 
     nx = data.shape[3]
-    s = data.shape[2] * data.shape[3]     # ny * nx
+    s = data.shape[2] * data.shape[3]   
     N0 = data.shape[0]                    # num of data sets
     nt = data.shape[1] - 1             # nt
-
-    nt = 20
+    
     data = data[:, :nt+1, :, :]
     Cd = Cd[:, :nt]
     Cl = Cl[:, :nt]

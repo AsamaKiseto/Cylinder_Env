@@ -23,10 +23,10 @@ def get_args(argv=None):
     parser.add_argument('--width', default=20, type=int, help='the number of width of FNO layer')
     
     parser.add_argument('--batch_size', default=256, type=int, help = 'batch size')
-    parser.add_argument('--epochs', default=500, type=int, help = 'Number of Epochs')
+    parser.add_argument('--epochs', default=1000, type=int, help = 'Number of Epochs')
     parser.add_argument('--lr', default=1e-2, type=float, help='learning rate')
     parser.add_argument('--wd', default=1e-4, type=float, help='weight decay')
-    parser.add_argument('--step_size', default=100, type=int, help='scheduler step size')
+    parser.add_argument('--step_size', default=200, type=int, help='scheduler step size')
     parser.add_argument('--gamma', default=0.5, type=float, help='scheduler factor')
     parser.add_argument('--weight', default=1.0, type=float, help='weight of recon loss')
     parser.add_argument('--gpu', default=0, type=int, help='device number')
@@ -40,7 +40,7 @@ if __name__=='__main__':
     
     # output
     ftext = open('./logs/nse_operator_fno_test.txt', 'a', encoding='utf-8')
-    ftext.write(f'{args}')
+    ftext.write(f'{args}\n')
     logs_fname = './logs/nse_operator_fno_test_logs'
     logs = dict()
 
@@ -72,26 +72,27 @@ if __name__=='__main__':
     gamma = args.gamma
 
     print(f'epochs: {epochs}, batch_size: {batch_size}, lr: {lr}, step_size: {step_size}, gamma: {gamma}')
-    ftext.write(f'epochs: {epochs}, batch_size: {batch_size}, lr: {lr}, step_size: {step_size}, gamma: {gamma}')
+    ftext.write(f'epochs: {epochs}, batch_size: {batch_size}, lr: {lr}, step_size: {step_size}, gamma: {gamma}\n')
 
     lambda1 = 1
-    lambda2 = 0
-    lambda3 = 0
-    lambda4 = 0
-    f_channels = 1
-    print(f'lambda: {lambda1}, {lambda2}, {lambda3}, f_channels: {f_channels}')
-    ftext.write(f'lambda: {lambda1}, {lambda2}, {lambda3}, f_channels: {f_channels}')
+    lambda2 = 0.1
+    lambda3 = 0.1
+    lambda4 = 0.1
+    f_channels = 4
+    print(f'lambda: {lambda1}, {lambda2}, {lambda3}, {lambda4}, f_channels: {f_channels}')
+    ftext.write(f'lambda: {lambda1}, {lambda2}, {lambda3}, {lambda4}, f_channels: {f_channels}\n')
 
     fname = './logs/{}'.format(args.name)
         
     # load data
     data, _, Cd, Cl, ang_vel = torch.load('data/nse_data_N0_256_nT_400')
     print('load data finished')
-    tg = 40     # sample evrey 10 timestamps
-    data = data[:, ::tg, :, :, 2:]  
-    Cd = Cd[:, ::tg]
-    Cl = Cl[:, ::tg]
-    ang_vel = ang_vel[:, ::10]
+    tg = 20     # sample evrey 10 timestamps
+    Ng = 1
+    data = data[::Ng, ::tg, :, :, 2:]  
+    Cd = Cd[::Ng, ::tg]
+    Cl = Cl[::Ng, ::tg]
+    ang_vel = ang_vel[::Ng, ::10]
 
     # data param
     nx = data.shape[2] 

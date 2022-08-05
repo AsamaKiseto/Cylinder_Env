@@ -171,7 +171,7 @@ class state_en(nn.Module):
         gridx = gridx.reshape(1, nx, 1, 1).repeat([batchsize, 1, ny, 1])
         gridy = torch.tensor(np.linspace(0, 0.41, ny), dtype=torch.float)
         gridy = gridy.reshape(1, 1, ny, 1).repeat([batchsize, nx, 1, 1])
-        return torch.cat((gridx, gridy), dim=-1).to(device)      
+        return torch.cat((gridx, gridy), dim=-1).to(device)
 
 
 class state_de(nn.Module):
@@ -265,8 +265,8 @@ class FNO_ensemble(nn.Module):
         L = params['L']
         nx, ny = shape[0], shape[1]
 
-        self.stat_en = state_en(modes1, modes2, width, L-3)
-        self.stat_de = state_de(modes1, modes2, width, L-3)
+        self.stat_en = state_en(modes1, modes2, width, L-2)
+        self.stat_de = state_de(modes1, modes2, width, L-2)
 
         self.ctr_en = control_en(nx, ny, f_channels)
         self.ctr_de = control_de(f_channels)
