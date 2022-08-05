@@ -84,7 +84,7 @@ if __name__=='__main__':
         
     # load data
     data, _, Cd, Cl, ang_vel = torch.load('data/nse_data_N0_256_nT_400')
-    tg = 10     # sample evrey 10 timestamps
+    tg = 20     # sample evrey 20 timestamps
     Ng = 1
     data = data[::Ng, ::tg, :, :, 2:]  
     Cd = Cd[::Ng, ::tg]
