@@ -15,20 +15,17 @@ from utils import *
 
 def get_args(argv=None):
     parser = argparse.ArgumentParser(description = 'Put your hyperparameters')
-
-    parser.add_argument('--name', default='nse_operator_fno_test', type=str, help='experiments name')
     
     parser.add_argument('--L', default=2, type=int, help='the number of layers')
     parser.add_argument('--modes', default=12, type=int, help='the number of modes of Fourier layer')
     parser.add_argument('--width', default=20, type=int, help='the number of width of FNO layer')
     
     parser.add_argument('--batch_size', default=256, type=int, help = 'batch size')
-    parser.add_argument('--epochs', default=1000, type=int, help = 'Number of Epochs')
-    parser.add_argument('--lr', default=1e-2, type=float, help='learning rate')
+    parser.add_argument('--epochs', default=2000, type=int, help = 'Number of Epochs')
+    parser.add_argument('--lr', default=1e-3, type=float, help='learning rate')
     parser.add_argument('--wd', default=1e-4, type=float, help='weight decay')
-    parser.add_argument('--step_size', default=200, type=int, help='scheduler step size')
+    parser.add_argument('--step_size', default=500, type=int, help='scheduler step size')
     parser.add_argument('--gamma', default=0.5, type=float, help='scheduler factor')
-    parser.add_argument('--weight', default=1.0, type=float, help='weight of recon loss')
     parser.add_argument('--gpu', default=0, type=int, help='device number')
 
     parser.add_argument('--lambda1', default=1, type=float, help='coef of losses1')
@@ -44,24 +41,6 @@ if __name__=='__main__':
     args = get_args()
     print(args)
     
-    # output
-    ftext = open('./logs/nse_operator_fno_test.txt', 'a', encoding='utf-8')
-    ftext.write(f'{args}\n')
-    logs_fname = './logs/operator_lambda1_{}_lambda2_{}_lambda3_{}_lambda4_{}_lr_{}'.format()
-    logs = dict()
-
-    logs['train_loss']=[]
-    logs['train_loss_f_t_rec']=[]
-    logs['train_loss_u_t_rec']=[]
-    logs['train_loss_trans']=[]
-    logs['train_loss_trans_latent']=[]
-
-    logs['test_loss']=[]
-    logs['test_loss_f_t_rec']=[]
-    logs['test_loss_u_t_rec']=[]
-    logs['test_loss_trans']=[]
-    logs['test_loss_trans_latent']=[]
-    
     # param setting
     device = torch.device('cuda:{}'.format(args.gpu) if torch.cuda.is_available() else 'cpu')
     
@@ -76,21 +55,38 @@ if __name__=='__main__':
     wd = args.wd
     step_size = args.step_size
     gamma = args.gamma
-
     print(f'epochs: {epochs}, batch_size: {batch_size}, lr: {lr}, step_size: {step_size}, gamma: {gamma}')
-    ftext.write(f'epochs: {epochs}, batch_size: {batch_size}, lr: {lr}, step_size: {step_size}, gamma: {gamma}\n')
 
     lambda1, lambda2, lambda3, lambda4 = args.lambda1, args.lambda2, args.lambda3, args.lambda4
     f_channels = 4
     print(f'lambda: {lambda1}, {lambda2}, {lambda3}, {lambda4}, f_channels: {f_channels}')
+    
+    # output
+    ftext = open('./logs/nse_operator_fno_test.txt', 'a', encoding='utf-8')
+    ftext.write(f'{args}\n')
+    ftext.write(f'epochs: {epochs}, batch_size: {batch_size}, lr: {lr}, step_size: {step_size}, gamma: {gamma}\n')
     ftext.write(f'lambda: {lambda1}, {lambda2}, {lambda3}, {lambda4}, f_channels: {f_channels}\n')
 
-    fname = './logs/{}'.format(args.name)
+    logs_fname = './logs/operator_lambda1_{}_lambda2_{}_lambda3_{}_lambda4_{}_lr_{}'.format(lambda1, lambda2, lambda3, lambda4, lr)
+    logs = dict()
+
+    logs['args'] = args
+    logs['train_loss']=[]
+    logs['train_loss_f_t_rec']=[]
+    logs['train_loss_u_t_rec']=[]
+    logs['train_loss_trans']=[]
+    logs['train_loss_trans_latent']=[]
+
+    logs['test_loss']=[]
+    logs['test_loss_f_t_rec']=[]
+    logs['test_loss_u_t_rec']=[]
+    logs['test_loss_trans']=[]
+    logs['test_loss_trans_latent']=[]
         
     # load data
     data, _, Cd, Cl, ang_vel = torch.load('data/nse_data_N0_256_nT_400')
     print('load data finished')
-    tg = 10     # sample evrey 10 timestamps
+    tg = 20     # sample evrey 10 timestamps
     Ng = 1
     data = data[::Ng, ::tg, :, :, 2:]  
     Cd = Cd[::Ng, ::tg]
@@ -256,5 +252,4 @@ if __name__=='__main__':
         pbar.update()
         
     ftext.close()
-    torch.save(model.state_dict(), fname)
-    torch.save(logs, logs_fname)
+    torch.save([model.state_dict(), logs], logs_fname)

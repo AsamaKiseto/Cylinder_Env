@@ -27,7 +27,6 @@ def get_args(argv=None):
     parser.add_argument('--wd', default=1e-4, type=float, help='weight decay')
     parser.add_argument('--step_size', default=400, type=int, help='scheduler step size')
     parser.add_argument('--gamma', default=0.5, type=float, help='scheduler factor')
-    parser.add_argument('--weight', default=1.0, type=float, help='weight of recon loss')
     parser.add_argument('--gpu', default=0, type=int, help='device number')
 
     parser.add_argument('--lambda1', default=1, type=float, help='coef of losses1')
@@ -79,8 +78,7 @@ if __name__=='__main__':
     logs['test_loss_u_t_rec']=[]
     logs['test_loss_trans']=[]
     logs['test_loss_trans_latent']=[]
-    fname = './logs/{}_lambda1_{}_lambda2_{}_lambda3_{}_lambda4_{}_lr_{}'.format(args.name, lambda1, lambda2, lambda3, lambda4, lr)
-    logs_fname = './logs/operator_lambda1_{}_lambda2_{}_lambda3_{}_lambda4_{}_lr_{}'.format(lambda1, lambda2, lambda3, lambda4, lr)
+    logs_fname = './logs/operator_lambda_{}_{}_{}_{}_lr_{}'.format(lambda1, lambda2, lambda3, lambda4, lr)
         
     # load data
     data, _, Cd, Cl, ang_vel = torch.load('data/nse_data_N0_256_nT_400')
@@ -239,5 +237,4 @@ if __name__=='__main__':
         print('# {} {:1.3f} | loss1: {:1.2e}  loss2: {:1.2e}  loss3: {:1.2e} loss4: {:1.2e} | loss1: {:1.2e} loss2: {:1.2e}  loss3: {:1.2e} loss4: {:1.2e}'
               .format(epoch, t2-t1, train_loss1.avg, train_loss2.avg, train_loss3.avg, train_loss4.avg, test_loss1.avg, test_loss2.avg, test_loss3.avg, test_loss4.avg))
         
-    torch.save(model.state_dict(), fname)
-    torch.save(logs, logs_fname)
+    torch.save([model.state_dict(), logs], logs_fname)
