@@ -78,7 +78,7 @@ if __name__=='__main__':
     logs['test_loss_u_t_rec']=[]
     logs['test_loss_trans']=[]
     logs['test_loss_trans_latent']=[]
-    logs_fname = './logs/operator_lambda_{}_{}_{}_{}_lr_{}'.format(lambda1, lambda2, lambda3, lambda4, lr)
+    logs_fname = './logs/operator_lambda_{}_{}_{}_{}_lr_{}_epochs_{}'.format(lambda1, lambda2, lambda3, lambda4, lr, epochs)
         
     # load data
     data, _, Cd, Cl, ang_vel = torch.load('data/nse_data_N0_256_nT_400')

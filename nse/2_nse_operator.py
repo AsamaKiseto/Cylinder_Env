@@ -67,7 +67,7 @@ if __name__=='__main__':
     ftext.write(f'epochs: {epochs}, batch_size: {batch_size}, lr: {lr}, step_size: {step_size}, gamma: {gamma}\n')
     ftext.write(f'lambda: {lambda1}, {lambda2}, {lambda3}, {lambda4}, f_channels: {f_channels}\n')
 
-    logs_fname = './logs/operator_lambda1_{}_lambda2_{}_lambda3_{}_lambda4_{}_lr_{}'.format(lambda1, lambda2, lambda3, lambda4, lr)
+    logs_fname = './logs/operator_lambda_{}_{}_{}_{}_lr_{}_epochs_{}_test'.format(lambda1, lambda2, lambda3, lambda4, lr, epochs)
     logs = dict()
 
     logs['args'] = args
