@@ -29,6 +29,8 @@ def get_args(argv=None):
     parser.add_argument('--gamma', default=0.5, type=float, help='scheduler factor')
     parser.add_argument('--gpu', default=0, type=int, help='device number')
 
+    parser.add_argument('--tg', default=10, type=int, help = 'time gap')
+    parser.add_argument('--Ng', default=1, type=int, help = 'N gap')
     parser.add_argument('--lambda1', default=1, type=float, help='coef of losses1')
     parser.add_argument('--lambda2', default=0.1, type=float, help='coef of losses2')
     parser.add_argument('--lambda3', default=0.1, type=float, help='coef of losses3')
@@ -82,12 +84,12 @@ if __name__=='__main__':
         
     # load data
     data, _, Cd, Cl, ang_vel = torch.load('data/nse_data_N0_256_nT_400')
-    tg = 20     # sample evrey 20 timestamps
-    Ng = 1
+    tg = args.tg     # sample evrey 20 timestamps
+    Ng = args.Ng
     data = data[::Ng, ::tg, :, :, 2:]  
     Cd = Cd[::Ng, ::tg]
     Cl = Cl[::Ng, ::tg]
-    ang_vel = ang_vel[::Ng, ::10]
+    ang_vel = ang_vel[::Ng, ::tg]
 
     # data param
     nx = data.shape[2] 

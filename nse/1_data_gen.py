@@ -53,7 +53,7 @@ if __name__ == '__main__':
     print(f'f1: {f1}')
     print(f'f2: {f2}')
     N0 = Nf * Nf
-    obs = np.zeros((N0, nT+1, nx, ny, 5), dtype='float32')
+    obs = np.zeros((N0, nT+1, nx, ny, 5))
     print(f'state_data_size :{obs.shape}')
     f = np.zeros((N0, nT))
     C_D, C_L, reward = np.zeros((N0, nT)), np.zeros((N0, nT)), np.zeros((N0, nT))

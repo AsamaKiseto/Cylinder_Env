@@ -91,7 +91,7 @@ if __name__=='__main__':
     data = data[::Ng, ::tg, :, :, 2:]  
     Cd = Cd[::Ng, ::tg]
     Cl = Cl[::Ng, ::tg]
-    ang_vel = ang_vel[::Ng, ::10]
+    ang_vel = ang_vel[::Ng, ::tg]
 
     # data param
     nx = data.shape[2] 
