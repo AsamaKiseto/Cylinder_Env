@@ -53,6 +53,7 @@ class FNO_layer(nn.Module):
         self.last = last
 
         width = width + extra_channels
+        self.bn = nn.BatchNorm2d(width)
         self.conv = SpectralConv2d(width, width, modes1, modes2)
         self.w = nn.Conv2d(width, width, 1)
         # self.bn = torch.nn.BatchNorm2d(width)
@@ -60,6 +61,7 @@ class FNO_layer(nn.Module):
     def forward(self, x):
         """ x: (batch, hidden_channels, dim_x, dim_t)"""
 
+        x = self.bn(x)
         x1 = self.conv(x)
         x2 = self.w(x)
         x = x1 + x2
@@ -76,6 +78,7 @@ class FNO_layer_trans(nn.Module):
         """
         self.last = last
 
+        self.bn = nn.BatchNorm2d(width+extra_channels)
         self.conv = SpectralConv2d(width+extra_channels, width, modes1, modes2)
         self.w = nn.Conv2d(width+extra_channels, width, 1)
         # self.bn = torch.nn.BatchNorm2d(width)
@@ -83,6 +86,7 @@ class FNO_layer_trans(nn.Module):
     def forward(self, x):
         """ x: (batch, hidden_channels, dim_x, dim_t)"""
 
+        x = self.bn(x)
         x1 = self.conv(x)
         x2 = self.w(x)
         x = x1 + x2
