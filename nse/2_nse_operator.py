@@ -16,9 +16,9 @@ from utils import *
 def get_args(argv=None):
     parser = argparse.ArgumentParser(description = 'Put your hyperparameters')
     
-    parser.add_argument('--L', default=4, type=int, help='the number of layers')
+    parser.add_argument('--L', default=3, type=int, help='the number of layers')
     parser.add_argument('--modes', default=16, type=int, help='the number of modes of Fourier layer')
-    parser.add_argument('--width', default=64, type=int, help='the number of width of FNO layer')
+    parser.add_argument('--width', default=32, type=int, help='the number of width of FNO layer')
     
     parser.add_argument('--batch_size', default=64, type=int, help = 'batch size')
     parser.add_argument('--epochs', default=500, type=int, help = 'Number of Epochs')
@@ -29,10 +29,10 @@ def get_args(argv=None):
     parser.add_argument('--gpu', default=0, type=int, help='device number')
 
     parser.add_argument('--lambda1', default=1, type=float, help='weight of losses1')
-    parser.add_argument('--lambda2', default=0.1, type=float, help='weight of losses2')
+    parser.add_argument('--lambda2', default=0.01, type=float, help='weight of losses2')
     parser.add_argument('--lambda3', default=0.01, type=float, help='weight of losses3')
-    parser.add_argument('--lambda4', default=0.1, type=float, help='weight of losses4')
-    parser.add_argument('--f_channles', default=4, type=int, help='channels of f encode')
+    parser.add_argument('--lambda4', default=0.01, type=float, help='weight of losses4')
+    parser.add_argument('--f_channels', default=1, type=int, help='channels of f encode')
     
     return parser.parse_args(argv)
 
@@ -58,7 +58,7 @@ if __name__=='__main__':
     print(f'epochs: {epochs}, batch_size: {batch_size}, lr: {lr}, step_size: {step_size}, gamma: {gamma}')
 
     lambda1, lambda2, lambda3, lambda4 = args.lambda1, args.lambda2, args.lambda3, args.lambda4
-    f_channels = 4
+    f_channels = args.f_channels
     print(f'lambda: {lambda1}, {lambda2}, {lambda3}, {lambda4}, f_channels: {f_channels}')
     
     # output
@@ -87,7 +87,7 @@ if __name__=='__main__':
     data, _, Cd, Cl, ang_vel = torch.load('data/nse_data_N0_256_nT_400')
     print('load data finished')
     tg = 20     # sample evrey 10 timestamps
-    Ng = 16
+    Ng = 64
     data = data[::Ng, ::tg, :, :, 2:]  
     Cd = Cd[::Ng, ::tg]
     Cl = Cl[::Ng, ::tg]
@@ -219,8 +219,8 @@ if __name__=='__main__':
                 in_rec = x_rec[:, :, :, :3]
                 # prediction items
                 out_pred = pred[:, :, :, :3]
-                Cd_pred = torch.mean(pred[:, :, :, 3].reshape(batch_size, -1), 1)
-                Cl_pred = torch.mean(pred[:, :, :, 4].reshape(batch_size, -1), 1)
+                Cd_pred = torch.mean(pred[:, :, :, 3].reshape(batch_size//4, -1), 1)
+                Cl_pred = torch.mean(pred[:, :, :, 4].reshape(batch_size//4, -1), 1)
                 loss1 = rel_error(out_pred, out_test).mean()\
                         + rel_error(Cd_pred, Cd_test).mean()\
                         + rel_error(Cl_pred, Cl_test).mean()

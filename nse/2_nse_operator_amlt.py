@@ -35,7 +35,7 @@ def get_args(argv=None):
     parser.add_argument('--lambda2', default=0.1, type=float, help='weight of losses2')
     parser.add_argument('--lambda3', default=0.01, type=float, help='weight of losses3')
     parser.add_argument('--lambda4', default=0.1, type=float, help='weight of losses4')
-    parser.add_argument('--f_channles', default=4, type=int, help='channels of f encode')
+    parser.add_argument('--f_channels', default=4, type=int, help='channels of f encode')
     
     return parser.parse_args(argv)
 
