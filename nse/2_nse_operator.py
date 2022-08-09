@@ -16,16 +16,16 @@ from utils import *
 def get_args(argv=None):
     parser = argparse.ArgumentParser(description = 'Put your hyperparameters')
     
-    parser.add_argument('--L', default=2, type=int, help='the number of layers')
+    parser.add_argument('--L', default=4, type=int, help='the number of layers')
     parser.add_argument('--modes', default=16, type=int, help='the number of modes of Fourier layer')
-    parser.add_argument('--width', default=32, type=int, help='the number of width of FNO layer')
+    parser.add_argument('--width', default=64, type=int, help='the number of width of FNO layer')
     
     parser.add_argument('--batch_size', default=64, type=int, help = 'batch size')
-    parser.add_argument('--epochs', default=1000, type=int, help = 'Number of Epochs')
+    parser.add_argument('--epochs', default=500, type=int, help = 'Number of Epochs')
     parser.add_argument('--lr', default=1e-3, type=float, help='learning rate')
     parser.add_argument('--wd', default=1e-4, type=float, help='weight decay')
-    parser.add_argument('--step_size', default=200, type=int, help='scheduler step size')
-    parser.add_argument('--gamma', default=0.5, type=float, help='scheduler factor')
+    parser.add_argument('--step_size', default=50, type=int, help='scheduler step size')
+    parser.add_argument('--gamma', default=0.7, type=float, help='scheduler factor')
     parser.add_argument('--gpu', default=0, type=int, help='device number')
 
     parser.add_argument('--lambda1', default=1, type=float, help='weight of losses1')
@@ -87,7 +87,7 @@ if __name__=='__main__':
     data, _, Cd, Cl, ang_vel = torch.load('data/nse_data_N0_256_nT_400')
     print('load data finished')
     tg = 20     # sample evrey 10 timestamps
-    Ng = 1
+    Ng = 16
     data = data[::Ng, ::tg, :, :, 2:]  
     Cd = Cd[::Ng, ::tg]
     Cl = Cl[::Ng, ::tg]
@@ -130,7 +130,7 @@ if __name__=='__main__':
     NSE_data = NSE_Dataset(data, Cd, Cl, ang_vel)
     train_data, test_data = random_split(NSE_data, [int(0.8 * Ndata), int(0.2 * Ndata)])
     train_loader = DataLoader(dataset=train_data, batch_size=batch_size, shuffle=True)
-    test_loader = DataLoader(dataset=test_data, batch_size=batch_size, shuffle=False)
+    test_loader = DataLoader(dataset=test_data, batch_size=int(batch_size/4), shuffle=False)
     
     # model setting
     shape = [nx, ny]

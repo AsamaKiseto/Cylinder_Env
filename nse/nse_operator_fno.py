@@ -21,11 +21,11 @@ def get_args(argv=None):
     parser.add_argument('--modes', default=12, type=int, help='the number of modes of Fourier layer')
     parser.add_argument('--width', default=20, type=int, help='the number of width of FNO layer')
     
-    parser.add_argument('--batch', default=200, type=int, help = 'batch size')
-    parser.add_argument('--epochs', default=1000, type=int, help = 'Number of Epochs')
+    parser.add_argument('--batch', default=64, type=int, help = 'batch size')
+    parser.add_argument('--epochs', default=500, type=int, help = 'Number of Epochs')
     parser.add_argument('--lr', default=1e-2, type=float, help='learning rate')
     parser.add_argument('--wd', default=1e-4, type=float, help='weight decay')
-    parser.add_argument('--step_size', default=200, type=int, help='scheduler step size')
+    parser.add_argument('--step_size', default=50, type=int, help='scheduler step size')
     parser.add_argument('--gamma', default=0.5, type=float, help='scheduler factor')
     parser.add_argument('--weight', default=1.0, type=float, help='weight of recon loss')
     parser.add_argument('--gpu', default=0, type=int, help='device number')
@@ -61,11 +61,11 @@ if __name__=='__main__':
     data, _, Cd, Cl, ang_vel = torch.load('data/nse_data_N0_256_nT_400')
     print('load data finished')
     tg = 40     # sample evrey 10 timestamps
-    N0 = 16
+    N0 = 64
     data = data[:N0, ::tg, :, :, 2:]  
     Cd = Cd[:N0, ::tg]
     Cl = Cl[:N0, ::tg]
-    ang_vel = ang_vel[:N0, ::10]
+    ang_vel = ang_vel[:N0, ::tg]
 
     # data param
     ny = data.shape[2] 
@@ -104,7 +104,7 @@ if __name__=='__main__':
     NSE_data = NSE_Dataset(data, Cd, Cl, ang_vel)
     train_data, test_data = random_split(NSE_data, [int(0.8 * Ndata), int(0.2 * Ndata)])
     train_loader = DataLoader(dataset=train_data, batch_size=batch_size, shuffle=True)
-    test_loader = DataLoader(dataset=test_data, batch_size=batch_size, shuffle=False)
+    test_loader = DataLoader(dataset=test_data, batch_size=int(batch_size/4), shuffle=False)
     
     # model setting
     model = FNO(modes, modes, width, L).to(device)
@@ -122,6 +122,8 @@ if __name__=='__main__':
         train_loss2 = AverageMeter()
         test_loss1 = AverageMeter()
         test_loss2 = AverageMeter()
+        train_loss1_max = AverageMeter()
+        train_loss2_max = AverageMeter()
 
         for x_train, y_train in train_loader:
             x_train, y_train = x_train.to(device), y_train.to(device)
@@ -131,15 +133,23 @@ if __name__=='__main__':
             in_train, f_train = x_train[:, :, :, :3], x_train[:, 0, 0, 3]
             out_train, Cd_train, Cl_train = y_train[:, :, :, :3], y_train[:, 0, 0, 3], y_train[:, 0, 0, 4]
             out_pred, Cd_pred, Cl_pred = model(in_train, f_train)
-            loss1 = F.mse_loss(out_pred, out_train, reduction='mean')
-            loss2 = F.mse_loss(Cd_pred, Cd_train, reduction='mean') + F.mse_loss(Cl_pred, Cl_train, reduction='mean')
+            # loss1 = F.mse_loss(out_pred, out_train, reduction='mean')
+            loss1 = rel_error(out_pred, out_train).mean()
+            # loss2 = F.mse_loss(Cd_pred, Cd_train, reduction='mean') + F.mse_loss(Cl_pred, Cl_train, reduction='mean')
+            loss2 = rel_error(Cd_pred, Cd_train).mean() + rel_error(Cl_pred, Cl_train).mean()
             loss = loss1 + loss2
             loss.backward()
 
             optimizer.step()
 
+            SS = ((out_pred - out_train)**2).mean(dim=-1)
+            SC = (Cd_pred - Cd_train)**2 + (Cl_pred - Cl_train)**2
+            max = (SS).max()
+            max_c = (SC).max()
             train_loss1.update(loss1.item(), x_train.shape[0])
             train_loss2.update(loss2.item(), x_train.shape[0])
+            train_loss1_max.update(max.item(), x_train.shape[0])
+            train_loss2_max.update(max_c.item(), x_train.shape[0])
         
         scheduler.step()
 
@@ -151,8 +161,10 @@ if __name__=='__main__':
                 in_test, f_test = x_test[:, :, :, :3], x_test[:, 0, 0, 3]
                 out_test, Cd_test, Cl_test = y_test[:, :, :, :3], y_test[:, 0, 0, 3], y_test[:, 0, 0, 4]
                 out_pred, Cd_pred, Cl_pred = model(in_test, f_test)
-                loss1 = F.mse_loss(out_pred, out_test, reduction='mean')
-                loss2 = F.mse_loss(Cd_pred, Cd_test, reduction='mean') + F.mse_loss(Cl_pred, Cl_test, reduction='mean')
+                # loss1 = F.mse_loss(out_pred, out_test, reduction='mean')
+                loss1 = rel_error(out_pred, out_test).mean()
+                # loss2 = F.mse_loss(Cd_pred, Cd_test, reduction='mean') + F.mse_loss(Cl_pred, Cl_test, reduction='mean')
+                loss2 = rel_error(Cd_pred, Cd_test).mean() + rel_error(Cl_pred, Cl_test).mean()
                 loss = loss1 + loss2
 
                 test_loss1.update(loss1.item(), x_test.shape[0])
@@ -164,8 +176,10 @@ if __name__=='__main__':
                     .format(epoch, t2-t1, train_loss1.avg, train_loss2.avg, test_loss1.avg, test_loss2.avg))
         
         end = '\r'
-        pbar.set_description('epoch {} | (time) epoch_time: {:1.3f} | (train) loss1: {:1.2e},  loss2: {:1.2e} | (test) loss1: {:1.2e}, loss2: {:1.2e}'
-                             .format(epoch, t2-t1, train_loss1.avg, train_loss2.avg, test_loss1.avg, test_loss2.avg))
+        # pbar.set_description('epoch {} | (time) epoch_time: {:1.3f} | (train) loss1: {:1.2e}, max {:1.2e} | (test) loss1: {:1.2e}, '
+        #                      .format(epoch, t2-t1, train_loss1.avg, train_loss1_max.avg, test_loss1.avg))
+        pbar.set_description('epoch {} | (time) epoch_time: {:1.3f} | (train) loss1: {:1.2e},  loss2: {:1.2e}, max: {:1.2e}| (test) loss1: {:1.2e}, loss2: {:1.2e}'
+                             .format(epoch, t2-t1, train_loss1.avg, train_loss2.avg, train_loss2_max.avg, test_loss1.avg, test_loss2.avg))
         pbar.update()
         
     ftext.close()

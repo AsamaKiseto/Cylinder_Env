@@ -85,7 +85,7 @@ if __name__ == '__main__':
     C_L_tensor = torch.Tensor(C_L)
     f_tensor = torch.Tensor(f)
 
-    data = [obs_tensor, reward_tensor, C_D_tensor, C_L_tensor, f]
+    data = [obs_tensor, reward_tensor, C_D_tensor, C_L_tensor, f_tensor]
 
     # save data
     torch.save(data, './data/nse_data_N0_{}_nT_{}_f1_{}_f2_{}'.format(N0, nT, args.f1, args.f2))

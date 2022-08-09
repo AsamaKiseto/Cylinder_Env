@@ -61,7 +61,7 @@ class FNO_layer(nn.Module):
     def forward(self, x):
         """ x: (batch, hidden_channels, dim_x, dim_t)"""
 
-        x = self.bn(x)
+        # x = self.bn(x)
         x1 = self.conv(x)
         x2 = self.w(x)
         x = x1 + x2
@@ -86,7 +86,7 @@ class FNO_layer_trans(nn.Module):
     def forward(self, x):
         """ x: (batch, hidden_channels, dim_x, dim_t)"""
 
-        x = self.bn(x)
+        # x = self.bn(x)
         x1 = self.conv(x)
         x2 = self.w(x)
         x = x1 + x2
@@ -113,7 +113,9 @@ class FNO(nn.Module):
 
         self.fc1 = nn.Linear(self.width, 128)
         self.fc2 = nn.Linear(128, 5)
-        
+
+        self.conv = nn.Conv2d(self.width, 2, 5, padding=2)
+
         # self.fc3 = nn.Linear(ny*nx*3, 2)
         # self.fcC = C_net(activate=nn.ReLU(), num_hiddens=[ny*nx*3, 1024, 512, 64, 2])
 
@@ -131,24 +133,28 @@ class FNO(nn.Module):
         # x = F.pad(x, [0,self.padding]) # pad the domain if input is non-periodic
 
         x = self.net(x)
+        # x = F.gelu(x)
 
         # x = x[..., :-self.padding]
+        c = self.conv(x)
         x = x.permute(0, 2, 3, 1) # pad the domain if input is non-periodic
         x = self.fc1(x)
         x = F.gelu(x)
         x = self.fc2(x)
         Cd = torch.mean(x[:, :, :, 3].reshape(x.shape[0], -1), 1)
         Cl = torch.mean(x[:, :, :, 4].reshape(x.shape[0], -1), 1)
+        # Cd = torch.mean(c[:, 0].reshape(c.shape[0], -1), 1)
+        # Cl = torch.mean(c[:, 1].reshape(c.shape[0], -1), 1)
         
         return x[:, :, :, :3], Cd, Cl
 
     def get_grid(self, shape, device):
         batchsize, nx, ny = shape[0], shape[1], shape[2]
-        gridy = torch.tensor(np.linspace(0, 2.2, nx), dtype=torch.float)
-        gridy = gridy.reshape(1, nx, 1, 1).repeat([batchsize, 1, ny, 1])
-        gridx = torch.tensor(np.linspace(0, 1, ny), dtype=torch.float)
-        gridx = gridx.reshape(1, 1, ny, 1).repeat([batchsize, nx, 1, 1])
-        return torch.cat((gridy, gridx), dim=-1).to(device)      
+        gridx = torch.tensor(np.linspace(0, 2.2, nx), dtype=torch.float)
+        gridx = gridx.reshape(1, nx, 1, 1).repeat([batchsize, 1, ny, 1])
+        gridy = torch.tensor(np.linspace(0, 0.41, ny), dtype=torch.float)
+        gridy = gridy.reshape(1, 1, ny, 1).repeat([batchsize, nx, 1, 1])
+        return torch.cat((gridx, gridy), dim=-1).to(device)      
 
 
 class state_en(nn.Module):
