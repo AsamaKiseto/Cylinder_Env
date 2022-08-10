@@ -63,7 +63,7 @@ if __name__=='__main__':
     print(f'epochs: {epochs}, batch_size: {batch_size}, lr: {lr}, step_size: {step_size}, gamma: {gamma}')
 
     lambda1, lambda2, lambda3, lambda4 = args.lambda1, args.lambda2, args.lambda3, args.lambda4
-    f_channels = 4
+    f_channels = args.f_channels
     print(f'lambda: {lambda1}, {lambda2}, {lambda3}, {lambda4}, f_channels: {f_channels}')
 
     # logs
