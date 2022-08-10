@@ -80,7 +80,7 @@ if __name__=='__main__':
     logs['test_loss_trans']=[]
     logs['test_loss_trans_latent']=[]
 
-    logs_fname = './logs/phase1_logs_' + args.logs_fname
+    logs_fname = './logs/phase1_' + args.logs_fname
         
     # load data
     data, _, Cd, Cl, ang_vel = torch.load('data/nse_data_N0_256_nT_400')
