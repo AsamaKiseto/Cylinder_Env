@@ -30,8 +30,10 @@ ny = env.params['dimy']
 print('dT: {}, nx: {}, ny: {}'.format(dT, nx, ny))
 nT = 400
 
-logs = torch.load("logs/control_ol")
-f = logs["f_optim"][0]
+logs = torch.load("logs/phase2_logs_test")
+f = logs["f_optim"]
+Cd_nn = logs['Cd_nn'][-1]
+Cl_nn = logs['Cl_nn'][-1]
 f = f.to(torch.device('cpu')).detach().numpy()
 obs = np.zeros(( nT+1, nx, ny, 5))
 C_D, C_L = np.zeros(nT), np.zeros(nT)

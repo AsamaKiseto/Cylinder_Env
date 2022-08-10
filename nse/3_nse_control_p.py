@@ -16,10 +16,10 @@ import argparse
 def get_args(argv=None):
     parser = argparse.ArgumentParser(description='Put your hyperparameters')
     
-    parser.add_argument('--operator_path', default='./logs/nse_operator_fno', type=str, help='path of operator weight')
-    parser.add_argument('--data_path', default='./data/nse_control_samples', type=str, help='path of control data')
+    parser.add_argument('--operator_path', default='phase1_logs_ex12', type=str, help='path of operator weight')
     parser.add_argument('--name', default='nse_control_p', type=str, help='experiment name')
     parser.add_argument('--data_num', default=0, type=int, help='data number')
+    parser.add_argument('--t_start', default=1, type=int, help='data number')
     
     parser.add_argument('--L', default=4, type=int, help='the number of layers')
     parser.add_argument('--modes', default=12, type=int, help='the number of modes of Fourier layer')
@@ -50,47 +50,70 @@ if __name__ == '__main__':
     # argparser
     args = get_args()
 
+    # path & load
+    data_path = './data/nse_data_N0_256_nT_400'
+    operator_path = './logs/' + args.operator_path
+
+    data, _, Cd, Cl, ang_vel = torch.load(data_path, map_location=lambda storage, loc: storage)
+    state_dict, logs_model = torch.load(operator_path)
+
     # log text
-    ftext = open('logs/nse_control_p.txt', mode="a", encoding="utf-8")
-    ftext.write(f"{args.name} | data_num: {args.data_num}\n")
+    ftext = open('logs/nse_control_fno.txt', mode="a", encoding="utf-8")
+    logs = dict()
+    logs['f_optim'] = []
+    logs['Cd_nn'] = []
+    logs['Cl_nn'] = []
+    logs['Cd_obs'] = []
+    logs['Cl_obs'] = []
 
     # param setting
     if args.gpu==-1:
         device = torch.device('cpu')
     else:
         device = torch.device('cuda:{}'.format(args.gpu))
-    operator_path = args.operator_path
-    data_path = args.data_path
-    data_num = args.data_num
-    L = args.L
-    modes = args.modes
-    width = args.width
-    lr = args.lr
     epochs = args.epochs
+    lr = args.lr
     step_size = args.step_size
     gamma = args.gamma
+
+    L = logs_model['args'].L
+    modes = logs_model['args'].modes
+    width = logs_model['args'].width
+    model_params = dict()
+    model_params['modes'] = modes
+    model_params['width'] = width
+    model_params['L'] = L
+
+    f_channels = logs_model['args'].f_channels
     
-    # load_data
-    data_path = './data/nse_data_N0_25_dtr_0.01_T_2'
-    data_num = 0
-    data, _, Cd, Cl, ang_vel = torch.load(data_path, map_location=lambda storage, loc: storage)
-    data_in = data[data_num].squeeze()[0].to(device)
-    ang_in = ang_vel[data_num][0]
-    print('ang: {}'.format(ang_vel[data_num]))
-    data_fin = data[data_num].squeeze()[0].to(device)
+    # data setting
+    data_num = args.data_num
+    t_start = args.t_start
+    
+    print('load data finished')
+    tg = logs_model['args'].tg     # sample evrey 10 timestamps
+    Ng = logs_model['args'].Ng
+    data = data[::Ng, ::tg, :, :, 2:]  
+    Cd = Cd[::Ng, ::tg]
+    Cl = Cl[::Ng, ::tg]
+    ang_vel = ang_vel[::Ng, ::tg]
+
+    ang_in = ang_vel[data_num][t_start]
+    # print('ang: {}'.format(ang_vel[data_num]))
+    data_in = data[data_num].squeeze()[t_start].to(device)
 
     # data params
-    ny = data.shape[2] 
-    nx = data.shape[3]
-    s = data.shape[2] * data.shape[3]     # ny * nx
+    nx = data.shape[2] 
+    ny = data.shape[3]
+    shape = [nx, ny]
+    # s = data.shape[2] * data.shape[3]     # ny * nx
     N0 = data.shape[0]                    # num of data sets
     nt = data.shape[1] - 1                # nt
-    print('N0: {}, nt: {}, ny: {}, nx: {}'.format(N0, nt, ny, nx))
-    nt = 10
+    Ndata = N0 * nt
+    print('N0: {}, nt: {}, nx: {}, ny: {}'.format(N0, nt, nx, ny))
 
-    # load model
-    load_model = FNO(modes, modes, width, L).to(device)
-    state_dict = torch.load(operator_path)
+    # load_model
+    load_model = FNO_ensemble(model_params, shape, f_channels=f_channels).to(device)
     load_model.load_state_dict(state_dict)
     load_model.eval()
 
