@@ -16,7 +16,7 @@ def get_args(argv=None):
     parser = argparse.ArgumentParser(description = 'Put your hyperparameters')
 
     parser.add_argument('--name', default='nse_operator', type=str, help='experiments name')
-    parser.add_argument('--logs_fname', default='nse_operator_logs', type=str, help='logs file name')
+    parser.add_argument('--logs_fname', default='test', type=str, help='logs file name')
     
     parser.add_argument('--L', default=2, type=int, help='the number of layers')
     parser.add_argument('--modes', default=16, type=int, help='the number of modes of Fourier layer')
@@ -59,7 +59,6 @@ if __name__=='__main__':
     wd = args.wd
     step_size = args.step_size
     gamma = args.gamma
-
     print(f'epochs: {epochs}, batch_size: {batch_size}, lr: {lr}, step_size: {step_size}, gamma: {gamma}')
 
     lambda1, lambda2, lambda3, lambda4 = args.lambda1, args.lambda2, args.lambda3, args.lambda4
@@ -68,7 +67,6 @@ if __name__=='__main__':
 
     # logs
     logs = dict()
-
     logs['args'] = args
     logs['train_loss']=[]
     logs['train_loss_f_t_rec']=[]
@@ -81,7 +79,8 @@ if __name__=='__main__':
     logs['test_loss_u_t_rec']=[]
     logs['test_loss_trans']=[]
     logs['test_loss_trans_latent']=[]
-    logs_fname = './logs/' + args.logs_fname
+
+    logs_fname = './logs/phase1_logs_' + args.logs_fname
         
     # load data
     data, _, Cd, Cl, ang_vel = torch.load('data/nse_data_N0_256_nT_400')
@@ -104,7 +103,6 @@ if __name__=='__main__':
     Cl = Cl[:, :nt]
     ang_vel = ang_vel[:, :nt]
     Ndata = N0 * nt
-    
     print('N0: {}, nt: {}, nx: {}, ny: {}, device: {}'.format(N0, nt, nx, ny, device))
     
     class NSE_Dataset(Dataset):
@@ -213,8 +211,8 @@ if __name__=='__main__':
                 in_rec = x_rec[:, :, :, :3]
                 # prediction items
                 out_pred = pred[:, :, :, :3]
-                Cd_pred = torch.mean(pred[:, :, :, 3].reshape(batch_size, -1), 1)
-                Cl_pred = torch.mean(pred[:, :, :, 4].reshape(batch_size, -1), 1)
+                Cd_pred = torch.mean(pred[:, :, :, -2].reshape(batch_size, -1), 1)
+                Cl_pred = torch.mean(pred[:, :, :, -1].reshape(batch_size, -1), 1)
                 loss1 = rel_error(out_pred, out_test).mean()\
                         + rel_error(Cd_pred, Cd_test).mean()\
                         + rel_error(Cl_pred, Cl_test).mean()
