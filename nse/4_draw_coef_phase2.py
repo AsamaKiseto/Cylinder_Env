@@ -46,85 +46,34 @@ if __name__ == '__main__':
     # argparser
     args = get_args()
 
-    # path
-    data_path = './data/nse_data_N0_256_nT_400'
-    operator_path = 'logs/phase1_logs_ex12'
+    t_start = args.t_start
+    logs = torch.load('logs/phase2_logs_test')
+    Cd_nn = logs['Cd_nn']
+    Cl_nn = logs['Cl_nn']
 
-    # mosel params setting
-    state_dict, logs = torch.load(operator_path)
-    params_args = logs['args']
-    L = params_args.L
-    modes = params_args.modes
-    width = params_args.width
-    model_params = dict()
-    model_params['modes'] = modes
-    model_params['width'] = width
-    model_params['L'] = L
-    f_channels = params_args.f_channels
+    nt = Cd_nn[0].shape[0]
+    Nk = 50
+    k = np.arange(Nk)*(500//Nk)
 
-    # load logs
-    data, _, Cd, Cl, ang_vel  = torch.load(data_path)
-    tg = 20     # sample evrey 10 timestamps
-    Ng = 1
-    data = data[::Ng, ::tg, :, :, 2:]  
-    Cd = Cd[::Ng, ::tg]
-    Cl = Cl[::Ng, ::tg]
-    ang_vel = ang_vel[::Ng, ::tg]
+    plt.figure(figsize=(15, 12))
 
-    # data param
-    nx = data.shape[2] 
-    ny = data.shape[3]
-    shape = [nx, ny]
-    s = data.shape[2] * data.shape[3]     # ny * nx
-    N0 = data.shape[0]                    # num of data sets
-    nt = data.shape[1] - 1             # nt
-    t = np.arange(nt) * 0.2
-
-    t_start = 1
-    k = -1   # k th traj
-    print(ang_vel[k])
-
-    # model
-    load_model = FNO_ensemble(model_params, shape, f_channels=f_channels)
-    load_model.load_state_dict(state_dict)
-    load_model.eval()
-
-    for param in list(load_model.parameters()):
-        param.requires_grad = False
-
-    data_in = data[k].squeeze()[t_start]
-    out_nn = data_in.reshape(nx, ny, 3)
-    Cd_nn = torch.zeros(nt)
-    Cl_nn = torch.zeros(nt)
-    ang_optim = ang_vel[k]
-
-    out_nn = data_in.reshape(1, nx, ny, 3)
-    for i in range(t_start, nt):
-        ang_nn = ang_optim[i].reshape(1)
-        pred, _, _, _ = load_model(out_nn, ang_nn)
-        out_nn = pred[:, :, :, :3]
-        Cd_nn[i] = torch.mean(pred[:, :, :, -2])
-        Cl_nn[i] = torch.mean(pred[:, :, :, -1])
-
-    print(Cd_nn)
-    print(Cd[k])
-
-    plt.figure(figsize=(12,10))
     ax1 = plt.subplot2grid((2, 2), (0, 0), colspan=2)
     ax2 = plt.subplot2grid((2, 2), (1, 0), colspan=2)
 
-    ax1.set_title('Samples from data', size=15)
-    ax1.plot(t[t_start:], Cd[k][t_start:], color='blue')
-    ax1.grid(True, lw=0.4, ls="--", c=".50")
-    ax1.set_xlim(0, 4)
-    ax1.set_ylabel(r"$C_d$", fontsize=15)
+    t_nn = (np.arange(nt) + 1) * 0.01 * nt
 
-    ax2.plot(t[t_start:], Cl[k][t_start:], color='blue')
-    ax2.grid(True, lw=0.4, ls="--", c=".50")
-    ax2.set_ylabel(r"$C_l$", fontsize=15)
-    ax2.set_xlabel(r"$t$", fontsize=15)
-    ax2.set_xlim(0, 4)
-    ax1.plot(t[t_start:], Cd_nn[t_start:], color='red')
-    ax2.plot(t[t_start:], Cl_nn[t_start:], color='red')
+    for i in range(Nk):
+        Cd = Cd_nn[i].to(torch.device('cpu')).detach().numpy()
+        Cl = Cl_nn[i].to(torch.device('cpu')).detach().numpy()
 
-    plt.savefig(f'coef_phase1_#{k}_t_start_{t_start}.jpg')
+        ax1.plot(t_nn[t_start:], Cd[t_start:], color = cmap(i/(Nk+1)))
+        ax1.grid(True, lw=0.4, ls="--", c=".50")
+        ax1.set_ylabel(r"$Cd$", fontsize=15)
+        ax1.set_xlim(0, 4)
+
+        ax2.plot(t_nn[t_start:], Cl[t_start:], color = cmap(i/(Nk+1)))
+        ax2.grid(True, lw=0.4, ls="--", c=".50")
+        ax2.set_ylabel(r"$Cl$", fontsize=15)
+        ax2.set_xlim(0, 4)
+
+    plt.savefig(f'coef_phase2_#{k}_t_start_{t_start}.jpg')

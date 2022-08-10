@@ -19,7 +19,7 @@ def get_args(argv=None):
     
     parser.add_argument('--operator_path', default='phase1_logs_ex12', type=str, help='path of operator weight')
     parser.add_argument('--data_num', default=200, type=int, help='data number')
-    parser.add_argument('--t_start', default=2, type=int, help='data number')
+    parser.add_argument('--t_start', default=1, type=int, help='data number')
     
     parser.add_argument('--gpu', default=0, type=int, help='device number')
     parser.add_argument('--epochs', default=500, type=int, help='number of Epochs')

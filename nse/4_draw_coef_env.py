@@ -83,7 +83,8 @@ if __name__ == '__main__':
     tg = 20
     nT = nt * tg
 
-    f = np.random.rand(nt) * 4 - 2
+    # f = np.random.rand(nt) * 4 - 2
+    f = np.arange(nt) / nt * 4 - 2
     f_nn = torch.Tensor(f)
     print(f)
 
@@ -95,8 +96,8 @@ if __name__ == '__main__':
     Cd = np.zeros(nT)
     Cl = np.zeros(nT)
 
-    t_nn = np.arange(nt) * 0.2
-    t = np.arange(nt * tg) * 0.01
+    t_nn = (np.arange(nt) + 1) * 0.2
+    t = (np.arange(nt * tg)) * 0.01 
     
     # model
     load_model = FNO_ensemble(model_params, shape, f_channels=f_channels)
@@ -109,17 +110,19 @@ if __name__ == '__main__':
     obs[0] = env.reset()
     for i in range(t_start):
         for j in range(tg):
-            obs[i*tg + j + 1], _, Cd[i*nt + j], Cl[i*nt + j] = env.step(f[i])
+            obs[i*tg + j + 1], _, Cd[i*tg + j], Cl[i*tg + j] = env.step(f[i])
 
     out_nn = torch.Tensor(obs[tg * t_start, :, :, 2:]).reshape(1, nx, ny, 3)
     for i in range(t_start, nt):
-        print(f'start #{i}')
+        print(f'start #{i} f: {f[i]}')
         for j in range(tg):
-            obs[i*tg + j + 1], _, Cd[i*nt + j], Cl[i*nt + j] = env.step(f[i])
+            obs[i*tg + j + 1], _, Cd[i*tg + j], Cl[i*tg + j] = env.step(f[i])
         pred, _, _, _ = load_model(out_nn, f_nn[i].reshape(1))
         out_nn = pred[:, :, :, :3]
         Cd_nn[i] = torch.mean(pred[:, :, :, -2])
         Cl_nn[i] = torch.mean(pred[:, :, :, -1])
+    
+    torch.save([obs, Cd, Cl, obs_nn, Cd_nn, Cl_nn], 'logs/phase1_env_logs')
 
     plt.figure(figsize=(12,10))
     ax1 = plt.subplot2grid((2, 2), (0, 0), colspan=2)
@@ -141,9 +144,7 @@ if __name__ == '__main__':
     ax1.plot(t_nn[t_start:], Cd_nn[t_start:], color='red')
     ax2.plot(t_nn[t_start:], Cl_nn[t_start:], color='red')
 
-    ax1.plot(t_nn, Cd[tg::], color='blue')
-    ax2.plot(t_nn, Cl[tg::], color='blue')
-
-    torch.save([obs, Cd, Cl, obs_nn, Cd_nn, Cl_nn], 'logs/phase1_env_logs')
+    ax1.plot(t_nn, Cd[(tg-1)::tg], color='blue')
+    ax2.plot(t_nn, Cl[(tg-1)::tg], color='blue')
 
     plt.savefig(f'coef_phase1.jpg')

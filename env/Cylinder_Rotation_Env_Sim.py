@@ -47,8 +47,8 @@ class Cylinder_Rotation_Sim:
     def set_state_funcval(self, initu, initp):
         assign(self.solver.sol, [initu, initp])
     
-    def set_state_vector(self, init_state_vector):
-        self.solver.sol.vector()[:] = init_state_vector
+    def set_init_vector(self, init_state_vector):
+        self.init_sol_1.vector()[:] = init_state_vector
 
     def reset_state_vector(self):
         self.solver.sol.vector()[:] = self.init_sol_n.vector()
