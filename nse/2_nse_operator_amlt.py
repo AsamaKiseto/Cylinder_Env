@@ -83,7 +83,7 @@ if __name__=='__main__':
     logs_fname = './logs/phase1_' + args.logs_fname
         
     # load data
-    data, _, Cd, Cl, ang_vel = torch.load('data/nse_data_N0_256_nT_400')
+    data, _, Cd, Cl, ang_vel = torch.load('data/nse_data')
     tg = args.tg     # sample evrey 20 timestamps
     Ng = args.Ng
     data = data[::Ng, ::tg, :, :, 2:]  

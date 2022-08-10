@@ -85,6 +85,7 @@ if __name__ == '__main__':
 
     f = np.random.rand(nt) * 4 - 2
     f_nn = torch.Tensor(f)
+    print(f)
 
     obs_nn = torch.zeros(nt, nx, ny, 3)
     Cd_nn = torch.zeros(nt)
@@ -115,7 +116,6 @@ if __name__ == '__main__':
         print(f'start #{i}')
         for j in range(tg):
             obs[i*tg + j + 1], _, Cd[i*nt + j], Cl[i*nt + j] = env.step(f[i])
-        print(f[i])
         pred, _, _, _ = load_model(out_nn, f_nn[i].reshape(1))
         out_nn = pred[:, :, :, :3]
         Cd_nn[i] = torch.mean(pred[:, :, :, -2])
@@ -126,13 +126,13 @@ if __name__ == '__main__':
     ax2 = plt.subplot2grid((2, 2), (1, 0), colspan=2)
 
     ax1.set_title('Samples from data', size=15)
-    ax1.plot(t, Cd, color='blue')
+    ax1.plot(t, Cd, color='yellow')
     ax1.grid(True, lw=0.4, ls="--", c=".50")
     ax1.set_xlim(0, 4)
     # ax1.set_ylim(2.5, 4)
     ax1.set_ylabel(r"$C_d$", fontsize=15)
 
-    ax2.plot(t, Cl, color='blue')
+    ax2.plot(t, Cl, color='yellow')
     ax2.grid(True, lw=0.4, ls="--", c=".50")
     ax2.set_ylabel(r"$C_l$", fontsize=15)
     ax2.set_xlabel(r"$t$", fontsize=15)
@@ -140,5 +140,10 @@ if __name__ == '__main__':
     
     ax1.plot(t_nn[t_start:], Cd_nn[t_start:], color='red')
     ax2.plot(t_nn[t_start:], Cl_nn[t_start:], color='red')
+
+    ax1.plot(t_nn, Cd[tg::], color='blue')
+    ax2.plot(t_nn, Cl[tg::], color='blue')
+
+    torch.save([obs, Cd, Cl, obs_nn, Cd_nn, Cl_nn], 'logs/phase1_env_logs')
 
     plt.savefig(f'coef_phase1.jpg')
