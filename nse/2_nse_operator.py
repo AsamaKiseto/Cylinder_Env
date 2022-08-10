@@ -16,22 +16,22 @@ from utils import *
 def get_args(argv=None):
     parser = argparse.ArgumentParser(description = 'Put your hyperparameters')
     
-    parser.add_argument('--L', default=3, type=int, help='the number of layers')
-    parser.add_argument('--modes', default=16, type=int, help='the number of modes of Fourier layer')
-    parser.add_argument('--width', default=32, type=int, help='the number of width of FNO layer')
+    parser.add_argument('--L', default=2, type=int, help='the number of layers')
+    parser.add_argument('--modes', default=12, type=int, help='the number of modes of Fourier layer')
+    parser.add_argument('--width', default=20, type=int, help='the number of width of FNO layer')
     
     parser.add_argument('--batch_size', default=64, type=int, help = 'batch size')
-    parser.add_argument('--epochs', default=500, type=int, help = 'Number of Epochs')
+    parser.add_argument('--epochs', default=2000, type=int, help = 'Number of Epochs')
     parser.add_argument('--lr', default=1e-3, type=float, help='learning rate')
     parser.add_argument('--wd', default=1e-4, type=float, help='weight decay')
-    parser.add_argument('--step_size', default=50, type=int, help='scheduler step size')
+    parser.add_argument('--step_size', default=200, type=int, help='scheduler step size')
     parser.add_argument('--gamma', default=0.7, type=float, help='scheduler factor')
     parser.add_argument('--gpu', default=0, type=int, help='device number')
 
-    parser.add_argument('--lambda1', default=1, type=float, help='weight of losses1')
-    parser.add_argument('--lambda2', default=0.01, type=float, help='weight of losses2')
+    parser.add_argument('--lambda1', default=10, type=float, help='weight of losses1')
+    parser.add_argument('--lambda2', default=0.1, type=float, help='weight of losses2')
     parser.add_argument('--lambda3', default=0.01, type=float, help='weight of losses3')
-    parser.add_argument('--lambda4', default=0.01, type=float, help='weight of losses4')
+    parser.add_argument('--lambda4', default=1, type=float, help='weight of losses4')
     parser.add_argument('--f_channels', default=1, type=int, help='channels of f encode')
     
     return parser.parse_args(argv)
@@ -87,7 +87,7 @@ if __name__=='__main__':
     data, _, Cd, Cl, ang_vel = torch.load('data/nse_data_N0_256_nT_400')
     print('load data finished')
     tg = 20     # sample evrey 10 timestamps
-    Ng = 64
+    Ng = 1
     data = data[::Ng, ::tg, :, :, 2:]  
     Cd = Cd[::Ng, ::tg]
     Cl = Cl[::Ng, ::tg]

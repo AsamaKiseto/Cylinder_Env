@@ -15,7 +15,8 @@ from utils import *
 def get_args(argv=None):
     parser = argparse.ArgumentParser(description = 'Put your hyperparameters')
 
-    parser.add_argument('--name', default='nse_operator_fno_test', type=str, help='experiments name')
+    parser.add_argument('--name', default='nse_operator', type=str, help='experiments name')
+    parser.add_argument('--logs_fname', default='nse_operator_logs', type=str, help='logs file name')
     
     parser.add_argument('--L', default=2, type=int, help='the number of layers')
     parser.add_argument('--modes', default=16, type=int, help='the number of modes of Fourier layer')
@@ -80,7 +81,7 @@ if __name__=='__main__':
     logs['test_loss_u_t_rec']=[]
     logs['test_loss_trans']=[]
     logs['test_loss_trans_latent']=[]
-    logs_fname = './logs/operator_lambda_{}_{}_{}_{}_lr_{}_epochs_{}'.format(lambda1, lambda2, lambda3, lambda4, lr, epochs)
+    logs_fname = './logs/' + args.logs_fname
         
     # load data
     data, _, Cd, Cl, ang_vel = torch.load('data/nse_data_N0_256_nT_400')
