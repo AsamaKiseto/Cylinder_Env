@@ -113,12 +113,14 @@ if __name__ == '__main__':
             obs[i*tg + j + 1], _, Cd[i*tg + j], Cl[i*tg + j] = env.step(f[i])
 
     out_nn = torch.Tensor(obs[tg * t_start, :, :, 2:]).reshape(1, nx, ny, 3)
+    obs_nn[0] = out_nn
     for i in range(t_start, nt):
         print(f'start #{i} f: {f[i]}')
         for j in range(tg):
             obs[i*tg + j + 1], _, Cd[i*tg + j], Cl[i*tg + j] = env.step(f[i])
         pred, _, _, _ = load_model(out_nn, f_nn[i].reshape(1))
         out_nn = pred[:, :, :, :3]
+        obs_nn[i] = out_nn
         Cd_nn[i] = torch.mean(pred[:, :, :, -2])
         Cl_nn[i] = torch.mean(pred[:, :, :, -1])
     
