@@ -32,15 +32,17 @@ nT = 400
 
 logs = torch.load("logs/phase2_logs_test")
 f = logs["f_optim"]
-Cd_nn = logs['Cd_nn'][-1]
-Cl_nn = logs['Cl_nn'][-1]
+Cd_nn = logs['Cd_nn'][-1].to(torch.device('cpu')).detach().numpy()
+Cl_nn = logs['Cl_nn'][-1].to(torch.device('cpu')).detach().numpy()
 f = f.to(torch.device('cpu')).detach().numpy()
 obs = np.zeros(( nT+1, nx, ny, 5))
 C_D, C_L = np.zeros(nT), np.zeros(nT)
 
 obs[0] = env.reset()
 for t in range(nT):
-    obs[t], _, C_D[t], C_D[t] = env.step(f[t//20])
+    obs[t], _, C_D[t], C_L[t] = env.step(f[t//20])
+    if(t%40 == 0):
+        print(f'# {t}')
 
 # np to tensor
 obs_tensor = torch.Tensor(obs)
@@ -48,7 +50,7 @@ C_D_tensor = torch.Tensor(C_D)
 C_L_tensor = torch.Tensor(C_L)
 f_tensor = torch.Tensor(f)
 
-data = [obs_tensor, C_D_tensor, C_L_tensor, f]
+data = [obs, C_D, C_L, f, Cd_nn, Cl_nn]
 
 # save data
-torch.save(data, './data/nse_data_control_test')
+torch.save(data, './data/phase2_data_test')

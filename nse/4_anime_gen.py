@@ -19,7 +19,6 @@ fig, ax = plt.subplots(figsize=((xh - xl)*figsizer,(yh-yl)*figsizer))
 ax.axis('equal')
 # ax.set(xlim=(0, 2.2), ylim=(0, 0.41))
 ax.set(xlim=(xl, xh), ylim=(yl, yh))
-print('end')
 
 def animate(i):
     ax.clear()

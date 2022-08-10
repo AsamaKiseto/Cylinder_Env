@@ -18,12 +18,12 @@ def get_args(argv=None):
     parser = argparse.ArgumentParser(description='Put your hyperparameters')
     
     parser.add_argument('--operator_path', default='phase1_logs_ex12', type=str, help='path of operator weight')
-    parser.add_argument('--data_num', default=128, type=int, help='data number')
-    parser.add_argument('--t_start', default=1, type=int, help='data number')
+    parser.add_argument('--data_num', default=200, type=int, help='data number')
+    parser.add_argument('--t_start', default=2, type=int, help='data number')
     
     parser.add_argument('--gpu', default=0, type=int, help='device number')
     parser.add_argument('--epochs', default=500, type=int, help='number of Epochs')
-    parser.add_argument('--lr', default=1e-1, type=float, help='learning rate')
+    parser.add_argument('--lr', default=5e-1, type=float, help='learning rate')
     parser.add_argument('--step_size', default=100, type=int, help='scheduler step size')
     parser.add_argument('--gamma', default=0.5, type=float, help='scheduler factor')
 
@@ -60,6 +60,7 @@ if __name__ == '__main__':
     logs['obs_nn'] = []
     logs['Cd_nn'] = []
     logs['Cl_nn'] = []
+    logs['loss'] = []
 
     # param setting
     if args.gpu==-1:
@@ -93,7 +94,7 @@ if __name__ == '__main__':
     Cl = Cl[::Ng, ::tg]
     ang_vel = ang_vel[::Ng, ::tg]
 
-    ang_in = ang_vel[data_num][t_start]
+    print(f'ang_vel: {ang_vel[data_num]}')
     data_in = data[data_num].squeeze()[t_start].to(device)
 
     # data params
@@ -114,11 +115,9 @@ if __name__ == '__main__':
         param.requires_grad = False
 
     # training
-    obs_nn = data_orig[data_num]
     ang_optim = torch.rand(nt).to(device)
     ang_optim[:t_start] = ang_vel[data_num][:t_start]
     ang_optim.requires_grad = True
-    print('ang_optim: {}'.format(ang_optim.size()))
     
     optimizer = torch.optim.Adam([ang_optim], lr=lr)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=step_size, gamma=gamma)
@@ -139,7 +138,6 @@ if __name__ == '__main__':
             ang_nn = ang_optim[i].reshape(1)
             pred, _, f_rec[i], _ = load_model(out_nn, ang_nn)
             out_nn = pred[:, :, :, :3]
-            obs_nn[i, :, :, 2:] = out_nn.squeeze()
             Cd_nn[i] = torch.mean(pred[:, :, :, -2])
             Cl_nn[i] = torch.mean(pred[:, :, :, -1])
             # ang_obs = ang_optim[i].to(torch.device('cpu')).detach().numpy()
@@ -149,7 +147,7 @@ if __name__ == '__main__':
             # print(ang_optim[i].item(), Cd_nn[i].item(), Cd_obs[i].item(), Cl_nn[i].item(), Cl_obs[i].item())
         
         loss = torch.mean(Cd_nn[t_start:] ** 2) + 0.1 * torch.mean(Cl_nn[t_start:] ** 2)
-        loss += 0.1 * torch.mean((ang_optim[t_start:] - f_rec[t_start:]) ** 2)
+        # loss += 0.05 * torch.mean((ang_optim[t_start:] - f_rec[t_start:]) ** 2)
         # loss += 0.001 * torch.mean(ang_optim.squeeze() ** 2)
         print("epoch: {:4}  loss: {:1.6f}  Cd_nn: {:1.6f}  Cd_obs: {:1.6f}  Cl_nn: {:1.6f}  Cl_obs: {:1.6f}  ang_optim: {:1.6f}"
               .format(epoch, loss, Cd_nn[t_start:].mean(), Cd_obs[t_start:].mean(), Cl_nn[t_start:].mean(), Cl_obs[t_start:].mean(), ang_optim[t_start:].mean()))
@@ -157,15 +155,14 @@ if __name__ == '__main__':
         optimizer.step()
         scheduler.step()
         
+        logs['loss'].append(loss)
         logs['Cd_nn'].append(Cd_nn)
         logs['Cl_nn'].append(Cl_nn)
         # save log
-        ftext.write("epoch: {:4}  loss: {:1.6f}  Cd_nn: {:1.6f}  Cd_obs: {:1.6f}  Cl_nn: {:1.6f}  Cl_obs: {:1.6f}  ang_optim: {}"
+        ftext.write("epoch: {:4}  loss: {:1.6f}  Cd_nn: {:1.6f}  Cd_obs: {:1.6f}  Cl_nn: {:1.6f}  Cl_obs: {:1.6f}  ang_optim: {}\n"
                     .format(epoch, loss, Cd_nn[t_start:].mean(), Cd_obs[t_start:].mean(), Cl_nn[t_start:].mean(), Cl_obs[t_start:].mean(), ang_optim[t_start:]))
     ftext.close()
 
-    print(ang_vel[data_num])
     print(ang_optim)
-    logs['obs_nn'] = obs_nn
     logs['f_optim'] = ang_optim
     torch.save(logs, 'logs/phase2_logs_test')
