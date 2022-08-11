@@ -1,7 +1,7 @@
 from multiprocessing import reduction
 import numpy as np
 import torch
-import torch.nn.functional as F
+from torch.nn.functional import normalize
 from torch.utils.data import Dataset, DataLoader
 from torch.utils.data.dataset import random_split
 from timeit import default_timer
@@ -68,6 +68,7 @@ if __name__=='__main__':
     # logs
     logs = dict()
     logs['args'] = args
+    logs['data_norm'] = dict()
     logs['train_loss']=[]
     logs['train_loss_f_t_rec']=[]
     logs['train_loss_u_t_rec']=[]
@@ -80,7 +81,7 @@ if __name__=='__main__':
     logs['test_loss_trans']=[]
     logs['test_loss_trans_latent']=[]
 
-    logs_fname = './logs/phase1_' + args.logs_fname
+    logs_fname = './logs/phase1_' + args.logs_fname + '_norm'
         
     # load data
     data, _, Cd, Cl, ang_vel = torch.load('data/nse_data')
@@ -104,6 +105,23 @@ if __name__=='__main__':
     ang_vel = ang_vel[:, :nt]
     Ndata = N0 * nt
     print('N0: {}, nt: {}, nx: {}, ny: {}, device: {}'.format(N0, nt, nx, ny, device))
+
+    # data pre
+    Cd_mean = Cd.mean().reshape(1, 1).repeat(N0, nt)
+    Cd_var = ((Cd-Cd_mean)**2).mean().reshape(1, 1).repeat(N0, nt)
+    Cl_mean = Cl.mean().reshape(1, 1).repeat(N0, nt)
+    Cl_var = ((Cl-Cl_mean)**2).mean().reshape(1, 1).repeat(N0, nt)
+    ang_vel_mean = ang_vel.mean().reshape(1, 1).repeat(N0, nt)
+    ang_vel_var = ((ang_vel-ang_vel_mean)**2).mean().reshape(1, 1).repeat(N0, nt)
+    
+    Cd = (Cd - Cd_mean)/Cd_var
+    Cl = (Cl - Cl_mean)/Cl_var
+    ang_vel = (ang_vel - ang_vel_mean)/ang_vel_var
+    print(Cd.mean(), Cl.mean(), ang_vel.mean())
+
+    logs['data_norm']['Cd'] = [Cd_mean, Cd_var]
+    logs['data_norm']['Cl'] = [Cl_mean, Cl_var]
+    logs['data_norm']['f'] = [ang_vel_mean, ang_vel_var]
     
     class NSE_Dataset(Dataset):
         def __init__(self, data, Cd, Cl, ang_vel):
@@ -111,7 +129,7 @@ if __name__=='__main__':
             Cl = Cl.reshape(N0, nt, 1, 1, 1).repeat([1, 1, nx, ny, 1]).reshape(-1, nx, ny, 1)
             ang_vel = ang_vel.reshape(N0, nt, 1, 1, 1).repeat([1, 1, nx, ny, 1]).reshape(-1, nx, ny, 1)
             input_data = data[:, :-1].reshape(-1, nx, ny, 3)
-            output_data = data[:, 1:].reshape(-1, nx, ny, 3)
+            output_data = data[:, 1:].reshape(-1, nx, ny, 3) - input_data
 
             self.input_data = torch.cat((input_data, ang_vel), dim=-1)
             self.output_data = torch.cat((output_data, Cd, Cl), dim=-1)

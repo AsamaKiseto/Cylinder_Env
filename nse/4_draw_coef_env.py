@@ -79,11 +79,13 @@ if __name__ == '__main__':
     # data param
     nx, ny = 128, 64
     shape = [nx, ny]
-    nt = 20
+    nt = 80
     tg = 20
     nT = nt * tg
+    dt = 0.01
 
     # f = np.random.rand(nt) * 4 - 2
+    f = np.array([-1.60036191, 1.39814498, -1.18316184, 1.47186751, 1.20180103, -0.05713905, 0.72856494, -0.16206131, 0.55332571, 1.60028524, -1.12861622, 1.84941503,0.10701448, -1.59605537, 1.89202669, 0.04055561, 1.20823299, -0.61155347, -1.02384344, -0.04485761])
     f = np.arange(nt) / nt * 4 - 2
     f_nn = torch.Tensor(f)
     print(f)
@@ -127,13 +129,14 @@ if __name__ == '__main__':
     torch.save([obs, Cd, Cl, obs_nn, Cd_nn, Cl_nn], 'logs/phase1_env_logs')
 
     plt.figure(figsize=(12,10))
-    ax1 = plt.subplot2grid((2, 2), (0, 0), colspan=2)
-    ax2 = plt.subplot2grid((2, 2), (1, 0), colspan=2)
+    ax1 = plt.subplot2grid((3, 2), (0, 0), colspan=2)
+    ax2 = plt.subplot2grid((3, 2), (1, 0), colspan=2)
+    ax3 = plt.subplot2grid((3, 2), (2, 0), colspan=2)
 
     ax1.set_title('Samples from data', size=15)
     ax1.plot(t, Cd, color='yellow')
     ax1.grid(True, lw=0.4, ls="--", c=".50")
-    ax1.set_xlim(0, 4)
+    ax1.set_xlim(0, nt * tg * dt)
     # ax1.set_ylim(2.5, 4)
     ax1.set_ylabel(r"$C_d$", fontsize=15)
 
@@ -141,12 +144,23 @@ if __name__ == '__main__':
     ax2.grid(True, lw=0.4, ls="--", c=".50")
     ax2.set_ylabel(r"$C_l$", fontsize=15)
     ax2.set_xlabel(r"$t$", fontsize=15)
-    ax2.set_xlim(0, 4)
+    ax2.set_xlim(0, nt * tg * dt)
     
-    ax1.plot(t_nn[t_start:], Cd_nn[t_start:], color='red')
-    ax2.plot(t_nn[t_start:], Cl_nn[t_start:], color='red')
+    ax1.plot(t_nn[t_start-1:-1], Cd_nn[t_start:], color='red')
+    ax2.plot(t_nn[t_start-1:-1], Cl_nn[t_start:], color='red')
 
     ax1.plot(t_nn, Cd[(tg-1)::tg], color='blue')
     ax2.plot(t_nn, Cl[(tg-1)::tg], color='blue')
+
+    obs_sps = obs[::tg][1:][...,2:]
+    print(obs_sps.shape)
+    obs_nn = obs_nn.detach().numpy()
+    print(obs_nn.shape)
+    obs_var = obs_sps - obs_nn
+    obs_var = np.mean((obs_var.reshape(nt, -1)**2), 1)
+    ax3.plot(t_nn, obs_var)
+    ax3.grid(True, lw=0.4, ls="--", c=".50")
+    ax3.set_ylabel(r"$state$", fontsize=15)
+    ax3.set_xlim(0, nt * tg * dt)
 
     plt.savefig(f'coef_phase1.jpg')
