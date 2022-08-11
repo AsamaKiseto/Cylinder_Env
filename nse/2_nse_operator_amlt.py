@@ -117,7 +117,6 @@ if __name__=='__main__':
     Cd = (Cd - Cd_mean)/Cd_var
     Cl = (Cl - Cl_mean)/Cl_var
     ang_vel = (ang_vel - ang_vel_mean)/ang_vel_var
-    print(Cd.mean(), Cl.mean(), ang_vel.mean())
 
     logs['data_norm']['Cd'] = [Cd_mean, Cd_var]
     logs['data_norm']['Cl'] = [Cl_mean, Cl_var]
@@ -129,7 +128,7 @@ if __name__=='__main__':
             Cl = Cl.reshape(N0, nt, 1, 1, 1).repeat([1, 1, nx, ny, 1]).reshape(-1, nx, ny, 1)
             ang_vel = ang_vel.reshape(N0, nt, 1, 1, 1).repeat([1, 1, nx, ny, 1]).reshape(-1, nx, ny, 1)
             input_data = data[:, :-1].reshape(-1, nx, ny, 3)
-            output_data = data[:, 1:].reshape(-1, nx, ny, 3) - input_data
+            output_data = data[:, 1:].reshape(-1, nx, ny, 3)
 
             self.input_data = torch.cat((input_data, ang_vel), dim=-1)
             self.output_data = torch.cat((output_data, Cd, Cl), dim=-1)
