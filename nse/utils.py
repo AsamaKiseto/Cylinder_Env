@@ -127,3 +127,4 @@ def count_params(model):
     for p in list(model.parameters()):
         c += reduce(operator.mul, list(p.size()))
     return c
+
