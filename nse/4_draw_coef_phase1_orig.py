@@ -35,7 +35,7 @@ import argparse
 def get_args(argv=None):
     parser = argparse.ArgumentParser(description='Put your hyperparameters')
     
-    parser.add_argument('-op', '--operator_path', default='phase1_ex12_norm', type=str, help='path of phase1 model')
+    parser.add_argument('-op', '--operator_path', default='phase1_ex12', type=str, help='path of phase1 model')
     parser.add_argument('-ts', '--t_start', default=0, type=int, help='data number')
     parser.add_argument('-k', '--k', default=160, type=int)
 
@@ -62,12 +62,6 @@ if __name__ == '__main__':
 
     t_start = args.t_start
     k = args.k  # k th traj
-
-    Cd_mean, Cd_var = logs['data_norm']['Cd']
-    Cl_mean, Cl_var = logs['data_norm']['Cl']
-    ang_vel_mean, ang_vel_var = logs['data_norm']['f']
-    Cd_mean, Cd_var = Cd_mean[k], Cd_var[k]
-    Cl_mean, Cl_var = Cl_mean[k], Cl_var[k]
     
     # load logs
     data, _, Cd, Cl, ang_vel  = torch.load(data_path)
@@ -77,10 +71,6 @@ if __name__ == '__main__':
     Cd = Cd[::Ng, ::tg]
     Cl = Cl[::Ng, ::tg]
     ang_vel = ang_vel[::Ng, ::tg]
-
-    # Cd = (Cd - Cd_mean)/Cd_var
-    # Cl = (Cl - Cl_mean)/Cl_var
-    ang_vel = (ang_vel - ang_vel_mean)/ang_vel_var
 
     # data param
     nx = data.shape[2] 
@@ -118,8 +108,6 @@ if __name__ == '__main__':
         Cd_nn[i] = torch.mean(pred[:, :, :, -2])
         Cl_nn[i] = torch.mean(pred[:, :, :, -1])
 
-    Cd_nn = Cd_nn * Cd_var + Cd_mean
-    Cl_nn = Cl_nn * Cl_var + Cl_mean
     print(Cd_nn)
     print(Cd[k])
 

@@ -17,9 +17,9 @@ import argparse
 def get_args(argv=None):
     parser = argparse.ArgumentParser(description='Put your hyperparameters')
     
-    parser.add_argument('--operator_path', default='phase1_logs_ex12', type=str, help='path of operator weight')
-    parser.add_argument('--data_num', default=200, type=int, help='data number')
-    parser.add_argument('--t_start', default=1, type=int, help='data number')
+    parser.add_argument('--operator_path', default='phase1_ex12_norm', type=str, help='path of operator weight')
+    parser.add_argument('--data_num', default=0, type=int, help='data number')
+    parser.add_argument('--t_start', default=0, type=int, help='data number')
     
     parser.add_argument('--gpu', default=0, type=int, help='device number')
     parser.add_argument('--epochs', default=500, type=int, help='number of Epochs')
@@ -57,6 +57,7 @@ if __name__ == '__main__':
     # log text
     ftext = open('logs/nse_control_fno.txt', mode="a", encoding="utf-8")
     logs = dict()
+    logs['operator_path'] = operator_path
     logs['obs_nn'] = []
     logs['Cd_nn'] = []
     logs['Cl_nn'] = []
@@ -85,6 +86,14 @@ if __name__ == '__main__':
     # data setting
     data_num = args.data_num
     t_start = args.t_start
+    logs['data_num'] = data_num
+    logs['t_start'] = t_start
+    
+    Cd_mean, Cd_var = logs_model['data_norm']['Cd']
+    Cl_mean, Cl_var = logs_model['data_norm']['Cl']
+    ang_vel_mean, ang_vel_var = logs_model['data_norm']['f']
+    Cd_mean, Cd_var = Cd_mean[0], Cd_var[0]
+    Cl_mean, Cl_var = Cl_mean[0], Cl_var[0]
     
     print('load data finished')
     tg = logs_model['args'].tg     # sample evrey 10 timestamps
@@ -115,8 +124,12 @@ if __name__ == '__main__':
         param.requires_grad = False
 
     # training
-    ang_optim = torch.rand(nt).to(device)
-    ang_optim[:t_start] = ang_vel[data_num][:t_start]
+    obs_nn = torch.zeros(nt, nx, ny, 3)
+    obs_nn[:t_start] = data[data_num, 1:t_start+1]
+    # ang_optim = torch.rand(nt).to(device)
+    # ang_optim[:t_start] = ang_vel[data_num][:t_start]
+    ang_optim = ang_vel[data_num].to(device)
+    print(ang_optim.shape)
     ang_optim.requires_grad = True
     
     optimizer = torch.optim.Adam([ang_optim], lr=lr)
@@ -136,26 +149,34 @@ if __name__ == '__main__':
         loss = 0
         for i in range(t_start, nt):
             ang_nn = ang_optim[i].reshape(1)
+            # ang_nn = ang_vel[data_num][i].reshape(1)
+            # print(ang_nn.shape)
             pred, _, f_rec[i], _ = load_model(out_nn, ang_nn)
             out_nn = pred[:, :, :, :3]
-            Cd_nn[i] = torch.mean(pred[:, :, :, -2])
-            Cl_nn[i] = torch.mean(pred[:, :, :, -1])
+            obs_nn[i] = out_nn
+            Cd_nn[i] = torch.mean(pred[:, :, :, -2]) 
+            Cl_nn[i] = torch.mean(pred[:, :, :, -1]) 
             # ang_obs = ang_optim[i].to(torch.device('cpu')).detach().numpy()
             # for j in range(tg-1):
             #     env.step(ang_obs)
             # out_obs, _, Cd_obs[i], Cl_obs[i] = env.step(ang_obs)
             # print(ang_optim[i].item(), Cd_nn[i].item(), Cd_obs[i].item(), Cl_nn[i].item(), Cl_obs[i].item())
         
+        Cd_nn = Cd_nn * Cd_var.to(device) + Cd_mean.to(device)
+        Cl_nn = Cl_nn * Cl_var.to(device) + Cl_mean.to(device)
         loss = torch.mean(Cd_nn[t_start:] ** 2) + 0.1 * torch.mean(Cl_nn[t_start:] ** 2)
-        # loss += 0.05 * torch.mean((ang_optim[t_start:] - f_rec[t_start:]) ** 2)
+        loss += 0.05 * torch.mean((ang_optim[t_start:] - f_rec[t_start:]) ** 2)
         # loss += 0.001 * torch.mean(ang_optim.squeeze() ** 2)
-        print("epoch: {:4}  loss: {:1.6f}  Cd_nn: {:1.6f}  Cd_obs: {:1.6f}  Cl_nn: {:1.6f}  Cl_obs: {:1.6f}  ang_optim: {:1.6f}"
-              .format(epoch, loss, Cd_nn[t_start:].mean(), Cd_obs[t_start:].mean(), Cl_nn[t_start:].mean(), Cl_obs[t_start:].mean(), ang_optim[t_start:].mean()))
+        if(epoch%10 == 0):
+            print("epoch: {:4}  loss: {:1.6f}  Cd_nn: {:1.6f}  Cd_obs: {:1.6f}  Cl_nn: {:1.6f}  Cl_obs: {:1.6f}  ang_optim: {:1.6f}"
+                  .format(epoch, loss, Cd_nn[t_start:].mean(), Cd_obs[t_start:].mean(), Cl_nn[t_start:].mean(), Cl_obs[t_start:].mean(), ang_optim[t_start:].mean()))
+        
         loss.backward()
         optimizer.step()
         scheduler.step()
         
         logs['loss'].append(loss)
+        logs['obs_nn'].append(obs_nn)
         logs['Cd_nn'].append(Cd_nn)
         logs['Cl_nn'].append(Cl_nn)
         # save log

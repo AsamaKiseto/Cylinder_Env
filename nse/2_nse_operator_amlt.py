@@ -108,11 +108,12 @@ if __name__=='__main__':
 
     # data pre
     Cd_mean = Cd.mean().reshape(1, 1).repeat(N0, nt)
-    Cd_var = ((Cd-Cd_mean)**2).mean().reshape(1, 1).repeat(N0, nt)
+    Cd_var = torch.sqrt(((Cd-Cd_mean)**2).mean().reshape(1, 1).repeat(N0, nt))
     Cl_mean = Cl.mean().reshape(1, 1).repeat(N0, nt)
-    Cl_var = ((Cl-Cl_mean)**2).mean().reshape(1, 1).repeat(N0, nt)
+    Cl_var = torch.sqrt(((Cl-Cl_mean)**2).mean().reshape(1, 1).repeat(N0, nt))
     ang_vel_mean = ang_vel.mean().reshape(1, 1).repeat(N0, nt)
-    ang_vel_var = ((ang_vel-ang_vel_mean)**2).mean().reshape(1, 1).repeat(N0, nt)
+    ang_vel_var = torch.sqrt(((ang_vel-ang_vel_mean)**2).mean().reshape(1, 1).repeat(N0, nt))
+    
     
     Cd = (Cd - Cd_mean)/Cd_var
     Cl = (Cl - Cl_mean)/Cl_var
@@ -143,6 +144,7 @@ if __name__=='__main__':
 
     NSE_data = NSE_Dataset(data, Cd, Cl, ang_vel)
     train_data, test_data = random_split(NSE_data, [int(0.8 * Ndata), int(0.2 * Ndata)])
+    print(train_data.shape)
     train_loader = DataLoader(dataset=train_data, batch_size=batch_size, shuffle=True)
     test_loader = DataLoader(dataset=test_data, batch_size=batch_size, shuffle=False)
     

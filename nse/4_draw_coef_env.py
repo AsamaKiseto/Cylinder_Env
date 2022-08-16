@@ -35,9 +35,9 @@ import argparse
 def get_args(argv=None):
     parser = argparse.ArgumentParser(description='Put your hyperparameters')
     
-    parser.add_argument('--operator_path', default='phase1_logs_ex12', type=str, help='path of operator weight')
+    parser.add_argument('-op', '--operator_path', default='phase1_ex12_norm', type=str, help='path of operator weight')
     parser.add_argument('--t_start', default=1, type=int, help='data number')
-    parser.add_argument('--k', default=0, type=int)
+    parser.add_argument('-k', '--k', default=0, type=int)
 
     return parser.parse_args(argv)
 
@@ -73,21 +73,29 @@ if __name__ == '__main__':
     model_params['L'] = L
     f_channels = params_args.f_channels
 
+    Cd_mean, Cd_var = logs['data_norm']['Cd']
+    Cl_mean, Cl_var = logs['data_norm']['Cl']
+    ang_vel_mean, ang_vel_var = logs['data_norm']['f']
+    Cd_mean, Cd_var = Cd_mean[0], Cd_var[0]
+    Cl_mean, Cl_var = Cl_mean[0], Cl_var[0]
+
     t_start = args.t_start
     k = args.k  # k th traj
     
     # data param
     nx, ny = 128, 64
     shape = [nx, ny]
-    nt = 80
+    nt = 30
     tg = 20
     nT = nt * tg
     dt = 0.01
 
     # f = np.random.rand(nt) * 4 - 2
-    f = np.array([-1.60036191, 1.39814498, -1.18316184, 1.47186751, 1.20180103, -0.05713905, 0.72856494, -0.16206131, 0.55332571, 1.60028524, -1.12861622, 1.84941503,0.10701448, -1.59605537, 1.89202669, 0.04055561, 1.20823299, -0.61155347, -1.02384344, -0.04485761])
+    # f = np.array([-1.60036191, 1.39814498, -1.18316184, 1.47186751, 1.20180103, -0.05713905, 0.72856494, -0.16206131, 0.55332571, 1.60028524, -1.12861622, 1.84941503,0.10701448, -1.59605537, 1.89202669, 0.04055561, 1.20823299, -0.61155347, -1.02384344, -0.04485761])
     f = np.arange(nt) / nt * 4 - 2
+    # f = np.ones(nt) * (-2)
     f_nn = torch.Tensor(f)
+    f_nn = f_nn * ang_vel_var[0, 0] + ang_vel_mean[0, 0]
     print(f)
 
     obs_nn = torch.zeros(nt, nx, ny, 3)
@@ -111,13 +119,14 @@ if __name__ == '__main__':
 
     obs[0] = env.reset()
     for i in range(t_start):
+        print(f'# {i+1} f: {f[i]}')
         for j in range(tg):
             obs[i*tg + j + 1], _, Cd[i*tg + j], Cl[i*tg + j] = env.step(f[i])
 
     out_nn = torch.Tensor(obs[tg * t_start, :, :, 2:]).reshape(1, nx, ny, 3)
     obs_nn[0] = out_nn
     for i in range(t_start, nt):
-        print(f'start #{i} f: {f[i]}')
+        print(f'# {i+1} f: {f[i]}')
         for j in range(tg):
             obs[i*tg + j + 1], _, Cd[i*tg + j], Cl[i*tg + j] = env.step(f[i])
         pred, _, _, _ = load_model(out_nn, f_nn[i].reshape(1))
@@ -125,6 +134,9 @@ if __name__ == '__main__':
         obs_nn[i] = out_nn
         Cd_nn[i] = torch.mean(pred[:, :, :, -2])
         Cl_nn[i] = torch.mean(pred[:, :, :, -1])
+
+    Cd_nn = Cd_nn * Cd_var[0] + Cd_mean[0]
+    Cl_nn = Cl_nn * Cl_var[0] + Cl_mean[0]
     
     torch.save([obs, Cd, Cl, obs_nn, Cd_nn, Cl_nn], 'logs/phase1_env_logs')
 
@@ -163,4 +175,4 @@ if __name__ == '__main__':
     ax3.set_ylabel(r"$state$", fontsize=15)
     ax3.set_xlim(0, nt * tg * dt)
 
-    plt.savefig(f'coef_phase1.jpg')
+    plt.savefig(f'logs/coef_phase1.jpg')

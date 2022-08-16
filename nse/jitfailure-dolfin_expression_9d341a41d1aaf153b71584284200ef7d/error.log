@@ -1,0 +1,25 @@
+/tmp/tmp2wnqkxg8/dolfin_expression_9d341a41d1aaf153b71584284200ef7d.cpp: In member function ‘virtual void dolfin::dolfin_expression_9d341a41d1aaf153b71584284200ef7d::eval(Eigen::Ref<Eigen::Matrix<double, -1, 1> >, Eigen::Ref<const Eigen::Matrix<double, -1, 1> >) const’:
+/tmp/tmp2wnqkxg8/dolfin_expression_9d341a41d1aaf153b71584284200ef7d.cpp:61:33: error: expected identifier before numeric constant
+           values[0] =  tensor([ 0.2070, -1.0588, -1.4552, -3.6224,  8.5159, -4.3239,  5.6020, -6.4518,
+                                 ^~~~~~
+/tmp/tmp2wnqkxg8/dolfin_expression_9d341a41d1aaf153b71584284200ef7d.cpp:61:39: error: expected ‘]’ before ‘,’ token
+           values[0] =  tensor([ 0.2070, -1.0588, -1.4552, -3.6224,  8.5159, -4.3239,  5.6020, -6.4518,
+                                       ^
+/tmp/tmp2wnqkxg8/dolfin_expression_9d341a41d1aaf153b71584284200ef7d.cpp: In lambda function:
+/tmp/tmp2wnqkxg8/dolfin_expression_9d341a41d1aaf153b71584284200ef7d.cpp:61:39: error: expected ‘{’ before ‘,’ token
+/tmp/tmp2wnqkxg8/dolfin_expression_9d341a41d1aaf153b71584284200ef7d.cpp: In member function ‘virtual void dolfin::dolfin_expression_9d341a41d1aaf153b71584284200ef7d::eval(Eigen::Ref<Eigen::Matrix<double, -1, 1> >, Eigen::Ref<const Eigen::Matrix<double, -1, 1> >) const’:
+/tmp/tmp2wnqkxg8/dolfin_expression_9d341a41d1aaf153b71584284200ef7d.cpp:63:43: error: expected ‘)’ before ‘]’ token
+          0.0200,  7.8300,  8.1464,  8.1246], grad_fn=<SelectBackward0>) * 0.05 * ( x[1] - 0.2 )/ 0.05  ;
+                                           ^
+/tmp/tmp2wnqkxg8/dolfin_expression_9d341a41d1aaf153b71584284200ef7d.cpp:64:37: error: expected identifier before numeric constant
+           values[1] =  -1* tensor([ 0.2070, -1.0588, -1.4552, -3.6224,  8.5159, -4.3239,  5.6020, -6.4518,
+                                     ^~~~~~
+/tmp/tmp2wnqkxg8/dolfin_expression_9d341a41d1aaf153b71584284200ef7d.cpp:64:43: error: expected ‘]’ before ‘,’ token
+           values[1] =  -1* tensor([ 0.2070, -1.0588, -1.4552, -3.6224,  8.5159, -4.3239,  5.6020, -6.4518,
+                                           ^
+/tmp/tmp2wnqkxg8/dolfin_expression_9d341a41d1aaf153b71584284200ef7d.cpp: In lambda function:
+/tmp/tmp2wnqkxg8/dolfin_expression_9d341a41d1aaf153b71584284200ef7d.cpp:64:43: error: expected ‘{’ before ‘,’ token
+/tmp/tmp2wnqkxg8/dolfin_expression_9d341a41d1aaf153b71584284200ef7d.cpp: In member function ‘virtual void dolfin::dolfin_expression_9d341a41d1aaf153b71584284200ef7d::eval(Eigen::Ref<Eigen::Matrix<double, -1, 1> >, Eigen::Ref<const Eigen::Matrix<double, -1, 1> >) const’:
+/tmp/tmp2wnqkxg8/dolfin_expression_9d341a41d1aaf153b71584284200ef7d.cpp:66:43: error: expected ‘)’ before ‘]’ token
+          0.0200,  7.8300,  8.1464,  8.1246], grad_fn=<SelectBackward0>) * 0.05 * ( x[0] - 0.2 )/ 0.05  ;
+                                           ^
