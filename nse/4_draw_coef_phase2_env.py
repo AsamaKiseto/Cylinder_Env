@@ -35,9 +35,6 @@ def get_args(argv=None):
     parser = argparse.ArgumentParser(description='Put your hyperparameters')
     
     parser.add_argument('--operator_path', default='phase1_ex12_norm', type=str, help='path of operator weight')
-    parser.add_argument('--k', default=200, type=int, help='data number')
-    parser.add_argument('--t_start', default=1, type=int, help='data number')
-    
 
     return parser.parse_args(argv)
 
@@ -57,22 +54,23 @@ if __name__ == '__main__':
     # argparser
     args = get_args()
 
-    t_start = args.t_start
     logs = torch.load('logs/phase2_logs_test')
     operator_path = logs['operator_path']
     obs_nn = logs['obs_nn']
     Cd_nn = logs['Cd_nn']
     Cl_nn = logs['Cl_nn']
-    data_num = logs['data_num']
     f_optim = logs['f_optim'].to(torch.device('cpu'))
+
+    data_num = logs['data_num']
+    t_start = logs['t_start']
 
     # print(Cd_nn[-1])
 
     nt = Cd_nn[0].shape[0]
-    Nk = 10
+    Nk = 1
     k = (1 + np.arange(Nk))*(500//Nk) - 1
 
-    data_path = './data/nse_data'
+    data_path = 'data/nse_data'
     data_orig, _, Cd, Cl, ang_vel = torch.load(data_path, map_location=lambda storage, loc: storage)
     
     _, logs_model = torch.load(operator_path)
@@ -139,4 +137,4 @@ if __name__ == '__main__':
         ax2.set_xlim(0, 4)
         ax2.legend()
 
-    plt.savefig(f'coef_phase2_test.jpg')
+    plt.savefig(f'coef_phase2_test2.jpg')

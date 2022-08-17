@@ -22,25 +22,12 @@ def get_args(argv=None):
     parser.add_argument('--t_start', default=0, type=int, help='data number')
     
     parser.add_argument('--gpu', default=0, type=int, help='device number')
-    parser.add_argument('--epochs', default=500, type=int, help='number of Epochs')
+    parser.add_argument('--epochs', default=1000, type=int, help='number of Epochs')
     parser.add_argument('--lr', default=5e-1, type=float, help='learning rate')
     parser.add_argument('--step_size', default=100, type=int, help='scheduler step size')
     parser.add_argument('--gamma', default=0.5, type=float, help='scheduler factor')
 
     return parser.parse_args(argv)
-
-
-# env init
-# env = Cylinder_Rotation_Env(params={'dtr': 0.01, 'T': 1, 'rho_0': 1, 'mu' : 1/1000,
-#                                     'traj_max_T': 20, 'dimx': 128, 'dimy': 64,
-#                                     'min_x' : 0,  'max_x' : 2.2, 
-#                                     'min_y' : 0,  'max_y' : 0.41, 
-#                                     'r' : 0.05,  'center':(0.2, 0.2),
-#                                     'min_w': -1, 'max_w': 1,
-#                                     'min_velocity': -1, 'max_velocity': 1,
-#                                     'U_max': 1.5, })
-
-# print(env.params)
 
 
 if __name__ == '__main__':
@@ -136,15 +123,12 @@ if __name__ == '__main__':
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=step_size, gamma=gamma)
     
     for epoch in range(1, epochs + 1):
-        # env.reset()
         optimizer.zero_grad()
 
         out_nn = data_in.reshape(1, nx, ny, 3).to(device)
         f_rec = torch.zeros(nt).to(device)
         Cd_nn = torch.zeros(nt).to(device)
         Cl_nn = torch.zeros(nt).to(device)
-        Cd_obs = torch.zeros(nt).to(device)
-        Cl_obs = torch.zeros(nt).to(device)
         
         loss = 0
         for i in range(t_start, nt):
@@ -156,20 +140,16 @@ if __name__ == '__main__':
             obs_nn[i] = out_nn
             Cd_nn[i] = torch.mean(pred[:, :, :, -2]) 
             Cl_nn[i] = torch.mean(pred[:, :, :, -1]) 
-            # ang_obs = ang_optim[i].to(torch.device('cpu')).detach().numpy()
-            # for j in range(tg-1):
-            #     env.step(ang_obs)
-            # out_obs, _, Cd_obs[i], Cl_obs[i] = env.step(ang_obs)
             # print(ang_optim[i].item(), Cd_nn[i].item(), Cd_obs[i].item(), Cl_nn[i].item(), Cl_obs[i].item())
         
         Cd_nn = Cd_nn * Cd_var.to(device) + Cd_mean.to(device)
         Cl_nn = Cl_nn * Cl_var.to(device) + Cl_mean.to(device)
         loss = torch.mean(Cd_nn[t_start:] ** 2) + 0.1 * torch.mean(Cl_nn[t_start:] ** 2)
         # loss += 0.05 * torch.mean((ang_optim[t_start:] - f_rec[t_start:]) ** 2)
-        loss += 0.05 * torch.mean(ang_optim.squeeze() ** 2)
+        loss += torch.mean(ang_optim.squeeze() ** 2)
         if(epoch%10 == 0):
-            print("epoch: {:4}  loss: {:1.6f}  Cd_nn: {:1.6f}  Cd_obs: {:1.6f}  Cl_nn: {:1.6f}  Cl_obs: {:1.6f}  ang_optim: {:1.6f}"
-                  .format(epoch, loss, Cd_nn[t_start:].mean(), Cd_obs[t_start:].mean(), Cl_nn[t_start:].mean(), Cl_obs[t_start:].mean(), ang_optim[t_start:].mean()))
+            print("epoch: {:4}  loss: {:1.6f}  Cd_nn: {:1.6f}  Cl_nn: {:1.6f}  ang_optim: {:1.6f}"
+                  .format(epoch, loss, Cd_nn[t_start:].mean(), Cl_nn[t_start:].mean(), ang_optim[t_start:].mean()))
         
         loss.backward()
         optimizer.step()
@@ -180,8 +160,8 @@ if __name__ == '__main__':
         logs['Cd_nn'].append(Cd_nn)
         logs['Cl_nn'].append(Cl_nn)
         # save log
-        ftext.write("epoch: {:4}  loss: {:1.6f}  Cd_nn: {:1.6f}  Cd_obs: {:1.6f}  Cl_nn: {:1.6f}  Cl_obs: {:1.6f}  ang_optim: {}\n"
-                    .format(epoch, loss, Cd_nn[t_start:].mean(), Cd_obs[t_start:].mean(), Cl_nn[t_start:].mean(), Cl_obs[t_start:].mean(), ang_optim[t_start:]))
+        ftext.write("epoch: {:4}  loss: {:1.6f}  Cd_nn: {:1.6f}  Cl_nn: {:1.6f}  ang_optim: {}\n"
+                    .format(epoch, loss, Cd_nn[t_start:].mean(), Cl_nn[t_start:].mean(), ang_optim[t_start:]))
     ftext.close()
 
     print(ang_optim)

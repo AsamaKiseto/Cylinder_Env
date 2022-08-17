@@ -57,8 +57,9 @@ if __name__ == '__main__':
     # print(Cd_nn[-1])
 
     nt = Cd_nn[0].shape[0]
-    Nk = 10
-    k = (1 + np.arange(Nk))*(500//Nk) - 1
+    Nk = 1
+    epochs = 1000
+    k = (1 + np.arange(Nk))*(1000//Nk) - 1
 
     data_path = './data/nse_data'
     data_orig, _, Cd, Cl, ang_vel = torch.load(data_path, map_location=lambda storage, loc: storage)
@@ -71,7 +72,6 @@ if __name__ == '__main__':
     Cl_mean, Cl_var = Cl_mean[0], Cl_var[0]
     f = f_optim * ang_vel_var[0, 0] + ang_vel_mean[0, 0]
     print(f)
-    print(ang_vel_var, ang_vel_mean)
 
     print('load data finished')
     tg = logs_model['args'].tg     # sample evrey 10 timestamps
@@ -109,4 +109,4 @@ if __name__ == '__main__':
         ax2.set_xlim(0, 4)
         ax2.legend()
 
-    plt.savefig(f'coef_phase2_test.jpg')
+    plt.savefig(f'coef_phase2_test1.jpg')
