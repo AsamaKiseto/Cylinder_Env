@@ -165,8 +165,8 @@ if __name__ == '__main__':
         Cd_nn = Cd_nn * Cd_var.to(device) + Cd_mean.to(device)
         Cl_nn = Cl_nn * Cl_var.to(device) + Cl_mean.to(device)
         loss = torch.mean(Cd_nn[t_start:] ** 2) + 0.1 * torch.mean(Cl_nn[t_start:] ** 2)
-        loss += 0.05 * torch.mean((ang_optim[t_start:] - f_rec[t_start:]) ** 2)
-        # loss += 0.001 * torch.mean(ang_optim.squeeze() ** 2)
+        # loss += 0.05 * torch.mean((ang_optim[t_start:] - f_rec[t_start:]) ** 2)
+        loss += 0.05 * torch.mean(ang_optim.squeeze() ** 2)
         if(epoch%10 == 0):
             print("epoch: {:4}  loss: {:1.6f}  Cd_nn: {:1.6f}  Cd_obs: {:1.6f}  Cl_nn: {:1.6f}  Cl_obs: {:1.6f}  ang_optim: {:1.6f}"
                   .format(epoch, loss, Cd_nn[t_start:].mean(), Cd_obs[t_start:].mean(), Cl_nn[t_start:].mean(), Cl_obs[t_start:].mean(), ang_optim[t_start:].mean()))

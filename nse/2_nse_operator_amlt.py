@@ -107,21 +107,26 @@ if __name__=='__main__':
     print('N0: {}, nt: {}, nx: {}, ny: {}, device: {}'.format(N0, nt, nx, ny, device))
 
     # data pre
-    Cd_mean = Cd.mean().reshape(1, 1).repeat(N0, nt)
-    Cd_var = torch.sqrt(((Cd-Cd_mean)**2).mean().reshape(1, 1).repeat(N0, nt))
-    Cl_mean = Cl.mean().reshape(1, 1).repeat(N0, nt)
-    Cl_var = torch.sqrt(((Cl-Cl_mean)**2).mean().reshape(1, 1).repeat(N0, nt))
-    ang_vel_mean = ang_vel.mean().reshape(1, 1).repeat(N0, nt)
-    ang_vel_var = torch.sqrt(((ang_vel-ang_vel_mean)**2).mean().reshape(1, 1).repeat(N0, nt))
-    
-    
+    Cd_mean = Cd.mean()
+    Cd_var = torch.sqrt(((Cd-Cd_mean)**2).mean())
+    Cl_mean = Cl.mean()
+    Cl_var = torch.sqrt(((Cl-Cl_mean)**2).mean())
+    ang_vel_mean = ang_vel.mean()
+    ang_vel_var = torch.sqrt(((ang_vel-ang_vel_mean)**2).mean())
+    state_mean = data.mean([0, 1, 2, 3])
+    data_mean = state_mean.reshape(1, 1, 1, 1, data.shape[4]).repeat(N0, nt+1, nx, ny, 1)
+    state_var = torch.sqrt(((data - data_mean)**2).mean([0, 1, 2, 3]))
+
     Cd = (Cd - Cd_mean)/Cd_var
     Cl = (Cl - Cl_mean)/Cl_var
-    ang_vel = (ang_vel - ang_vel_mean)/ang_vel_var
+    print(f'Cd: {Cd_mean, Cd_var}')
+    print(f'Cl: {Cl_mean, Cl_var}')
 
     logs['data_norm']['Cd'] = [Cd_mean, Cd_var]
     logs['data_norm']['Cl'] = [Cl_mean, Cl_var]
     logs['data_norm']['f'] = [ang_vel_mean, ang_vel_var]
+    logs['data_norm']['state'] = [state_mean, state_var]
+    print(f'state: {state_mean, state_var}')
     
     class NSE_Dataset(Dataset):
         def __init__(self, data, Cd, Cl, ang_vel):
@@ -129,22 +134,25 @@ if __name__=='__main__':
             Cl = Cl.reshape(N0, nt, 1, 1, 1).repeat([1, 1, nx, ny, 1]).reshape(-1, nx, ny, 1)
             ang_vel = ang_vel.reshape(N0, nt, 1, 1, 1).repeat([1, 1, nx, ny, 1]).reshape(-1, nx, ny, 1)
             input_data = data[:, :-1].reshape(-1, nx, ny, 3)
-            output_data = data[:, 1:].reshape(-1, nx, ny, 3)
+            output_data = data[:, 1:].reshape(-1, nx, ny, 3) #- input_data
 
-            self.input_data = torch.cat((input_data, ang_vel), dim=-1)
-            self.output_data = torch.cat((output_data, Cd, Cl), dim=-1)
+            # ipt_mean = state_mean.reshape(1, 1, 1, 3).repeat(input_data.shape[0], nx, ny, 1)
+            # ipt_var = state_var.reshape(1, 1, 1, 3).repeat(input_data.shape[0], nx, ny, 1)
+            # input_data = (input_data - ipt_mean)/ipt_var
+
+            self.ipt = torch.cat((input_data, ang_vel), dim=-1)
+            self.opt = torch.cat((output_data, Cd, Cl), dim=-1)
             
         def __len__(self):
             return Ndata
 
         def __getitem__(self, idx):
-            x = torch.FloatTensor(self.input_data[idx])
-            y = torch.FloatTensor(self.output_data[idx])
+            x = torch.FloatTensor(self.ipt[idx])
+            y = torch.FloatTensor(self.opt[idx])
             return x, y
 
     NSE_data = NSE_Dataset(data, Cd, Cl, ang_vel)
     train_data, test_data = random_split(NSE_data, [int(0.8 * Ndata), int(0.2 * Ndata)])
-    print(train_data.shape)
     train_loader = DataLoader(dataset=train_data, batch_size=batch_size, shuffle=True)
     test_loader = DataLoader(dataset=test_data, batch_size=batch_size, shuffle=False)
     

@@ -53,8 +53,8 @@ if __name__ == '__main__':
     Cd_nn = logs['Cd_nn']
     Cl_nn = logs['Cl_nn']
     data_num = logs['data_num']
-
-    print(Cd_nn[-1])
+    f_optim = logs['f_optim']
+    # print(Cd_nn[-1])
 
     nt = Cd_nn[0].shape[0]
     Nk = 10
@@ -69,6 +69,9 @@ if __name__ == '__main__':
     ang_vel_mean, ang_vel_var = logs_model['data_norm']['f']
     Cd_mean, Cd_var = Cd_mean[0], Cd_var[0]
     Cl_mean, Cl_var = Cl_mean[0], Cl_var[0]
+    f = f_optim * ang_vel_var[0, 0] + ang_vel_mean[0, 0]
+    print(f)
+    print(ang_vel_var, ang_vel_mean)
 
     print('load data finished')
     tg = logs_model['args'].tg     # sample evrey 10 timestamps
@@ -77,7 +80,7 @@ if __name__ == '__main__':
     Cd = Cd[::Ng, ::tg]
     Cl = Cl[::Ng, ::tg]
     ang_vel = ang_vel[::Ng, ::tg]
-    print(Cd[data_num])
+    # print(Cd[data_num])
 
     plt.figure(figsize=(15, 12))
 
