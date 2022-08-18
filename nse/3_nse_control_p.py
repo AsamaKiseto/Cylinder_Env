@@ -51,7 +51,7 @@ if __name__ == '__main__':
     args = get_args()
 
     # path & load
-    data_path = './data/nse_data_N0_256_nT_400'
+    data_path = './data/nse_data_N0'
     operator_path = './logs/' + args.operator_path
 
     data, _, Cd, Cl, ang_vel = torch.load(data_path, map_location=lambda storage, loc: storage)
