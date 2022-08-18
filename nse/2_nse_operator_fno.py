@@ -9,8 +9,8 @@ import sys
 
 import argparse
 
-from models import FNO
-from utils import *
+from scripts.models import FNO
+from scripts.utils import *
 
 def get_args(argv=None):
     parser = argparse.ArgumentParser(description = 'Put your hyperparameters')

@@ -1,4 +1,3 @@
-from ast import operator
 import sys
 sys.path.append("..")
 sys.path.append("../env")
@@ -8,7 +7,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from models import *
+from scripts.models import *
 from env.Cylinder_Rotation_Env import Cylinder_Rotation_Env
 
 import argparse
@@ -17,15 +16,15 @@ import argparse
 def get_args(argv=None):
     parser = argparse.ArgumentParser(description='Put your hyperparameters')
     
-    parser.add_argument('--operator_path', default='phase1_ex33_norm', type=str, help='path of operator weight')
-    parser.add_argument('--data_num', default=0, type=int, help='data number')
-    parser.add_argument('--t_start', default=10, type=int, help='data number')
+    parser.add_argument('-op', '--operator_path', default='ex33_norm', type=str, help='path of operator weight')
+    parser.add_argument('-dn', '--data_num', default=0, type=int, help='data number')
+    parser.add_argument('-ts', '--t_start', default=10, type=int, help='control start time')
     
-    parser.add_argument('--gpu', default=0, type=int, help='device number')
     parser.add_argument('--epochs', default=500, type=int, help='number of Epochs')
     parser.add_argument('--lr', default=5e-1, type=float, help='learning rate')
     parser.add_argument('--step_size', default=100, type=int, help='scheduler step size')
     parser.add_argument('--gamma', default=0.5, type=float, help='scheduler factor')
+    parser.add_argument('--gpu', default=0, type=int, help='device number')
 
     return parser.parse_args(argv)
 
@@ -35,14 +34,14 @@ if __name__ == '__main__':
     args = get_args()
 
     # path & load
-    data_path = './data/nse_data'
-    operator_path = './logs/' + args.operator_path
+    data_path = 'data/nse_data'
+    operator_path = 'logs/phase1_' + args.operator_path
 
-    data_orig, _, Cd, Cl, ang_vel = torch.load(data_path, map_location=lambda storage, loc: storage)
+    data_orig, _, Cd, Cl, ctr = torch.load(data_path, map_location=lambda storage, loc: storage)
+    data = torch.load(data_path)
     state_dict, logs_model = torch.load(operator_path)
 
     # log text
-    ftext = open('logs/nse_control_fno.txt', mode="a", encoding="utf-8")
     logs = dict()
     logs['operator_path'] = operator_path
     logs['obs_nn'] = []
@@ -51,10 +50,7 @@ if __name__ == '__main__':
     logs['loss'] = []
 
     # param setting
-    if args.gpu==-1:
-        device = torch.device('cpu')
-    else:
-        device = torch.device('cuda:{}'.format(args.gpu))
+    device = torch.device('cuda:{}'.format(args.gpu) if torch.cuda.is_available() else 'cpu')
     epochs = args.epochs
     lr = args.lr
     step_size = args.step_size
@@ -67,7 +63,6 @@ if __name__ == '__main__':
     model_params['modes'] = modes
     model_params['width'] = width
     model_params['L'] = L
-
     f_channels = logs_model['args'].f_channels
     
     # data setting
@@ -78,19 +73,18 @@ if __name__ == '__main__':
     
     Cd_mean, Cd_var = logs_model['data_norm']['Cd']
     Cl_mean, Cl_var = logs_model['data_norm']['Cl']
-    ang_vel_mean, ang_vel_var = logs_model['data_norm']['f']
+    ctr_mean, ctr_var = logs_model['data_norm']['ctr']
     state_mean, state_var = logs_model['data_norm']['state']
-    print(state_mean, state_var)
-    
-    print('load data finished')
     tg = logs_model['args'].tg     # sample evrey 10 timestamps
     Ng = logs_model['args'].Ng
+    
+    print('load data finished')
     data = data_orig[::Ng, ::tg, :, :, 2:]  
     Cd = Cd[::Ng, ::tg]
     Cl = Cl[::Ng, ::tg]
-    ang_vel = ang_vel[::Ng, ::tg]
+    ctr = ctr[::Ng, ::tg]
 
-    print(f'ang_vel: {ang_vel[data_num]}')
+    print(f'ctr: {ctr[data_num]}')
     data_in = data[data_num].squeeze()[t_start].to(device)
 
     # data params
@@ -113,13 +107,11 @@ if __name__ == '__main__':
     # training
     obs_nn = torch.zeros(nt, nx, ny, 3)
     obs_nn[:t_start] = data[data_num, 1:t_start+1]
-    # ang_optim = torch.rand(nt).to(device)
-    # ang_optim[:t_start] = ang_vel[data_num][:t_start]
-    ang_optim = ang_vel[data_num].to(device)
-    print(ang_optim.shape)
-    ang_optim.requires_grad = True
+    ctr_optim = ctr[data_num].to(device)
+    print(ctr_optim.shape)
+    ctr_optim.requires_grad = True
     
-    optimizer = torch.optim.Adam([ang_optim], lr=lr)
+    optimizer = torch.optim.Adam([ctr_optim], lr=lr)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=step_size, gamma=gamma)
     
     for epoch in range(1, epochs + 1):
@@ -132,7 +124,7 @@ if __name__ == '__main__':
         
         loss = 0
         for i in range(t_start, nt):
-            ang_nn = ang_optim[i].reshape(1)
+            ang_nn = ctr_optim[i].reshape(1)
             # ang_nn = ang_vel[data_num][i].reshape(1)
             # print(ang_nn.shape)
             pred, _, f_rec[i], _ = load_model(out_nn, ang_nn)
@@ -149,7 +141,7 @@ if __name__ == '__main__':
         # loss += 0.5 * torch.mean(ang_optim.squeeze() ** 2)
         if(epoch%10 == 0):
             print("epoch: {:4}  loss: {:1.6f}  Cd_nn: {:1.6f}  Cl_nn: {:1.6f}  ang_optim: {:1.6f}"
-                  .format(epoch, loss, Cd_nn[t_start:].mean(), Cl_nn[t_start:].mean(), ang_optim[t_start:].mean()))
+                  .format(epoch, loss, Cd_nn[t_start:].mean(), Cl_nn[t_start:].mean(), ctr_optim[t_start:].mean()))
         
         loss.backward()
         optimizer.step()
@@ -159,11 +151,7 @@ if __name__ == '__main__':
         logs['obs_nn'].append(obs_nn)
         logs['Cd_nn'].append(Cd_nn)
         logs['Cl_nn'].append(Cl_nn)
-        # save log
-        ftext.write("epoch: {:4}  loss: {:1.6f}  Cd_nn: {:1.6f}  Cl_nn: {:1.6f}  ang_optim: {}\n"
-                    .format(epoch, loss, Cd_nn[t_start:].mean(), Cl_nn[t_start:].mean(), ang_optim[t_start:]))
-    ftext.close()
 
-    print(ang_optim)
-    logs['f_optim'] = ang_optim
+    print(ctr_optim)
+    logs['f_optim'] = ctr_optim
     torch.save(logs, 'logs/phase2_logs_test')

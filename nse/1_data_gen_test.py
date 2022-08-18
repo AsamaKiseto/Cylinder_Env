@@ -38,45 +38,56 @@ if __name__ == '__main__':
 
     # param setting
     dt = env.params['dtr'] * env.params['T']
-    nT = 600
-    hf_nT = int(nT/2)
+    nT_init = 300
+    nT = nT_init + 100
     nx = env.params['dimx']
     ny = env.params['dimy']
     print(f'dt: {dt} | nt: {nT}')
 
     # data generate
+    N0 = 10
     t = np.arange(nT)
-    f = 0.1 * (np.sin(1.5*t) + 0.15) * (0.1 * np.sin(0.5*t) + 1)
+    f = np.linspace(-5, 5, N0)
     print(f'f: {f}')
-    N0 = 1
-    obs = np.zeros((nT+1, nx, ny, 5))
+    
+    obs = np.zeros((N0, nT+1, nx, ny, 5))
     print(f'state_data_size :{obs.shape}')
-    C_D, C_L, reward = np.zeros((nT)), np.zeros((nT)), np.zeros((nT))
+    Cd, Cl = np.zeros((N0, nT)), np.zeros((N0, nT))
 
     print('start')
+    obs_init = np.zeros((nT_init+1, nx, ny, 5))
+    Cd_init, Cl_init = np.zeros(nT_init), np.zeros(nT_init)
+    obs_init[0] = env.reset()
+
     start = default_timer()
-
-    obs[0] = env.reset()
-
-    for i in range(nT):
-        obs[i+1], reward[i], C_D[i], C_L[i] = env.step(f[i])
-        if((i+1) % 20 == 0):
-            print(f'# {i+1}')
-    
-
+    for i in range(nT_init):
+        obs_init[i+1], Cd_init[i], Cl_init[i] = env.step(0.00)
     end = default_timer()
+    print(f'init complete: {end - start}')
 
-    print(f'end | time: {end-start}')
+    env.set_init()
+    
+    for k in range(N0):
+        print(f'# {k}')
+        start = default_timer()
+        
+        obs[k, :nT_init+1], Cd[k, :nT_init], Cl[k, :nT_init] = obs_init, Cd_init, Cl_init
+        env.reset()
+
+        for i in range(nT_init, nT):
+            obs[k, i+1], Cd[k, i], Cl[k, i] = env.step(f[k])
+
+        end = default_timer()
+        print(f'end | time: {end - start}')
 
     # np to tensor
     obs_tensor = torch.Tensor(obs)
-    reward_tensor = torch.Tensor(reward)
-    C_D_tensor = torch.Tensor(C_D)
-    C_L_tensor = torch.Tensor(C_L)
+    Cd_tensor = torch.Tensor(Cd)
+    Cl_tensor = torch.Tensor(Cl)
     f_tensor = torch.Tensor(f)
 
-    data = [obs_tensor, reward_tensor, C_D_tensor, C_L_tensor, f_tensor]
+    data = [obs_tensor, Cd_tensor, Cl_tensor, f_tensor]
 
     # save data
-    torch.save(data, './data/nse_data_test'.format(f[0]))
+    torch.save(data, 'data/nse_data_test')
     

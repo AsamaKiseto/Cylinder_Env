@@ -20,7 +20,6 @@ def get_args(argv=None):
     parser.add_argument('--wd', default=1e-4, type=float, help='weight decay')
     parser.add_argument('--step_size', default=200, type=int, help='scheduler step size')
     parser.add_argument('--gamma', default=0.5, type=float, help='scheduler factor')
-    parser.add_argument('--gpu', default=0, type=int, help='device number')
 
     parser.add_argument('-tg', '--tg', default=20, type=int, help = 'time gap')
     parser.add_argument('-Ng', '--Ng', default=1, type=int, help = 'N gap')
