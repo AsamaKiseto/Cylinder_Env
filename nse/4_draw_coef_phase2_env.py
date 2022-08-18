@@ -68,7 +68,7 @@ if __name__ == '__main__':
 
     nt = Cd_nn[0].shape[0]
     Nk = 1
-    k = (1 + np.arange(Nk))*(500//Nk) - 1
+    k = (1 + np.arange(Nk))*(1000//Nk) - 1
 
     data_path = 'data/nse_data'
     data_orig, _, Cd, Cl, ang_vel = torch.load(data_path, map_location=lambda storage, loc: storage)
@@ -77,9 +77,7 @@ if __name__ == '__main__':
     Cd_mean, Cd_var = logs_model['data_norm']['Cd']
     Cl_mean, Cl_var = logs_model['data_norm']['Cl']
     ang_vel_mean, ang_vel_var = logs_model['data_norm']['f']
-    Cd_mean, Cd_var = Cd_mean[0], Cd_var[0]
-    Cl_mean, Cl_var = Cl_mean[0], Cl_var[0]
-    f_optim[t_start:] = f_optim[t_start:] * ang_vel_var[0, 0] + ang_vel_mean[0, 0]
+    f_optim[t_start:] = f_optim[t_start:] * ang_vel_var + ang_vel_mean
     print(f_optim)
 
     print('load data finished')

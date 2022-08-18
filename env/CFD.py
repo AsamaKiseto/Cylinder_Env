@@ -76,10 +76,8 @@ class MySolver:
     def generate_bc(self):
         self.bcs = [self.bc_walls, self.bc_in, self.bc_cylinder]
 
-    def generate_sol_var(self):
-        params = self.params
-        dt  = params['dtr'] * params['T']
-        mu = params['mu']
+    def generate_sol_var(self, dt):
+        mu = self.params['mu']
         V = self.function_space.V
         sol = Function(V)
         u, p = split(sol)
@@ -135,30 +133,6 @@ class MySolver:
         self.problem1 = problem1
 
         self.problem = problem
-        # self.sol = sol
-        # self.sol_n = sol_n
-    
-    def solve_start(self):
-        params = self.params
-        dt = params['dtr'] * params['T']
-        T  = params['T']
-        n_ts = int(-(T // -dt))
-        self.sol_n.vector()[:] = self.sol.vector()
-        self.sol_1.vector()[:] = self.sol.vector()
-        self.solver1.solve()
-        self.sol_n.vector()[:] = self.sol.vector()
-        self.time += dt 
-        
-    # def solve(self):
-    #     params = self.params
-    #     dt = params['dt'] * params['T']
-    #     T  = params['T']
-    #     n_ts = int(-(T // -dt))
-        
-    #     for i_step in range(n_ts):
-    #         self.solver.solve()
-    #         self.sol_1.vector()[:] = self.sol_n.vector()
-    #         self.sol_n.vector()[:] = self.sol.vector()
         
     def set_sol_value(self, sol_value):
         self.sol.vector()[:] = sol_value
@@ -167,10 +141,10 @@ class MySolver:
         dt = 1e-6
         T  = 1e-5
         n_ts = int(-(T // -dt))
-        # n_ts = 1
+        self.generate_sol_var(dt)
+        self.generate_solver()
         
         for i_step in range(n_ts):
-
             self.sol_n.vector()[:] = self.sol.vector()
             self.sol_1.vector()[:] = self.sol.vector()
             self.solver1.solve()

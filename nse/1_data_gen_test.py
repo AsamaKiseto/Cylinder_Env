@@ -38,14 +38,15 @@ if __name__ == '__main__':
 
     # param setting
     dt = env.params['dtr'] * env.params['T']
-    nT = 1000
+    nT = 600
     hf_nT = int(nT/2)
     nx = env.params['dimx']
     ny = env.params['dimy']
     print(f'dt: {dt} | nt: {nT}')
 
     # data generate
-    f = np.ones(nT) * (-2)
+    t = np.arange(nT)
+    f = 0.1 * (np.sin(1.5*t) + 0.15) * (0.1 * np.sin(0.5*t) + 1)
     print(f'f: {f}')
     N0 = 1
     obs = np.zeros((nT+1, nx, ny, 5))
@@ -59,6 +60,8 @@ if __name__ == '__main__':
 
     for i in range(nT):
         obs[i+1], reward[i], C_D[i], C_L[i] = env.step(f[i])
+        if((i+1) % 20 == 0):
+            print(f'# {i+1}')
     
 
     end = default_timer()
@@ -75,5 +78,5 @@ if __name__ == '__main__':
     data = [obs_tensor, reward_tensor, C_D_tensor, C_L_tensor, f_tensor]
 
     # save data
-    torch.save(data, './data/nse_data_test_longtime_f_{}'.format(f[0]))
+    torch.save(data, './data/nse_data_test'.format(f[0]))
     

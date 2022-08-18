@@ -17,12 +17,12 @@ import argparse
 def get_args(argv=None):
     parser = argparse.ArgumentParser(description='Put your hyperparameters')
     
-    parser.add_argument('--operator_path', default='phase1_ex12_norm', type=str, help='path of operator weight')
+    parser.add_argument('--operator_path', default='phase1_ex33_norm', type=str, help='path of operator weight')
     parser.add_argument('--data_num', default=0, type=int, help='data number')
-    parser.add_argument('--t_start', default=0, type=int, help='data number')
+    parser.add_argument('--t_start', default=10, type=int, help='data number')
     
     parser.add_argument('--gpu', default=0, type=int, help='device number')
-    parser.add_argument('--epochs', default=1000, type=int, help='number of Epochs')
+    parser.add_argument('--epochs', default=500, type=int, help='number of Epochs')
     parser.add_argument('--lr', default=5e-1, type=float, help='learning rate')
     parser.add_argument('--step_size', default=100, type=int, help='scheduler step size')
     parser.add_argument('--gamma', default=0.5, type=float, help='scheduler factor')
@@ -35,7 +35,7 @@ if __name__ == '__main__':
     args = get_args()
 
     # path & load
-    data_path = './data/nse_data_N0_256_nT_400'
+    data_path = './data/nse_data'
     operator_path = './logs/' + args.operator_path
 
     data_orig, _, Cd, Cl, ang_vel = torch.load(data_path, map_location=lambda storage, loc: storage)
@@ -79,8 +79,8 @@ if __name__ == '__main__':
     Cd_mean, Cd_var = logs_model['data_norm']['Cd']
     Cl_mean, Cl_var = logs_model['data_norm']['Cl']
     ang_vel_mean, ang_vel_var = logs_model['data_norm']['f']
-    Cd_mean, Cd_var = Cd_mean[0], Cd_var[0]
-    Cl_mean, Cl_var = Cl_mean[0], Cl_var[0]
+    state_mean, state_var = logs_model['data_norm']['state']
+    print(state_mean, state_var)
     
     print('load data finished')
     tg = logs_model['args'].tg     # sample evrey 10 timestamps
@@ -146,7 +146,7 @@ if __name__ == '__main__':
         Cl_nn = Cl_nn * Cl_var.to(device) + Cl_mean.to(device)
         loss = torch.mean(Cd_nn[t_start:] ** 2) + 0.1 * torch.mean(Cl_nn[t_start:] ** 2)
         # loss += 0.05 * torch.mean((ang_optim[t_start:] - f_rec[t_start:]) ** 2)
-        loss += torch.mean(ang_optim.squeeze() ** 2)
+        # loss += 0.5 * torch.mean(ang_optim.squeeze() ** 2)
         if(epoch%10 == 0):
             print("epoch: {:4}  loss: {:1.6f}  Cd_nn: {:1.6f}  Cl_nn: {:1.6f}  ang_optim: {:1.6f}"
                   .format(epoch, loss, Cd_nn[t_start:].mean(), Cl_nn[t_start:].mean(), ang_optim[t_start:].mean()))

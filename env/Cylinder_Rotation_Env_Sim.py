@@ -12,6 +12,7 @@ class Cylinder_Rotation_Sim:
 
         min_x, max_x, min_y, max_y = params['min_x'], params['max_x'], params['min_y'], params['max_y']
         r, center = params['r'], params['center']
+        dt = params['dtr'] * params['T']
         geometry = MyGeometry(min_x = min_x, max_x = max_x, min_y = min_y,max_y = max_y, r = r, center=center)
         function_space = MyFunctionSpace(geometry, )
         solver = MySolver(geometry, function_space, params=params)
@@ -29,26 +30,23 @@ class Cylinder_Rotation_Sim:
         self.solver.fixed_boundary_conditions()
         self.solver.changeable_boundary_conditions(ang_vel=0.0000, )
         self.solver.generate_bc()
-        self.solver.generate_sol_var()
-        self.solver.generate_solver()
-        self.solver.fixed_boundary_conditions()
         # self.solver.changeable_boundary_conditions(ang_vel=0, )
-        self.init_state_0_vector = Function(self.function_space.V)
-        self.init_state_0_vector.vector()[:] = solver.sol.vector()
         print("start init_solve")
-        self.solver.init_solve() 
+        self.solver.init_solve()
         print("end init_solve")
         self.init_sol_1 = Function(self.function_space.V)
         self.init_sol_1.vector()[:] = solver.sol_1.vector()
         self.init_sol_n = Function(self.function_space.V)
-        self.init_sol_n.vector()[:] = solver.sol.vector()
+        self.init_sol_n.vector()[:] = solver.sol_n.vector()
+        self.solver.generate_sol_var(dt)
         # self.init_state_1_vector =   solver.sol.vector()
     
     def set_state_funcval(self, initu, initp):
         assign(self.solver.sol, [initu, initp])
     
-    def set_init_vector(self, init_state_vector):
-        self.init_sol_1.vector()[:] = init_state_vector
+    def set_init_vector(self, init_sol_1, init_sol_n):
+        self.init_sol_1.vector()[:] = init_sol_1
+        self.init_sol_n.vector()[:] = init_sol_n
 
     def reset_state_vector(self):
         self.solver.sol.vector()[:] = self.init_sol_n.vector()
@@ -68,7 +66,6 @@ class Cylinder_Rotation_Sim:
         self.solver.generate_bc()
         self.solver.generate_solver()
         # self.solver.generate_sol_var()
-        # self.solver.init_solve()
         self.solver.solve_step()
 
     def get_state(self):

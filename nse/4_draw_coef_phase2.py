@@ -34,7 +34,6 @@ import argparse
 def get_args(argv=None):
     parser = argparse.ArgumentParser(description='Put your hyperparameters')
     
-    parser.add_argument('--operator_path', default='phase1_ex12_norm', type=str, help='path of operator weight')
     parser.add_argument('--k', default=200, type=int, help='data number')
     parser.add_argument('--t_start', default=0, type=int, help='data number')
     
@@ -58,8 +57,8 @@ if __name__ == '__main__':
 
     nt = Cd_nn[0].shape[0]
     Nk = 1
-    epochs = 1000
-    k = (1 + np.arange(Nk))*(1000//Nk) - 1
+    epochs = 500
+    k = (1 + np.arange(Nk))*(500//Nk) - 1
 
     data_path = './data/nse_data'
     data_orig, _, Cd, Cl, ang_vel = torch.load(data_path, map_location=lambda storage, loc: storage)
@@ -68,9 +67,7 @@ if __name__ == '__main__':
     Cd_mean, Cd_var = logs_model['data_norm']['Cd']
     Cl_mean, Cl_var = logs_model['data_norm']['Cl']
     ang_vel_mean, ang_vel_var = logs_model['data_norm']['f']
-    Cd_mean, Cd_var = Cd_mean[0], Cd_var[0]
-    Cl_mean, Cl_var = Cl_mean[0], Cl_var[0]
-    f = f_optim * ang_vel_var[0, 0] + ang_vel_mean[0, 0]
+    f = f_optim * ang_vel_var + ang_vel_mean
     print(f)
 
     print('load data finished')
