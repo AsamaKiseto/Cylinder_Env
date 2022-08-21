@@ -9,8 +9,8 @@ import torch
 from fenics import * 
 from timeit import default_timer
 
-from models import *
-from utils import *
+from scripts.models import *
+from scripts.utils import *
 
 # plot colors
 from matplotlib import colors

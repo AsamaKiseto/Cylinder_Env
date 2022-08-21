@@ -67,7 +67,7 @@ class AverageMeter(object):
 
 class ReadData:
     def __init__(self, data_path):
-        self.obs, _, self.Cd, self.Cl, self.ctr = torch.load(data_path)
+        self.obs, self.Cd, self.Cl, self.ctr = torch.load(data_path)
         self.obs = self.obs[..., 2:]
         self.nx, self.ny = self.obs.shape[-3], self.obs.shape[-2]
         self.nt = self.ctr.shape[-1]
@@ -102,6 +102,12 @@ class ReadData:
         self.norm['obs'] = [obs_mean, obs_var]
 
         return self.norm
+
+    def disnorm(self, norm):
+        Cd_mean, Cd_var = norm['Cd']
+        Cl_mean, Cl_var = norm['Cl']
+        ctr_mean, ctr_var = norm['ctr']
+        obs_mean, obs_var = norm['obs']
 
     def get_data(self):
         return self.obs, self.Cd, self.Cl, self.ctr

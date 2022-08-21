@@ -2,8 +2,8 @@ import torch
 from torch.utils.data import DataLoader
 from timeit import default_timer
 
-from models import *
-from utils import *
+from scripts.models import *
+from scripts.utils import *
 
 class NSEModel:
     def __init__(self, args, shape, data):

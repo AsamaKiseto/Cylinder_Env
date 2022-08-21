@@ -92,7 +92,7 @@ if __name__ == '__main__':
         plots.add_plot(t_nn, [Cd[data_num], Cl[data_num]], t_start)
         plots.add_plot(t_nn, [Cd_, Cl_], t_start, label=i+1)
     
-    ylabel = [r"$Cd$", r"$Cl$", r"state"]
+    ylabel = [r"$Cd$", r"$Cl$"]
     plots.add_ylabel(ylabel)
 
     plots.save_fig('coef_phase2_test1.jpg')

@@ -138,8 +138,8 @@ class MySolver:
         self.sol.vector()[:] = sol_value
 
     def init_solve(self):       # dt T param
-        dt = 1e-6
-        T  = 1e-5
+        dt = 1e-4
+        T  = 1e-3
         n_ts = int(-(T // -dt))
         self.generate_sol_var(dt)
         self.generate_solver()

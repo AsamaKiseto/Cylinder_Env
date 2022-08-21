@@ -14,8 +14,8 @@ import argparse
 def get_args(argv=None):
     parser = argparse.ArgumentParser(description='Put your hyperparameters')
     
-    parser.add_argument('--f1', default=-3, type=float)
-    parser.add_argument('--f2', default=-3, type=float)
+    parser.add_argument('--f1', default=-5, type=float)
+    parser.add_argument('--f2', default=-5, type=float)
 
     return parser.parse_args(argv)
 
@@ -45,9 +45,9 @@ if __name__ == '__main__':
     print(f'dt: {dt} | nt: {nT}')
 
     # data generate
-    Nf = 8
-    f1 = np.linspace(args.f1, args.f1+2, Nf+1)
-    f2 = np.linspace(args.f2, args.f2+2, Nf+1)
+    Nf = 11
+    f1 = np.linspace(args.f1, args.f1+Nf, Nf+1)
+    f2 = np.linspace(args.f2, args.f2+Nf, Nf+1)
     f1 = f1[:-1]
     f2 = f2[:-1]
     print(f'f1: {f1}')
@@ -56,7 +56,18 @@ if __name__ == '__main__':
     obs = np.zeros((N0, nT+1, nx, ny, 5))
     print(f'state_data_size :{obs.shape}')
     f = np.zeros((N0, nT))
-    C_D, C_L, reward = np.zeros((N0, nT)), np.zeros((N0, nT)), np.zeros((N0, nT))
+    C_D, C_L = np.zeros((N0, nT)), np.zeros((N0, nT))
+
+    # env init step
+    start = default_timer()
+    nT_init = 10
+    for i in range(nT_init):
+        env.step(0.00)
+    end = default_timer()
+    print(f'init complete: {end - start}')
+
+    env.set_init()
+
     for k in range(Nf):
         for l in range(Nf):
             print(f'start # {Nf * k + l + 1}')
@@ -66,11 +77,11 @@ if __name__ == '__main__':
         
             for i in range(hf_nT):
                 f[Nf * k + l, i] = f1[k]
-                obs[Nf * k + l, i+1], reward[Nf * k + l, i], C_D[Nf * k + l, i], C_L[Nf * k + l, i] = env.step(f1[k])
+                obs[Nf * k + l, i+1], C_D[Nf * k + l, i], C_L[Nf * k + l, i] = env.step(f1[k])
             
             for i in range(hf_nT, nT):
                 f[Nf * k + l, i] = f2[l]
-                obs[Nf * k + l, i+1], reward[Nf * k + l, i], C_D[Nf * k + l, i], C_L[Nf * k + l, i] = env.step(f2[l])
+                obs[Nf * k + l, i+1], C_D[Nf * k + l, i], C_L[Nf * k + l, i] = env.step(f2[l])
         
             end = default_timer()
 
@@ -80,13 +91,13 @@ if __name__ == '__main__':
 
     # np to tensor
     obs_tensor = torch.Tensor(obs)
-    reward_tensor = torch.Tensor(reward)
     C_D_tensor = torch.Tensor(C_D)
     C_L_tensor = torch.Tensor(C_L)
     f_tensor = torch.Tensor(f)
 
-    data = [obs_tensor, reward_tensor, C_D_tensor, C_L_tensor, f_tensor]
+    data = [obs_tensor, C_D_tensor, C_L_tensor, f_tensor]
 
     # save data
-    torch.save(data, './data/nse_data_N0_{}_nT_{}_f1_{}_f2_{}'.format(N0, nT, args.f1, args.f2))
+    # torch.save(data, './data/nse_data_N0_{}_nT_{}_f1_{}_f2_{}'.format(N0, nT, args.f1, args.f2))
+    torch.save(data, './data/nse_data_sparse')
     
