@@ -49,6 +49,50 @@ def count_params(model):
         c += reduce(operator.mul, list(p.size()))
     return c
 
+def nse_L(state):
+    nx = state.shape[1]
+    ny = state.shape[2]
+    device = state.device
+
+    u = state[..., :2]
+    p = state[..., -1]
+    u_h = torch.fft.fft2(u, dim=[1, 2])
+    p_h = torch.fft.fft2(p, dim=[1, 2])
+    print(u_h.shape)
+
+    k_x = torch.cat((torch.arange(start=0, end=nx//2, step=1, device=device),
+                     torch.arange(start=-nx//2, end=0, step=1, device=device)), 0).reshape(nx, 1).repeat(1, ny).reshape(1,nx,ny,1)
+    k_y = torch.cat((torch.arange(start=0, end=ny//2, step=1, device=device),
+                     torch.arange(start=-ny//2, end=0, step=1, device=device)), 0).reshape(1, ny).repeat(nx, 1).reshape(1,nx,ny,1)
+    lap = (k_x ** 2 + k_y ** 2)
+    lap[0, 0, 0, 0] = 1.0
+
+    ux_h = 1j * k_x * u_h       
+    uy_h = 1j * k_y * u_h
+
+    print(ux_h.shape) 
+    px_h = 1j * k_x * p_h 
+    py_h = 1j * k_x * p_h
+    ulap_h = -lap * u_h
+    plap_h = -lap * p_h
+
+    ux = torch.fft.ifft2(ux_h, dim=[1, 2])
+    uy = torch.fft.ifft2(uy_h, dim=[1, 2])
+    px = torch.fft.ifft2(px_h, dim=[1, 2])
+    py = torch.fft.ifft2(py_h, dim=[1, 2])
+    u_lap = torch.fft.ifft2(ulap_h, dim=[1, 2])
+    p_grad = torch.cat((px, py), -1)
+
+    L_state = u[..., 0] * ux + u[..., 1] * uy - 0.0001 * u_lap + p_grad
+
+    return L_state
+    
+
+def grad_fft(f):
+    fhat = torch.fft.fft2(f, )
+
+
+
 class AverageMeter(object):
     def __init__(self):
         self.reset()
@@ -144,3 +188,4 @@ class NSE_Dataset(Dataset):
         x = torch.FloatTensor(self.ipt[idx])
         y = torch.FloatTensor(self.opt[idx])
         return x, y
+
