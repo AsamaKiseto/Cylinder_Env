@@ -13,11 +13,13 @@ class NSEModel:
         self.logs['train_loss_u_t_rec']=[]
         self.logs['train_loss_trans']=[]
         self.logs['train_loss_trans_latent']=[]
+        self.logs['train_loss_pde'] = []
         self.logs['test_loss']=[]
         self.logs['test_loss_f_t_rec']=[]
         self.logs['test_loss_u_t_rec']=[]
         self.logs['test_loss_trans']=[]
         self.logs['test_loss_trans_latent']=[]
+        self.logs['test_loss_pde'] = []
         self.params = args
         self.device = torch.device('cuda:{}'.format(self.params.gpu) if torch.cuda.is_available() else 'cpu')
 
@@ -35,6 +37,7 @@ class NSEModel:
         gamma = self.params.gamma
 
         train_data, test_data = data.trans2Dataset()
+        self.dt = data.dt
         self.train_loader = DataLoader(dataset=train_data, batch_size=self.batch_size, shuffle=True)
         self.test_loader = DataLoader(dataset=test_data, batch_size=self.batch_size, shuffle=False)
 
@@ -64,6 +67,7 @@ class NSEModel:
         train_loss2 = AverageMeter()
         train_loss3 = AverageMeter()
         train_loss4 = AverageMeter()
+        train_loss5 = AverageMeter()
 
         device = self.device
         for x_train, y_train in self.train_loader:
@@ -92,7 +96,8 @@ class NSEModel:
             loss3 = rel_error(f_rec, f_train).mean()
             # loss3 = F.mse_loss(f_rec, f_train, reduction='mean')
             loss4 = rel_error(trans_out, out_latent).mean()
-            loss = lambda1 * loss1 + lambda2 * loss2 + lambda3 * loss3 + lambda4 * loss4
+            loss_pde = Lpde(out_pred, in_train, self.dt)
+            loss = lambda1 * loss1 + lambda2 * loss2 + lambda3 * loss3 + lambda4 * loss4 + loss_pde
             
             loss.backward()
             self.optimizer.step()
@@ -102,12 +107,14 @@ class NSEModel:
             train_loss2.update(loss2.item(), x_train.shape[0])
             train_loss3.update(loss3.item(), x_train.shape[0])
             train_loss4.update(loss4.item(), x_train.shape[0])
+            train_loss5.update(loss_pde.item(), x_train.shape[0])
         
         self.logs['train_loss'].append(train_loss.avg)
         self.logs['train_loss_f_t_rec'].append(train_loss3.avg)
         self.logs['train_loss_u_t_rec'].append(train_loss2.avg)
         self.logs['train_loss_trans'].append(train_loss1.avg)
         self.logs['train_loss_trans_latent'].append(train_loss4.avg)
+        self.logs['train_loss_pde'].append(train_loss5.avg)
         
         self.scheduler.step()
         t2 = default_timer()
@@ -119,6 +126,7 @@ class NSEModel:
         test_loss2 = AverageMeter()
         test_loss3 = AverageMeter()
         test_loss4 = AverageMeter()
+        test_loss5 = AverageMeter()
 
         with torch.no_grad():
             for x_test, y_test in self.test_loader:
@@ -141,22 +149,25 @@ class NSEModel:
                 loss2 = rel_error(in_rec, in_test).mean()
                 loss3 = rel_error(f_rec, f_test).mean()
                 loss4 = rel_error(trans_out, out_latent).mean()
-                loss = lambda1 * loss1 + lambda2 * loss2 + lambda3 * loss3 + lambda4 * loss4
+                loss_pde = Lpde(out_pred, in_test, self.dt)
+                loss = lambda1 * loss1 + lambda2 * loss2 + lambda3 * loss3 + lambda4 * loss4 + loss_pde
 
                 test_loss.update(loss.item(), x_test.shape[0])
                 test_loss1.update(loss1.item(), x_test.shape[0])
                 test_loss2.update(loss2.item(), x_test.shape[0])
                 test_loss3.update(loss3.item(), x_test.shape[0])
                 test_loss4.update(loss4.item(), x_test.shape[0])
+                test_loss5.update(loss_pde.item(), x_test.shape[0])
             
             self.logs['test_loss'].append(test_loss.avg)
             self.logs['test_loss_f_t_rec'].append(test_loss3.avg)
             self.logs['test_loss_u_t_rec'].append(test_loss2.avg)
             self.logs['test_loss_trans'].append(test_loss1.avg)
             self.logs['test_loss_trans_latent'].append(test_loss4.avg)
+            self.logs['test_loss_pde'].append(test_loss5.avg)
         
-        print('# {} {:1.3f} | loss1: {:1.2e}  loss2: {:1.2e}  loss3: {:1.2e} loss4: {:1.2e} | loss1: {:1.2e} loss2: {:1.2e}  loss3: {:1.2e} loss4: {:1.2e}'
-              .format(epoch, t2-t1, train_loss1.avg, train_loss2.avg, train_loss3.avg, train_loss4.avg, test_loss1.avg, test_loss2.avg, test_loss3.avg, test_loss4.avg))
+        print('# {} {:1.3f} | loss1: {:1.2e}  loss2: {:1.2e}  loss3: {:1.2e} loss4: {:1.2e} loss5: {:1.2e} | loss1: {:1.2e} loss2: {:1.2e}  loss3: {:1.2e} loss4: {:1.2e} loss5: {:1.2e}'
+              .format(epoch, t2-t1, train_loss1.avg, train_loss2.avg, train_loss3.avg, train_loss4.avg, train_loss5.avg, test_loss1.avg, test_loss2.avg, test_loss3.avg, test_loss4.avg, test_loss5.avg))
 
     def process(self):
         for epoch in range(1, self.epochs+1):

@@ -41,7 +41,7 @@ if __name__=='__main__':
     logs = dict()
     logs['args'] = args
 
-    logs_fname = 'logs/phase1_' + args.logs_fname + '_norm_sparse'
+    logs_fname = 'logs/phase1_' + args.logs_fname + '_norm_pi'
         
     # load data
     data_path = 'data/nse_data_sparse'

@@ -16,7 +16,7 @@ import argparse
 def get_args(argv=None):
     parser = argparse.ArgumentParser(description='Put your hyperparameters')
     
-    parser.add_argument('-op', '--operator_path', default='ex33_norm', type=str, help='path of operator weight')
+    parser.add_argument('-op', '--operator_path', default='ex17_dense_norm_sparse', type=str, help='path of operator weight')
     parser.add_argument('-dn', '--data_num', default=0, type=int, help='data number')
     parser.add_argument('-ts', '--t_start', default=10, type=int, help='control start time')
     
@@ -34,10 +34,10 @@ if __name__ == '__main__':
     args = get_args()
 
     # path & load
-    data_path = 'data/nse_data'
+    data_path = 'data/nse_data_sparse'
     operator_path = 'logs/phase1_' + args.operator_path
 
-    data_orig, _, Cd, Cl, ctr = torch.load(data_path, map_location=lambda storage, loc: storage)
+    data_orig, Cd, Cl, ctr = torch.load(data_path, map_location=lambda storage, loc: storage)
     data = torch.load(data_path)
     state_dict, logs_model = torch.load(operator_path)
 
