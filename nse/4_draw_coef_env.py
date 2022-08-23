@@ -9,8 +9,8 @@ import torch
 from fenics import * 
 from timeit import default_timer
 
-from models import *
-from utils import *
+from scripts.models import *
+from scripts.utils import *
 
 # plot colors
 from matplotlib import colors
@@ -35,8 +35,8 @@ import argparse
 def get_args(argv=None):
     parser = argparse.ArgumentParser(description='Put your hyperparameters')
     
-    parser.add_argument('-op', '--operator_path', default='phase1_ex12_norm', type=str, help='path of operator weight')
-    parser.add_argument('--t_start', default=1, type=int, help='data number')
+    parser.add_argument('-op', '--operator_path', default='phase1_ex17_dense_norm_sparse', type=str, help='path of operator weight')
+    parser.add_argument('--t_start', default=0, type=int, help='data number')
     parser.add_argument('-k', '--k', default=0, type=int)
 
     return parser.parse_args(argv)
@@ -75,9 +75,7 @@ if __name__ == '__main__':
 
     Cd_mean, Cd_var = logs['data_norm']['Cd']
     Cl_mean, Cl_var = logs['data_norm']['Cl']
-    ang_vel_mean, ang_vel_var = logs['data_norm']['f']
-    Cd_mean, Cd_var = Cd_mean[0], Cd_var[0]
-    Cl_mean, Cl_var = Cl_mean[0], Cl_var[0]
+    ctr_mean, ctr_var = logs['data_norm']['ctr']
 
     t_start = args.t_start
     k = args.k  # k th traj
@@ -85,17 +83,17 @@ if __name__ == '__main__':
     # data param
     nx, ny = 128, 64
     shape = [nx, ny]
-    nt = 40
-    tg = 20
-    nT = nt * tg
+    nT = 400
+    tg = 1
+    nt = nT // tg
     dt = 0.01
 
-    f = 4 * np.random.rand(nt) - 2
+    f = 5 * np.random.rand(nt) - 10
     # f = np.array([-1.60036191, 1.39814498, -1.18316184, 1.47186751, 1.20180103, -0.05713905, 0.72856494, -0.16206131, 0.55332571, 1.60028524, -1.12861622, 1.84941503,0.10701448, -1.59605537, 1.89202669, 0.04055561, 1.20823299, -0.61155347, -1.02384344, -0.04485761])
     # f = np.arange(nt) / nt * 4 - 2
     # f = np.ones(nt) * (-3)
     f_nn = torch.Tensor(f)
-    f_nn = f_nn * ang_vel_var[0, 0] + ang_vel_mean[0, 0]
+    f_nn = f_nn * ctr_var + ctr_mean
     print(f)
 
     obs_nn = torch.zeros(nt, nx, ny, 3)
@@ -121,14 +119,14 @@ if __name__ == '__main__':
     for i in range(t_start):
         print(f'# {i+1} f: {f[i]}')
         for j in range(tg):
-            obs[i*tg + j + 1], _, Cd[i*tg + j], Cl[i*tg + j] = env.step(f[i])
+            obs[i*tg + j + 1], Cd[i*tg + j], Cl[i*tg + j] = env.step(f[i])
 
     out_nn = torch.Tensor(obs[tg * t_start, :, :, 2:]).reshape(1, nx, ny, 3)
     obs_nn[0] = out_nn
     for i in range(t_start, nt):
         print(f'# {i+1} f: {f[i]}')
         for j in range(tg):
-            obs[i*tg + j + 1], _, Cd[i*tg + j], Cl[i*tg + j] = env.step(f[i])
+            obs[i*tg + j + 1], Cd[i*tg + j], Cl[i*tg + j] = env.step(f[i])
         pred, _, _, _ = load_model(out_nn, f_nn[i].reshape(1))
         out_nn = pred[:, :, :, :3]
         obs_nn[i] = out_nn

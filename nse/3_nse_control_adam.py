@@ -74,7 +74,7 @@ if __name__ == '__main__':
     Cd_mean, Cd_var = logs_model['data_norm']['Cd']
     Cl_mean, Cl_var = logs_model['data_norm']['Cl']
     ctr_mean, ctr_var = logs_model['data_norm']['ctr']
-    state_mean, state_var = logs_model['data_norm']['state']
+    obs_mean, obs_var = logs_model['data_norm']['obs']
     tg = logs_model['args'].tg     # sample evrey 10 timestamps
     Ng = logs_model['args'].Ng
     
@@ -132,7 +132,7 @@ if __name__ == '__main__':
             obs_nn[i] = out_nn
             Cd_nn[i] = torch.mean(pred[:, :, :, -2]) 
             Cl_nn[i] = torch.mean(pred[:, :, :, -1]) 
-            # print(ang_optim[i].item(), Cd_nn[i].item(), Cd_obs[i].item(), Cl_nn[i].item(), Cl_obs[i].item())
+            print(Cd_nn[i].item(), Cl_nn[i].item())
         
         Cd_nn = Cd_nn * Cd_var.to(device) + Cd_mean.to(device)
         Cl_nn = Cl_nn * Cl_var.to(device) + Cl_mean.to(device)

@@ -44,7 +44,7 @@ if __name__=='__main__':
     logs_fname = 'logs/phase1_' + args.logs_fname + '_norm_pi'
         
     # load data
-    data_path = 'data/nse_data_sparse'
+    data_path = 'data/nse_data'
     tg = args.tg     # sample evrey 20 timestamps
     Ng = args.Ng
     data = ReadData(data_path)
