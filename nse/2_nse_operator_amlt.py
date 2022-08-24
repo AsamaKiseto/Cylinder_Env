@@ -22,7 +22,7 @@ def get_args(argv=None):
     parser.add_argument('--gamma', default=0.5, type=float, help='scheduler factor')
     parser.add_argument('--gpu', default=0, type=int, help='device number')
 
-    parser.add_argument('-tg', '--tg', default=1, type=int, help = 'time gap')
+    parser.add_argument('-tg', '--tg', default=5, type=int, help = 'time gap')
     parser.add_argument('-Ng', '--Ng', default=1, type=int, help = 'N gap')
     parser.add_argument('-l1', '--lambda1', default=1, type=float, help='weight of losses1')
     parser.add_argument('-l2', '--lambda2', default=0.1, type=float, help='weight of losses2')
