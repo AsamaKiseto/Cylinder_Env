@@ -89,6 +89,7 @@ if __name__ == '__main__':
     dt = 0.01
 
     f = 10 * np.random.rand(nt) - 5
+    f = np.ones(nt)
     # f = np.array([-1.60036191, 1.39814498, -1.18316184, 1.47186751, 1.20180103, -0.05713905, 0.72856494, -0.16206131, 0.55332571, 1.60028524, -1.12861622, 1.84941503,0.10701448, -1.59605537, 1.89202669, 0.04055561, 1.20823299, -0.61155347, -1.02384344, -0.04485761])
     # f = np.arange(nt) / nt * 4 - 2
     # f = np.ones(nt) * (-3)
@@ -104,8 +105,8 @@ if __name__ == '__main__':
     Cd = np.zeros(nT)
     Cl = np.zeros(nT)
 
-    t_nn = (np.arange(nt) + 1) * 0.2
-    t = (np.arange(nt * tg)) * 0.01 
+    t_nn = (np.arange(nt) + 1) * 0.01 * tg
+    t = (np.arange(nt * tg) + 1) * 0.01 
     
     # model
     load_model = FNO_ensemble(model_params, shape, f_channels=f_channels)
@@ -133,8 +134,8 @@ if __name__ == '__main__':
         Cd_nn[i] = torch.mean(pred[:, :, :, -2])
         Cl_nn[i] = torch.mean(pred[:, :, :, -1])
 
-    Cd_nn = Cd_nn * Cd_var[0] + Cd_mean[0]
-    Cl_nn = Cl_nn * Cl_var[0] + Cl_mean[0]
+    Cd_nn = Cd_nn * Cd_var + Cd_mean
+    Cl_nn = Cl_nn * Cl_var + Cl_mean
     
     torch.save([obs, Cd, Cl, obs_nn, Cd_nn, Cl_nn], 'logs/phase1_env_logs')
 
@@ -156,8 +157,8 @@ if __name__ == '__main__':
     ax2.set_xlabel(r"$t$", fontsize=15)
     ax2.set_xlim(0, nt * tg * dt)
     
-    ax1.plot(t_nn[t_start-1:-1], Cd_nn[t_start:], color='red')
-    ax2.plot(t_nn[t_start-1:-1], Cl_nn[t_start:], color='red')
+    ax1.plot(t_nn[t_start:], Cd_nn[t_start:], color='red')
+    ax2.plot(t_nn[t_start:], Cl_nn[t_start:], color='red')
 
     ax1.plot(t_nn, Cd[(tg-1)::tg], color='blue')
     ax2.plot(t_nn, Cl[(tg-1)::tg], color='blue')

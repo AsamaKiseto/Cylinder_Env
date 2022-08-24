@@ -36,13 +36,13 @@ if __name__=='__main__':
     # args parser
     args = get_args()
     print(args)
-    
+
     # logs
     logs = dict()
     logs['args'] = args
 
     logs_fname = 'logs/phase1_' + args.logs_fname + '_norm_pi'
-        
+
     # load data
     data_path = 'data/nse_data'
     tg = args.tg     # sample evrey 20 timestamps
@@ -54,7 +54,7 @@ if __name__=='__main__':
     # data param
     N0, nt, nx, ny = data.get_params()
     shape = [nx, ny]
-    
+
     # model setting
     nse_model = NSEModel(args, shape, data)
     params_num = nse_model.cout_params()
