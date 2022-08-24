@@ -154,7 +154,6 @@ print(var1, var2)
 zm1[0].backward()
 ipt1.grad
 
-
 xt1 = torch.rand(num).requires_grad_(True).unsqueeze(-1)
 xt2 = torch.rand(num).requires_grad_(True).unsqueeze(-1)
 yt1 = torch.rand(num).requires_grad_(True).unsqueeze(-1)
