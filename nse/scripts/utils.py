@@ -66,14 +66,21 @@ def Lpde(state, state_bf, dt):
                      torch.arange(start=-nx//2, end=0, step=1, device=device)), 0).reshape(nx, 1).repeat(1, ny).reshape(1,nx,ny,1)
     k_y = torch.cat((torch.arange(start=0, end=ny//2, step=1, device=device),
                      torch.arange(start=-ny//2, end=0, step=1, device=device)), 0).reshape(1, ny).repeat(nx, 1).reshape(1,nx,ny,1)
+
+    # k_x = torch.cat((torch.arange(start=0, end=nx//2, step=1, device=device), 
+    #                  torch.arange(start=-nx//2, end=0, step=1, device=device)), 0) * 2 * torch.pi / nx
+    # k_x = k_x.reshape(nx, 1).repeat(1, ny).reshape(1,nx,ny,1)
+    # k_y = torch.cat((torch.arange(start=0, end=ny//2, step=1, device=device), 
+    #                  torch.arange(start=-ny//2, end=0, step=1, device=device)), 0) * 2 * torch.pi / ny
+    # k_y = k_y.reshape(1, ny).repeat(nx, 1).reshape(1,nx,ny,1)
     lap = (k_x ** 2 + k_y ** 2)
     lap[0, 0, 0, 0] = 1.0
 
-    ux_h = 1j * k_x * u_h       
+    ux_h = 1j * k_x * u_h
     uy_h = 1j * k_y * u_h
 
     # print(ux_h.shape) 
-    px_h = 1j * k_x * p_h 
+    px_h = 1j * k_x * p_h
     py_h = 1j * k_y * p_h
     ulap_h = -lap * u_h
 
@@ -96,8 +103,6 @@ def Lpde(state, state_bf, dt):
     # print(f'loss: {loss}')
 
     return loss
-
-
 
 class AverageMeter(object):
     def __init__(self):
