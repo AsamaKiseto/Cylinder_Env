@@ -66,14 +66,14 @@ if __name__ == '__main__':
     _, logs_model = torch.load(operator_path)
     Cd_mean, Cd_var = logs_model['data_norm']['Cd']
     Cl_mean, Cl_var = logs_model['data_norm']['Cl']
-    ang_vel_mean, ang_vel_var = logs_model['data_norm']['f']
-    f = f_optim * ang_vel_var + ang_vel_mean
+    ctr_mean, ctr_var = logs_model['data_norm']['ctr']
+    f = f_optim * ctr_var + ctr_mean
     print(f)
 
     print('load data finished')
     tg = logs_model['args'].tg     # sample evrey 10 timestamps
     Ng = logs_model['args'].Ng
-    data = data_orig[::Ng, ::tg, :, :, 2:]  
+    data = data_orig[::Ng, ::tg, :, :, 2:]
     Cd = Cd[::Ng, ::tg]
     Cl = Cl[::Ng, ::tg]
     ang_vel = ang_vel[::Ng, ::tg]

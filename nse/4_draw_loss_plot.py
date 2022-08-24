@@ -16,7 +16,6 @@ def add_plots(ax, logs, label):
         exec(f'ax[{i}].plot(loss{i+1}, label="Ex"+str(label))')
         exec(f'ax[{i}].legend()')
 
-
 if __name__ == '__main__':
     # argparser
     args = get_args()

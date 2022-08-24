@@ -57,8 +57,8 @@ class NSEModel:
         print(f'lambda: {self.params.lambda1}, {self.params.lambda2}, {self.params.lambda3}, {self.params.lambda4}, f_channels: {self.params.f_channels}')
     
     def train_test(self, epoch):
-        lambda1, lambda2, lambda3, lambda4 = self.params.lambda1, self.params.lambda2, \
-                                             self.params.lambda3, self.params.lambda4
+        lambda1, lambda2, lambda3, lambda4, lambda5 = self.params.lambda1, self.params.lambda2, \
+                                                      self.params.lambda3, self.params.lambda4, self.params.lambda5
         self.model.train()
 
         t1 = default_timer()
@@ -97,7 +97,7 @@ class NSEModel:
             # loss3 = F.mse_loss(f_rec, f_train, reduction='mean')
             loss4 = rel_error(trans_out, out_latent).mean()
             loss_pde = Lpde(out_pred, in_train, self.dt)
-            loss = lambda1 * loss1 + lambda2 * loss2 + lambda3 * loss3 + lambda4 * loss4 + loss_pde
+            loss = lambda1 * loss1 + lambda2 * loss2 + lambda3 * loss3 + lambda4 * loss4 + lambda5 * loss_pde
             
             loss.backward()
             self.optimizer.step()
@@ -150,7 +150,7 @@ class NSEModel:
                 loss3 = rel_error(f_rec, f_test).mean()
                 loss4 = rel_error(trans_out, out_latent).mean()
                 loss_pde = Lpde(out_pred, in_test, self.dt)
-                loss = lambda1 * loss1 + lambda2 * loss2 + lambda3 * loss3 + lambda4 * loss4 + loss_pde
+                loss = lambda1 * loss1 + lambda2 * loss2 + lambda3 * loss3 + lambda4 * loss4 + lambda5 * loss_pde
 
                 test_loss.update(loss.item(), x_test.shape[0])
                 test_loss1.update(loss1.item(), x_test.shape[0])

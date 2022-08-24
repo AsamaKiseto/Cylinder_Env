@@ -54,3 +54,4 @@ class DrawPlots:
     def add_ylabel(self, ylabel):
         for i in range(self.num):
             self.ax[i].set_ylabel(ylabel[i])
+    

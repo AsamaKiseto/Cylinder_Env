@@ -35,7 +35,7 @@ import argparse
 def get_args(argv=None):
     parser = argparse.ArgumentParser(description='Put your hyperparameters')
     
-    parser.add_argument('-op', '--operator_path', default='phase1_ex17_dense_norm_sparse', type=str, help='path of operator weight')
+    parser.add_argument('-op', '--operator_path', default='phase1_ex17_dense_norm_sparse2', type=str, help='path of operator weight')
     parser.add_argument('--t_start', default=10, type=int, help='data number')
     parser.add_argument('-k', '--k', default=0, type=int)
 
@@ -67,6 +67,7 @@ if __name__ == '__main__':
     L = params_args.L
     modes = params_args.modes
     width = params_args.width
+    tg = params_args.tg
     model_params = dict()
     model_params['modes'] = modes
     model_params['width'] = width
@@ -83,18 +84,20 @@ if __name__ == '__main__':
     # data param
     nx, ny = 128, 64
     shape = [nx, ny]
-    nT = 400
-    tg = 1
+    nT = 200
     nt = nT // tg
     dt = 0.01
 
+    t_nn = (np.arange(nt) + 1) * 0.01 * tg
+    t = (np.arange(nt * tg) + 1) * 0.01 
+
     f = 10 * np.random.rand(nt) - 5
-    f = np.ones(nt)
+    f = np.zeros(nt)
     # f = np.array([-1.60036191, 1.39814498, -1.18316184, 1.47186751, 1.20180103, -0.05713905, 0.72856494, -0.16206131, 0.55332571, 1.60028524, -1.12861622, 1.84941503,0.10701448, -1.59605537, 1.89202669, 0.04055561, 1.20823299, -0.61155347, -1.02384344, -0.04485761])
     # f = np.arange(nt) / nt * 4 - 2
     # f = np.ones(nt) * (-3)
     f_nn = torch.Tensor(f)
-    f_nn = f_nn * ctr_var + ctr_mean
+    # f_nn = (f_nn - ctr_mean) / ctr_var
     print(f)
 
     obs_nn = torch.zeros(nt, nx, ny, 3)
@@ -105,9 +108,6 @@ if __name__ == '__main__':
     Cd = np.zeros(nT)
     Cl = np.zeros(nT)
 
-    t_nn = (np.arange(nt) + 1) * 0.01 * tg
-    t = (np.arange(nt * tg) + 1) * 0.01 
-    
     # model
     load_model = FNO_ensemble(model_params, shape, f_channels=f_channels)
     load_model.load_state_dict(state_dict)
