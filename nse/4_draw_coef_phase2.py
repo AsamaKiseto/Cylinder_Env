@@ -7,10 +7,10 @@ import numpy as np
 import matplotlib.pyplot as plt 
 import torch
 from fenics import * 
-from timeit import default_timer
 
 from scripts.models import *
 from scripts.utils import *
+from scripts.draw import *
 
 # plot colors
 from matplotlib import colors
@@ -48,9 +48,7 @@ if __name__ == '__main__':
     t_start = args.t_start
     logs = torch.load('logs/phase2_logs_test')
     operator_path = logs['operator_path']
-    obs_nn = logs['obs_nn']
-    Cd_nn = logs['Cd_nn']
-    Cl_nn = logs['Cl_nn']
+    obs_nn, Cd_nn, Cl_nn = logs['obs_nn'], logs['Cd_nn'], logs['Cl_nn']
     data_num = logs['data_num']
     f_optim = logs['f_optim']
     # print(Cd_nn[-1])
@@ -66,25 +64,22 @@ if __name__ == '__main__':
     _, logs_model = torch.load(operator_path)
     Cd_mean, Cd_var = logs_model['data_norm']['Cd']
     Cl_mean, Cl_var = logs_model['data_norm']['Cl']
-    ang_vel_mean, ang_vel_var = logs_model['data_norm']['f']
-    f = f_optim * ang_vel_var + ang_vel_mean
+    ctr_mean, ctr_var = logs_model['data_norm']['ctr']
+    f = f_optim * ctr_var + ctr_mean
     print(f)
 
     print('load data finished')
     tg = logs_model['args'].tg     # sample evrey 10 timestamps
     Ng = logs_model['args'].Ng
-    data = data_orig[::Ng, ::tg, :, :, 2:]  
+    data = data_orig[::Ng, ::tg, :, :, 2:]
     Cd = Cd[::Ng, ::tg]
     Cl = Cl[::Ng, ::tg]
     ang_vel = ang_vel[::Ng, ::tg]
     # print(Cd[data_num])
 
-    plt.figure(figsize=(15, 12))
+    plots = DrawPlots(2)
 
-    ax1 = plt.subplot2grid((2, 2), (0, 0), colspan=2)
-    ax2 = plt.subplot2grid((2, 2), (1, 0), colspan=2)
-
-    t_nn = np.arange(nt) * 0.01 * tg + 0.01 * tg
+    t_nn = np.arange(nt) * 0.01 * tg
 
     for i in k:
         Cd_ = Cd_nn[i].to(torch.device('cpu')) #* Cd_var + Cd_mean
@@ -92,18 +87,10 @@ if __name__ == '__main__':
         Cd_ = Cd_.detach().numpy()
         Cl_ = Cl_.detach().numpy()
 
-        ax1.plot(t_nn[t_start:], Cd[data_num][t_start:], color = 'black')
-        ax1.plot(t_nn[t_start:], Cd_[t_start:], color = cmap(i/(500+1)), label=i+1)
-        ax1.grid(True, lw=0.4, ls="--", c=".50")
-        ax1.set_ylabel(r"$Cd$", fontsize=15)
-        ax1.set_xlim(0, 4)
-        ax1.legend()
+        plots.add_plot(t_nn, [Cd[data_num], Cl[data_num]], t_start)
+        plots.add_plot(t_nn, [Cd_, Cl_], t_start, label=i+1)
+    
+    ylabel = [r"$Cd$", r"$Cl$"]
+    plots.add_ylabel(ylabel)
 
-        ax2.plot(t_nn[t_start:], Cl[data_num][t_start:], color = 'black')
-        ax2.plot(t_nn[t_start:], Cl_[t_start:], color = cmap(i/(500+1)), label=i+1)
-        ax2.grid(True, lw=0.4, ls="--", c=".50")
-        ax2.set_ylabel(r"$Cl$", fontsize=15)
-        ax2.set_xlim(0, 4)
-        ax2.legend()
-
-    plt.savefig(f'coef_phase2_test1.jpg')
+    plots.save_fig('coef_phase2_test1.jpg')

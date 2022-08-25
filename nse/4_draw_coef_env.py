@@ -36,7 +36,7 @@ def get_args(argv=None):
     parser = argparse.ArgumentParser(description='Put your hyperparameters')
     
     parser.add_argument('-op', '--operator_path', default='phase1_ex17_dense_norm_sparse2', type=str, help='path of operator weight')
-    parser.add_argument('--t_start', default=10, type=int, help='data number')
+    parser.add_argument('--t_start', default=50, type=int, help='data number')
     parser.add_argument('-k', '--k', default=0, type=int)
 
     return parser.parse_args(argv)
@@ -173,5 +173,9 @@ if __name__ == '__main__':
     ax3.grid(True, lw=0.4, ls="--", c=".50")
     ax3.set_ylabel(r"$state$", fontsize=15)
     ax3.set_xlim(0, nt * tg * dt)
+    
+    ax1.set_ylim(0, 4)
+    ax2.set_ylim(-2, 2)
+    ax3.set_ylim(0, 1)
 
     plt.savefig(f'logs/coef_phase1.jpg')

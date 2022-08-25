@@ -56,9 +56,7 @@ if __name__ == '__main__':
 
     logs = torch.load('logs/phase2_logs_test')
     operator_path = logs['operator_path']
-    obs_nn = logs['obs_nn']
-    Cd_nn = logs['Cd_nn']
-    Cl_nn = logs['Cl_nn']
+    obs_nn, Cd_nn, Cl_nn = logs['obs_nn'], logs['Cd_nn'], logs['Cl_nn']
     f_optim = logs['f_optim'].to(torch.device('cpu'))
 
     data_num = logs['data_num']
