@@ -49,7 +49,9 @@ if __name__=='__main__':
     tg = args.tg     # sample evrey 20 timestamps
     Ng = args.Ng
     data = ReadData(data_path)
-    data.split(Ng, tg)
+    obs, Cd, Cl, ctr = data.split(Ng, tg)
+    obs_bf = obs[:, :-1]
+    obs_af = obs[:, 1:]
     logs['data_norm'] = data.norm()
 
     # data param

@@ -62,16 +62,12 @@ def Lpde(state, state_bf, dt):
     p_h = torch.fft.fft2(p, dim=[1, 2]).reshape(-1, nx, ny, 1)
     # print(u_h.shape, p_h.shape)
 
-    # k_x = torch.cat((torch.arange(start=0, end=nx//2, step=1, device=device),
-    #                  torch.arange(start=-nx//2, end=0, step=1, device=device)), 0).reshape(nx, 1).repeat(1, ny).reshape(1,nx,ny,1)
-    # k_y = torch.cat((torch.arange(start=0, end=ny//2, step=1, device=device),
-    #                  torch.arange(start=-ny//2, end=0, step=1, device=device)), 0).reshape(1, ny).repeat(nx, 1).reshape(1,nx,ny,1)
+    k_x = torch.arange(-nx//2, nx//2) * 2 * torch.pi / 2.2
+    k_y = torch.arange(-ny//2, ny//2) * 2 * torch.pi / 0.41
+    k_x = torch.fft.fftshift(k_x)
+    k_y = torch.fft.fftshift(k_y)
 
-    k_x = torch.cat((torch.arange(start=0, end=nx//2, step=1, device=device), 
-                     torch.arange(start=-nx//2, end=0, step=1, device=device)), 0) * 2 * torch.pi / 2.2
     k_x = k_x.reshape(nx, 1).repeat(1, ny).reshape(1,nx,ny,1)
-    k_y = torch.cat((torch.arange(start=0, end=ny//2, step=1, device=device), 
-                     torch.arange(start=-ny//2, end=0, step=1, device=device)), 0) * 2 * torch.pi / 0.41
     k_y = k_y.reshape(1, ny).repeat(nx, 1).reshape(1,nx,ny,1)
     lap = -(k_x ** 2 + k_y ** 2)
 
