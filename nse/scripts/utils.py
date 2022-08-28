@@ -50,54 +50,51 @@ def count_params(model):
         c += reduce(operator.mul, list(p.size()))
     return c
 
-def Lpde(state, state_bf, dt):
-    nx = state.shape[1]
-    ny = state.shape[2]
-    device = state.device
+def Lpde(state_af, state_bf, dt):
+    nx = state_bf.shape[1]
+    ny = state_bf.shape[2]
 
     u_bf = state_bf[..., :2]
-    u = state[..., :2]
-    p = state[..., -1]
-    u_h = torch.fft.fft2(u, dim=[1, 2])
-    p_h = torch.fft.fft2(p, dim=[1, 2]).reshape(-1, nx, ny, 1)
-    # print(u_h.shape, p_h.shape)
+    p_bf = state_bf[..., -1].reshape(-1, nx, ny, 1)
+    u_af = state_af[..., :2]
 
-    k_x = torch.arange(-nx//2, nx//2) * 2 * torch.pi / 2.2
-    k_y = torch.arange(-ny//2, ny//2) * 2 * torch.pi / 0.41
+    ux, uy, u_lap = fftd2D(u_bf)
+    px, py, _ = fftd2D(p_bf)
+    p_grad = torch.cat((px, py), -1)
+    L_state = (u_af - u_bf) / dt + u_bf[..., 0].reshape(-1, nx, ny, 1) * ux + \
+              u_bf[..., 1].reshape(-1, nx, ny, 1) * uy - 0.001 * u_lap + p_grad
+
+    loss = (L_state ** 2).mean()
+
+    return loss
+
+def fftd2D(u):
+    nx = u.shape[-3]
+    ny = u.shape[-2]
+    dimu = u.shape[-1]
+    u_h = torch.fft.fft2(u, dim=[1, 2]).reshape(-1, nx, ny, dimu)
+
+    k_x = torch.arange(-nx//2, nx//2) * 2 * torch.pi / nx
+    k_y = torch.arange(-ny//2, ny//2) * 2 * torch.pi / ny
     k_x = torch.fft.fftshift(k_x)
     k_y = torch.fft.fftshift(k_y)
-
     k_x = k_x.reshape(nx, 1).repeat(1, ny).reshape(1,nx,ny,1)
     k_y = k_y.reshape(1, ny).repeat(nx, 1).reshape(1,nx,ny,1)
     lap = -(k_x ** 2 + k_y ** 2)
 
     ux_h = 1j * k_x * u_h
     uy_h = 1j * k_y * u_h
-
-    # print(ux_h.shape) 
-    px_h = 1j * k_x * p_h
-    py_h = 1j * k_y * p_h
     ulap_h = lap * u_h
 
     ux = torch.fft.ifft2(ux_h, dim=[1, 2])
     uy = torch.fft.ifft2(uy_h, dim=[1, 2])
-    px = torch.fft.ifft2(px_h, dim=[1, 2])
-    py = torch.fft.ifft2(py_h, dim=[1, 2])
     u_lap = torch.fft.ifft2(ulap_h, dim=[1, 2])
 
-    ux = torch.real(ux)
-    uy = torch.real(uy)
-    px = torch.real(px)
-    py = torch.real(py)
-    u_lap = torch.real(u_lap)
+    ux = torch.real(ux).reshape(-1, nx, ny, dimu)
+    uy = torch.real(uy).reshape(-1, nx, ny, dimu)
+    u_lap = torch.real(u_lap).reshape(-1, nx, ny, dimu)
 
-    p_grad = torch.cat((px, py), -1)
-    L_state = (u - u_bf) / dt + u[..., 0].reshape(-1, nx, ny, 1) * ux + u[..., 1].reshape(-1, nx, ny, 1) * uy - 0.001 * u_lap + p_grad
-
-    loss = (L_state ** 2).mean()
-    # print(f'loss: {loss}')
-
-    return loss
+    return ux, uy, u_lap
 
 class AverageMeter(object):
     def __init__(self):
