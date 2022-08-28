@@ -18,8 +18,6 @@ obs_bf = obs[0, t_start:-1].reshape(-1, nx, ny, 3)
 obs_af = obs[0, t_start + 1:].reshape(-1, nx, ny, 3)
 nk = obs_bf.shape[0]
 
-Lpde(obs_af, obs_bf, dt)
-
 u_bf = obs_bf[..., :2]
 p_bf = obs_bf[..., -1]
 u_af = obs_af[..., :2]
