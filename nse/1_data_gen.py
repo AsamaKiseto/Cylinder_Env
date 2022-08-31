@@ -45,9 +45,12 @@ if __name__ == '__main__':
     print(f'dt: {dt} | nt: {nT}')
 
     # data generate
-    Nf = 11
+    Nf = 1
     f1 = np.linspace(args.f1, args.f1+Nf, Nf+1)
     f2 = np.linspace(args.f2, args.f2+Nf, Nf+1)
+    Nf = 1
+    f1 = np.zeros(Nf + 1)
+    f2 = np.zeros(Nf + 1)
     f1 = f1[:-1]
     f2 = f2[:-1]
     print(f'f1: {f1}')
@@ -99,5 +102,5 @@ if __name__ == '__main__':
 
     # save data
     # torch.save(data, './data/nse_data_N0_{}_nT_{}_f1_{}_f2_{}'.format(N0, nT, args.f1, args.f2))
-    torch.save(data, './data/nse_data_sparse')
-    
+    # torch.save(data, './data/nse_data_sparse')
+    torch.save(data, './data/nse_data_test1')
