@@ -70,47 +70,49 @@ vard = vardiv.sum(0)
 print(loss)
 
 # FDM
-duFDx = torch.zeros(u_bf.shape)
+ux_FDM = torch.zeros(u_bf.shape)
+for i in range(1, nx):
+    ux_FDM[:, i] = (u_bf[:, i] - u_bf[:, i-1]) / 2.2 * nx
+ux_FDM[:, 0] = ux_FDM[:, 1]
+
+uy_FDM = torch.zeros(u_bf.shape)
+for i in range(1, ny):
+    uy_FDM[:, :, i] = (u_bf[:, :, i] - u_bf[:, :, i-1]) / 0.41 * ny
+uy_FDM[:, :, -1] = uy_FDM[:, :, -2]
+
+div_u_FDM = ux_FDM + uy_FDM
+vardivFDM = np.sqrt((div_u_FDM ** 2).sum(-1))
+
+uxx_FDM = torch.zeros(u_bf.shape)
 for i in range(nx-1):
-    duFDx[:, i] = (u_bf[:, i+1] - u_bf[:, i]) / 2.2 * nx
-duFDx[:, -1] = duFDx[:, -2]
-duFDy = torch.zeros(u_bf.shape)
+    uxx_FDM[:, i] = (ux_FDM[:, i+1] - ux_FDM[:, i]) / 2.2 * nx
+uxx_FDM[:, -1] = uxx_FDM[:, -2]
+
+uyy_FDM = torch.zeros(u_bf.shape)
 for i in range(ny-1):
-    duFDy[:, :, i] = (u_bf[:, :, i+1] - u_bf[:, :, i]) / 0.41 * ny
-duFDy[:, :, -1] = duFDy[:, :, -2]
+    uyy_FDM[:, :, i] = (uy_FDM[:, :, i+1] - uy_FDM[:, :, i]) / 0.41 * ny
+uyy_FDM[:, :, -1] = uyy_FDM[:, :, -2]
 
-div_uFD = duFDx + duFDy
-vardivFD = np.sqrt((div_uFD ** 2).sum(-1))
+px_FDM = torch.zeros(p_bf.shape)
+for i in range(1, nx-1):
+    px_FDM[:, i] = (p_bf[:, i+1] - p_bf[:, i-1]) / 2.2 * nx / 2
+px_FDM[:, -1] = px_FDM[:, -2]
 
-dduFDx = torch.zeros(u_bf.shape)
-for i in range(nx-1):
-    dduFDx[:, i] = (duFDx[:, i+1] - duFDx[:, i]) / 2.2 * nx
-dduFDx[:, -1] = dduFDx[:, -2]
-dduFDy = torch.zeros(u_bf.shape)
+py_FDM = torch.zeros(p_bf.shape)
 for i in range(ny-1):
-    dduFDy[:, :, i] = (duFDy[:, :, i+1] - duFDy[:, :, i]) / 0.41 * ny
-dduFDy[:, :, -1] = dduFDy[:, :, -2]
+    py_FDM[:, :, i] = (p_bf[:, :, i+1] - p_bf[:, :, i-1]) / 0.41 * ny / 2
+py_FDM[:, :, -1] = py_FDM[:, :, -2]
 
-dpFDx = torch.zeros(p_bf.shape)
-for i in range(nx-1):
-    dpFDx[:, i] = (p_bf[:, i+1] - p_bf[:, i]) / 2.2 * nx
-dpFDx[:, -1] = dpFDx[:, -2]
-dpFDy = torch.zeros(p_bf.shape)
-for i in range(ny-1):
-    dpFDy[:, :, i] = (p_bf[:, :, i+1] - p_bf[:, :, i]) / 0.41 * ny
-dpFDy[:, :, -1] = dpFDy[:, :, -2]
+u_lapFD = uxx_FDM + uyy_FDM
+p_gradFD = torch.cat((px_FDM.reshape(-1, nx, ny, 1), py_FDM.reshape(-1, nx, ny, 1)), -1)
 
-u_lapFD = dduFDx + dduFDy
-p_gradFD = torch.cat((dpFDx.reshape(-1, nx, ny, 1), dpFDy.reshape(-1, nx, ny, 1)), -1)
-
-L_FDM = (u_af - u_bf) / dt + u_bf[..., 0].reshape(-1, nx, ny, 1) * duFDx + u_bf[..., 1].reshape(-1, nx, ny, 1) * duFDy - 0.001 * u_lapFD + p_gradFD
+L_FDM = (u_af - u_bf) / dt + u_bf[..., 0].reshape(-1, nx, ny, 1) * ux_FDM + u_bf[..., 1].reshape(-1, nx, ny, 1) * uy_FDM - 0.001 * u_lapFD + p_gradFD
 varLFD = (L_FDM ** 2).sum(-1)
 varLFD = varLFD.detach().numpy()
 varLFD = np.sqrt(varLFD)
 
-
-varux = ux - duFDx
-varuy = uy - duFDy
+varux = ux - ux_FDM
+varuy = uy - uy_FDM
 varuxy = np.sqrt((varux**2).sum(-1) + (varuy**2).sum(-1))
 
 

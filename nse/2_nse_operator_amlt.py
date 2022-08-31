@@ -53,15 +53,30 @@ if __name__=='__main__':
     obs_bf = obs[:, :-1]
     obs_af = obs[:, 1:]
     logs['data_norm'] = data.norm()
+    logs['logs'] = dict()
+    logs['logs']['train_loss']=[]
+    logs['logs']['train_loss_f_t_rec']=[]
+    logs['logs']['train_loss_u_t_rec']=[]
+    logs['logs']['train_loss_trans']=[]
+    logs['logs']['train_loss_trans_latent']=[]
+    logs['logs']['train_loss_pde'] = []
+    logs['logs']['test_loss']=[]
+    logs['logs']['test_loss_f_t_rec']=[]
+    logs['logs']['test_loss_u_t_rec']=[]
+    logs['logs']['test_loss_trans']=[]
+    logs['logs']['test_loss_trans_latent']=[]
+    logs['logs']['test_loss_pde'] = []
 
     # data param
     N0, nt, nx, ny = data.get_params()
     shape = [nx, ny]
 
+    # loader
+    train_loader, test_loader = data.trans2Dataset(args.batch_size)
+
     # model setting
-    nse_model = NSEModel(args, shape, data)
-    params_num = nse_model.cout_params()
-    nse_model.print_params()
+    nse_model = NSEModel_FNO(args, shape, data.dt, logs['logs'])
+    params_num = nse_model.count_params()
 
     print('N0: {}, nt: {}, nx: {}, ny: {}, device: {}'.format(N0, nt, nx, ny, nse_model.device))
     print(f'Cd: {logs["data_norm"]["Cd"]}')
@@ -70,6 +85,5 @@ if __name__=='__main__':
     print(f'obs: {logs["data_norm"]["obs"]}')
     print(f'param numbers of the model: {params_num}')
 
-    nse_model.process()
-    logs['logs'] = nse_model.get_logs()
+    nse_model.process(train_loader, test_loader)
     torch.save([nse_model.model.state_dict(), logs], logs_fname)

@@ -53,13 +53,14 @@ def count_params(model):
 def Lpde(state_af, state_bf, dt):
     nx = state_bf.shape[1]
     ny = state_bf.shape[2]
+    device = state_af.device
 
     u_bf = state_bf[..., :2]
     p_bf = state_bf[..., -1].reshape(-1, nx, ny, 1)
     u_af = state_af[..., :2]
 
-    ux, uy, u_lap = fftd2D(u_bf)
-    px, py, _ = fftd2D(p_bf)
+    ux, uy, u_lap = fftd2D(u_bf, device)
+    px, py, _ = fftd2D(p_bf, device)
     p_grad = torch.cat((px, py), -1)
     L_state = (u_af - u_bf) / dt + u_bf[..., 0].reshape(-1, nx, ny, 1) * ux + \
               u_bf[..., 1].reshape(-1, nx, ny, 1) * uy - 0.001 * u_lap + p_grad
@@ -68,18 +69,18 @@ def Lpde(state_af, state_bf, dt):
 
     return loss
 
-def fftd2D(u):
+def fftd2D(u, device):
     nx = u.shape[-3]
     ny = u.shape[-2]
     dimu = u.shape[-1]
     u_h = torch.fft.fft2(u, dim=[1, 2]).reshape(-1, nx, ny, dimu)
 
-    k_x = torch.arange(-nx//2, nx//2) * 2 * torch.pi / nx
-    k_y = torch.arange(-ny//2, ny//2) * 2 * torch.pi / ny
+    k_x = torch.arange(-nx//2, nx//2) * 2 * torch.pi / 2.2
+    k_y = torch.arange(-ny//2, ny//2) * 2 * torch.pi / 0.41
     k_x = torch.fft.fftshift(k_x)
     k_y = torch.fft.fftshift(k_y)
-    k_x = k_x.reshape(nx, 1).repeat(1, ny).reshape(1,nx,ny,1)
-    k_y = k_y.reshape(1, ny).repeat(nx, 1).reshape(1,nx,ny,1)
+    k_x = k_x.reshape(nx, 1).repeat(1, ny).reshape(1,nx,ny,1).to(device)
+    k_y = k_y.reshape(1, ny).repeat(nx, 1).reshape(1,nx,ny,1).to(device)
     lap = -(k_x ** 2 + k_y ** 2)
 
     ux_h = 1j * k_x * u_h
@@ -153,12 +154,6 @@ class ReadData:
 
         return self.norm
 
-    def disnorm(self, norm):
-        Cd_mean, Cd_var = norm['Cd']
-        Cl_mean, Cl_var = norm['Cl']
-        ctr_mean, ctr_var = norm['ctr']
-        obs_mean, obs_var = norm['obs']
-
     def get_data(self):
         return self.obs, self.Cd, self.Cl, self.ctr
 
@@ -168,11 +163,14 @@ class ReadData:
         self.Ndata = self.N0 * self.nt
         return self.N0, self.nt, self.nx, self.ny
     
-    def trans2Dataset(self):
+    def trans2Dataset(self, batch_size):
         NSE_data = NSE_Dataset(self)
         train_data, test_data = random_split(NSE_data, [int(0.8 * self.Ndata), int(0.2 * self.Ndata)])
-        return train_data, test_data
-    
+        train_loader = DataLoader(dataset=train_data, batch_size=batch_size, shuffle=True)
+        test_loader = DataLoader(dataset=test_data, batch_size=batch_size, shuffle=False)
+        return train_loader, test_loader
+        
+
 class NSE_Dataset(Dataset):
     def __init__(self, data):
         N0, nt, nx, ny = data.get_params()

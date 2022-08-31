@@ -39,7 +39,19 @@ if __name__=='__main__':
     # logs
     logs = dict()
     logs['args'] = args
-
+    logs['logs'] = dict()
+    logs['logs']['train_loss']=[]
+    logs['logs']['train_loss_f_t_rec']=[]
+    logs['logs']['train_loss_u_t_rec']=[]
+    logs['logs']['train_loss_trans']=[]
+    logs['logs']['train_loss_trans_latent']=[]
+    logs['logs']['train_loss_pde'] = []
+    logs['logs']['test_loss']=[]
+    logs['logs']['test_loss_f_t_rec']=[]
+    logs['logs']['test_loss_u_t_rec']=[]
+    logs['logs']['test_loss_trans']=[]
+    logs['logs']['test_loss_trans_latent']=[]
+    logs['logs']['test_loss_pde'] = []
     logs_fname = 'logs/phase1_' + args.logs_fname + '_norm'
         
     # load data
@@ -53,10 +65,13 @@ if __name__=='__main__':
     # data param
     N0, nt, nx, ny = data.get_params()
     shape = [nx, ny]
-    
+ 
+    # loader
+    train_loader, test_loader = data.trans2Dataset(args.batch_size)
+
     # model setting
-    nse_model = NSEModel(args, shape, data)
-    params_num = nse_model.cout_params()
+    nse_model = NSEModel_PIPN(args, shape, data.dt, logs['logs'])
+    params_num = nse_model.count_params()
 
     nse_model.print_params()
 
