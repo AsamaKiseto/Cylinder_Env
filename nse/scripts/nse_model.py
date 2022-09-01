@@ -60,12 +60,14 @@ class NSEModel_FNO:
             in_train, f_train = x_train[:, :, :, :-1], x_train[:, 0, 0, -1]
             out_train, Cd_train, Cl_train = y_train[:, :, :, :-2], y_train[:, 0, 0, -2], y_train[:, 0, 0, -1]
             # put data into model
-            pred, x_rec, f_rec, trans_out, modify = self.model(in_train, f_train)
+            pred, x_rec, f_rec, trans_out = self.model(in_train, f_train)
             out_latent = self.model.stat_en(out_train)
             in_rec = x_rec[:, :, :, :3]
             # prediction items
             out_pred = pred[:, :, :, :3]
-            out_modify = modify[:, :, :, :3]
+            in_mod = self.model.state_mo(in_train)
+            out_mod = self.model.state_mo(out_pred)
+
             Cd_pred = torch.mean(pred[:, :, :, -2].reshape(self.batch_size, -1), 1)
             Cl_pred = torch.mean(pred[:, :, :, -1].reshape(self.batch_size, -1), 1)
 
@@ -74,11 +76,11 @@ class NSEModel_FNO:
             loss1 = rel_error(out_pred, out_train).mean()\
                     + rel_error(Cd_pred, Cd_train).mean()\
                     + rel_error(Cl_pred, Cl_train).mean()
-            loss2 = rel_error(in_rec, in_train).mean()
+            loss2 = rel_error(in_rec, in_train + in_mod).mean()
             loss3 = rel_error(f_rec, f_train).mean()
             # loss3 = F.mse_loss(f_rec, f_train, reduction='mean')
             loss4 = rel_error(trans_out, out_latent).mean()
-            loss_pde = Lpde(out_pred, in_train, self.dt)
+            loss_pde = Lpde(out_pred + out_mod, in_train + in_mod, self.dt)
             loss = lambda1 * loss1 + lambda2 * loss2 + lambda3 * loss3 + lambda4 * loss4 + lambda5 * loss_pde
             
             loss.backward()
@@ -118,22 +120,24 @@ class NSEModel_FNO:
                 in_test, f_test = x_test[:, :, :, :-1], x_test[:, 0, 0, -1]
                 out_test, Cd_test, Cl_test = y_test[:, :, :, :-2], y_test[:, 0, 0, -2], y_test[:, 0, 0, -1]
                 # put data into model
-                pred, x_rec, f_rec, trans_out, modify = self.model(in_test, f_test)
+                pred, x_rec, f_rec, trans_out = self.model(in_test, f_test)
                 out_latent = self.model.stat_en(out_test)
                 in_rec = x_rec[:, :, :, :3]
                 # prediction items
                 out_pred = pred[:, :, :, :3]
-                out_modify = modify[:, :, :, :3]
+                in_mod = self.model.state_mo(in_test)
+                out_mod = self.model.state_mo(out_pred)
+
                 Cd_pred = torch.mean(pred[:, :, :, -2].reshape(self.batch_size, -1), 1)
                 Cl_pred = torch.mean(pred[:, :, :, -1].reshape(self.batch_size, -1), 1)
 
                 loss1 = rel_error(out_pred, out_test).mean()\
                         + rel_error(Cd_pred, Cd_test).mean()\
                         + rel_error(Cl_pred, Cl_test).mean()
-                loss2 = rel_error(in_rec, in_test).mean()
+                loss2 = rel_error(in_rec, in_test + in_mod).mean()
                 loss3 = rel_error(f_rec, f_test).mean()
                 loss4 = rel_error(trans_out, out_latent).mean()
-                loss_pde = Lpde(out_pred, in_test, self.dt)
+                loss_pde = Lpde(out_pred + out_mod, in_test + in_mod, self.dt)
                 loss = lambda1 * loss1 + lambda2 * loss2 + lambda3 * loss3 + lambda4 * loss4 + lambda5 * loss_pde
 
                 test_loss.update(loss.item(), x_test.shape[0])
@@ -278,6 +282,7 @@ class NSEModel_PIPN:
         for epoch in range(1, self.epochs+1):
             self.train_test(epoch, train_loader, test_loader)
 
+
 class NSECtr:
     def __init__(self, args, operator_path, shape):
         self.device = torch.device('cuda:{}'.format(self.params.gpu) if torch.cuda.is_available() else 'cpu')
@@ -294,3 +299,5 @@ class NSECtr:
 
         self.model = FNO_ensemble(model_params, shape, f_channels).to(self.device)
         self.model.eval()
+
+

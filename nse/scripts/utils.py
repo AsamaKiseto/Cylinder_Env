@@ -59,8 +59,15 @@ def Lpde(state_af, state_bf, dt):
     p_bf = state_bf[..., -1].reshape(-1, nx, ny, 1)
     u_af = state_af[..., :2]
 
-    ux, uy, u_lap = fftd2D(u_bf, device)
-    px, py, _ = fftd2D(p_bf, device)
+    # ux, uy, u_lap = fftd2D(u_bf, device)
+    # px, py, _ = fftd2D(p_bf, device)
+
+    ux, uy = fdmd2D(u_bf, device)
+    px, py = fdmd2D(p_bf, device)
+    uxx, _ = fdmd2D(ux, device)
+    _, uyy = fdmd2D(uy, device)
+
+    u_lap = uxx + uyy
     p_grad = torch.cat((px, py), -1)
     L_state = (u_af - u_bf) / dt + u_bf[..., 0].reshape(-1, nx, ny, 1) * ux + \
               u_bf[..., 1].reshape(-1, nx, ny, 1) * uy - 0.001 * u_lap + p_grad
@@ -68,6 +75,25 @@ def Lpde(state_af, state_bf, dt):
     loss = (L_state ** 2).mean()
 
     return loss
+
+def fdmd2D(u, device):
+    bs = u.shape[0]
+    nx = u.shape[-3]
+    ny = u.shape[-2]
+    dimu = u.shape[-1]
+    dx = 2.2 / nx
+    dy = 0.41 / ny
+    ux = torch.zeros(bs, nx, ny, dimu).to(device)
+    uy = torch.zeros(bs, nx, ny, dimu).to(device)
+    for i in range(nx-1):
+        ux[:, i] = (u[:, i+1] - u[:, i]) / dx
+    ux[:, -1] = ux[:, -2]
+    for j in range(ny-1):
+        uy[:, :, j] = (u[:, :, j+1] - u[:, :, j]) / dy
+    uy[:, :, -1] = uy[:, :, -2]
+
+    return ux, uy
+
 
 def fftd2D(u, device):
     nx = u.shape[-3]

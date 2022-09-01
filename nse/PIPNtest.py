@@ -174,11 +174,11 @@ var1 = abs_error(zm1, zt)
 var2 = abs_error(zm2, zt)
 var3 = abs_error(zm3, zt_)
 print(var1, var2, var3)
-zm1[1].backward()
+zm1[1].backward(retain_graph=True)
 ipt1.grad
-zm2[1].backward()
+zm2[1].backward(retain_graph=True)
 ipt2.grad
-zm3[0, 2, 2].backward()
+zm3[0, 2, 2].backward(retain_graph=True)
 ipt3.grad
 
 # xt1 = torch.rand(num).requires_grad_(True).unsqueeze(-1)
