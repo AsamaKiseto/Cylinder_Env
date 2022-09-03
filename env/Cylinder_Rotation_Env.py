@@ -67,12 +67,12 @@ class Cylinder_Rotation_Env(gym.Env):
         # episode_over = False
         return obs, C_D, C_L
 
-    def reset(self):
+    def reset(self, mode='grid'):
         # self.sim.set_state_vector(self.sim.init_state_1_vector.vector())
         self.sim.reset_state_vector()
         self.current_t = 0
         # print('env reset complete')
-        return self.sim.get_observation('grid')
+        return self.sim.get_observation(mode)
 
     def set_init(self):
         self.sim.save_sol()  

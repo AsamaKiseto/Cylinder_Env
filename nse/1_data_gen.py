@@ -45,14 +45,14 @@ if __name__ == '__main__':
     print(f'dt: {dt} | nt: {nT}')
 
     # data generate
-    Nf = 1
-    f1 = np.linspace(args.f1, args.f1+Nf, Nf+1)
-    f2 = np.linspace(args.f2, args.f2+Nf, Nf+1)
-    Nf = 1
-    f1 = np.zeros(Nf + 1)
-    f2 = np.zeros(Nf + 1)
-    f1 = f1[:-1]
-    f2 = f2[:-1]
+    Nf = 8
+    f1 = np.linspace(args.f1, args.f1+2, Nf)
+    f2 = np.linspace(args.f2, args.f2+2, Nf)
+    # Nf = 1
+    # f1 = np.zeros(Nf + 1)
+    # f2 = np.zeros(Nf + 1)
+    # f1 = f1[:-1]
+    # f2 = f2[:-1]
     print(f'f1: {f1}')
     print(f'f2: {f2}')
     N0 = Nf * Nf
@@ -70,21 +70,26 @@ if __name__ == '__main__':
     print(f'init complete: {end - start}')
 
     env.set_init()
+    obs_temp = env.reset(mode='vertex')
+    mesh_num = obs_temp.shape[0]
+    obs_v = np.zeros((N0, nT+1, mesh_num, 5))
 
     for k in range(Nf):
         for l in range(Nf):
             print(f'start # {Nf * k + l + 1}')
             start = default_timer()
 
-            obs[Nf * k + l, 0] = env.reset()
+            obs_temp = env.reset()
         
             for i in range(hf_nT):
                 f[Nf * k + l, i] = f1[k]
-                obs[Nf * k + l, i+1], C_D[Nf * k + l, i], C_L[Nf * k + l, i] = env.step(f1[k])
+                # obs[Nf * k + l, i+1], C_D[Nf * k + l, i], C_L[Nf * k + l, i] = env.step(f1[k])
+                obs_v[Nf * k + l, i+1], C_D[Nf * k + l, i], C_L[Nf * k + l, i] = env.step(f1[k], mode='vertex')
             
             for i in range(hf_nT, nT):
                 f[Nf * k + l, i] = f2[l]
-                obs[Nf * k + l, i+1], C_D[Nf * k + l, i], C_L[Nf * k + l, i] = env.step(f2[l])
+                # obs[Nf * k + l, i+1], C_D[Nf * k + l, i], C_L[Nf * k + l, i] = env.step(f2[l])
+                obs_v[Nf * k + l, i+1], C_D[Nf * k + l, i], C_L[Nf * k + l, i] = env.step(f2[l], mode='vertex')
         
             end = default_timer()
 
@@ -93,7 +98,8 @@ if __name__ == '__main__':
         # print(f'reward :{reward[k]}')
 
     # np to tensor
-    obs_tensor = torch.Tensor(obs)
+    # obs_tensor = torch.Tensor(obs)
+    obs_tensor = torch.Tensor(obs_v)
     C_D_tensor = torch.Tensor(C_D)
     C_L_tensor = torch.Tensor(C_L)
     f_tensor = torch.Tensor(f)
@@ -102,5 +108,5 @@ if __name__ == '__main__':
 
     # save data
     # torch.save(data, './data/nse_data_N0_{}_nT_{}_f1_{}_f2_{}'.format(N0, nT, args.f1, args.f2))
-    # torch.save(data, './data/nse_data_sparse')
-    torch.save(data, './data/nse_data_test1')
+    torch.save(data, './data/nse_data_irr')
+    # torch.save(data, './data/nse_data_test1')
