@@ -6,9 +6,10 @@ from scripts.models import *
 from scripts.utils import *
 
 class NSEModel_FNO:
-    def __init__(self, args, shape, dt, logs):
+    def __init__(self, args, shape, dt, logs, modify=True):
         self.logs = logs
         self.params = args
+        self.modify = modify
         self.device = torch.device('cuda:{}'.format(self.params.gpu) if torch.cuda.is_available() else 'cpu')
 
         model_params = dict()
@@ -60,13 +61,13 @@ class NSEModel_FNO:
             in_train, f_train = x_train[:, :, :, :-1], x_train[:, 0, 0, -1]
             out_train, Cd_train, Cl_train = y_train[:, :, :, :-2], y_train[:, 0, 0, -2], y_train[:, 0, 0, -1]
             # put data into model
-            pred, x_rec, f_rec, trans_out = self.model(in_train, f_train)
+            pred, x_rec, f_rec, trans_out = self.model(in_train, f_train, self.modify)
             out_latent = self.model.stat_en(out_train)
             in_rec = x_rec[:, :, :, :3]
             # prediction items
             out_pred = pred[:, :, :, :3]
-            in_mod = self.model.state_mo(in_train)
-            out_mod = self.model.state_mo(out_pred)
+            in_mod = self.model.state_mo(in_train, self.modify)
+            out_mod = self.model.state_mo(out_pred, self.modify)
 
             Cd_pred = torch.mean(pred[:, :, :, -2].reshape(self.batch_size, -1), 1)
             Cl_pred = torch.mean(pred[:, :, :, -1].reshape(self.batch_size, -1), 1)
@@ -120,13 +121,13 @@ class NSEModel_FNO:
                 in_test, f_test = x_test[:, :, :, :-1], x_test[:, 0, 0, -1]
                 out_test, Cd_test, Cl_test = y_test[:, :, :, :-2], y_test[:, 0, 0, -2], y_test[:, 0, 0, -1]
                 # put data into model
-                pred, x_rec, f_rec, trans_out = self.model(in_test, f_test)
+                pred, x_rec, f_rec, trans_out = self.model(in_test, f_test, self.modify)
                 out_latent = self.model.stat_en(out_test)
                 in_rec = x_rec[:, :, :, :3]
                 # prediction items
                 out_pred = pred[:, :, :, :3]
-                in_mod = self.model.state_mo(in_test)
-                out_mod = self.model.state_mo(out_pred)
+                in_mod = self.model.state_mo(in_test, self.modify)
+                out_mod = self.model.state_mo(out_pred, self.modify)
 
                 Cd_pred = torch.mean(pred[:, :, :, -2].reshape(self.batch_size, -1), 1)
                 Cl_pred = torch.mean(pred[:, :, :, -1].reshape(self.batch_size, -1), 1)

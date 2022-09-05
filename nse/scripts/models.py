@@ -277,7 +277,10 @@ class state_mo(nn.Module):
         self.fc1 = nn.Linear(width, 128)
         self.fc2 = nn.Linear(128, 3)
 
-    def forward(self, x):
+    def forward(self, x, modify):
+        if modify == False:
+            return 0
+        
         grid = self.get_grid(x.shape, x.device)
         x = torch.cat((x, grid), dim=-1)    # [batch_size, nx, ny, 5]
         x = self.fc0(x)
@@ -320,10 +323,10 @@ class FNO_ensemble(nn.Module):
 
         self.trans = trans_net(modes1, modes2, width, L, f_channels)
 
-    def forward(self, x, f):
+    def forward(self, x, f, modify=True):
         # x: [batch_size, nx, ny, 3]; f: [1]
         
-        x_mod = self.state_mo(x)
+        x_mod = self.state_mo(x, modify)
         x = x + x_mod
 
         # print(f'x: {x.size()}')

@@ -35,7 +35,7 @@ import argparse
 def get_args(argv=None):
     parser = argparse.ArgumentParser(description='Put your hyperparameters')
     
-    parser.add_argument('-op', '--operator_path', default='phase1_ex17_dense_norm_sparse2', type=str, help='path of operator weight')
+    parser.add_argument('-op', '--operator_path', default='phase1_ex3_norm_pi', type=str, help='path of operator weight')
     parser.add_argument('--t_start', default=10, type=int, help='data number')
     parser.add_argument('-k', '--k', default=0, type=int)
 
@@ -43,7 +43,7 @@ def get_args(argv=None):
 
 # env init
 env = Cylinder_Rotation_Env(params={'dtr': 0.01, 'T': 1, 'rho_0': 1, 'mu' : 1/1000,
-                                    'traj_max_T': 20, 'dimx': 128, 'dimy': 64,
+                                    'traj_max_T': 20, 'dimx': 256, 'dimy': 64,
                                     'min_x' : 0,  'max_x' : 2.2, 
                                     'min_y' : 0,  'max_y' : 0.41, 
                                     'r' : 0.05,  'center':(0.2, 0.2),
@@ -68,11 +68,12 @@ if __name__ == '__main__':
     modes = params_args.modes
     width = params_args.width
     tg = params_args.tg
+    f_channels = params_args.f_channels
     model_params = dict()
     model_params['modes'] = modes
     model_params['width'] = width
     model_params['L'] = L
-    f_channels = params_args.f_channels
+    model_params['f_channels'] = f_channels
 
     Cd_mean, Cd_var = logs['data_norm']['Cd']
     Cl_mean, Cl_var = logs['data_norm']['Cl']
@@ -82,17 +83,19 @@ if __name__ == '__main__':
     k = args.k  # k th traj
     
     # data param
-    nx, ny = 128, 64
+    nx, ny = env.params['dimx'], env.params['dimy']
     shape = [nx, ny]
+    model_params['shape'] = shape
+
     nT = 200
     nt = nT // tg
     dt = 0.01
 
-    t_nn = (np.arange(nt) + 1) * 0.01 * tg
+    t_nn = (np.arange(nt)) * 0.01 * tg
     t = (np.arange(nt * tg) + 1) * 0.01 
 
     f = 10 * np.random.rand(nt) - 5
-    f = np.zeros(nt)
+    # f = np.zeros(nt)
     # f = np.array([-1.60036191, 1.39814498, -1.18316184, 1.47186751, 1.20180103, -0.05713905, 0.72856494, -0.16206131, 0.55332571, 1.60028524, -1.12861622, 1.84941503,0.10701448, -1.59605537, 1.89202669, 0.04055561, 1.20823299, -0.61155347, -1.02384344, -0.04485761])
     # f = np.arange(nt) / nt * 4 - 2
     # f = np.ones(nt) * (-3)
@@ -109,7 +112,7 @@ if __name__ == '__main__':
     Cl = np.zeros(nT)
 
     # model
-    load_model = FNO_ensemble(model_params, shape, f_channels=f_channels)
+    load_model = FNO_ensemble(model_params)
     load_model.load_state_dict(state_dict)
     load_model.eval()
 
@@ -121,47 +124,62 @@ if __name__ == '__main__':
         print(f'# {i+1} f: {f[i]}')
         for j in range(tg):
             obs[i*tg + j + 1], Cd[i*tg + j], Cl[i*tg + j] = env.step(f[i])
+        obs_nn[i] = torch.Tensor(obs[i*tg + tg, ..., 2:])
 
     out_nn = torch.Tensor(obs[tg * t_start, :, :, 2:]).reshape(1, nx, ny, 3)
-    obs_nn[0] = out_nn
     for i in range(t_start, nt):
         print(f'# {i+1} f: {f[i]}')
         for j in range(tg):
             obs[i*tg + j + 1], Cd[i*tg + j], Cl[i*tg + j] = env.step(f[i])
         pred, _, _, _ = load_model(out_nn, f_nn[i].reshape(1))
         out_nn = pred[:, :, :, :3]
+        out_mod = load_model.state_mo(out_nn)
+        # out_nn = out_nn + out_mod
         obs_nn[i] = out_nn
         Cd_nn[i] = torch.mean(pred[:, :, :, -2])
         Cl_nn[i] = torch.mean(pred[:, :, :, -1])
+        print(Cd_nn[i], Cl_nn[i])
 
     Cd_nn = Cd_nn * Cd_var + Cd_mean
     Cl_nn = Cl_nn * Cl_var + Cl_mean
     
     torch.save([obs, Cd, Cl, obs_nn, Cd_nn, Cl_nn], 'logs/phase1_env_logs')
 
+    # dt = 0.01
+    # tg = 5
+    # t_start = 10
+    # nT = 400
+    # nt = nT // tg
+    # dt = 0.01
+
+    # t_nn = (np.arange(nt)) * 0.01 * tg
+    # t = (np.arange(nt * tg) + 1) * 0.01 
+
+    obs, Cd, Cl, obs_nn, Cd_nn, Cl_nn = torch.load( 'logs/phase1_env_logs')
     plt.figure(figsize=(12,10))
     ax1 = plt.subplot2grid((3, 2), (0, 0), colspan=2)
     ax2 = plt.subplot2grid((3, 2), (1, 0), colspan=2)
     ax3 = plt.subplot2grid((3, 2), (2, 0), colspan=2)
 
     ax1.set_title('Samples from data', size=15)
-    ax1.plot(t, Cd, color='yellow')
     ax1.grid(True, lw=0.4, ls="--", c=".50")
     ax1.set_xlim(0, nt * tg * dt)
     # ax1.set_ylim(2.5, 4)
     ax1.set_ylabel(r"$C_d$", fontsize=15)
 
-    ax2.plot(t, Cl, color='yellow')
     ax2.grid(True, lw=0.4, ls="--", c=".50")
     ax2.set_ylabel(r"$C_l$", fontsize=15)
     ax2.set_xlabel(r"$t$", fontsize=15)
     ax2.set_xlim(0, nt * tg * dt)
     
+    ax1.plot(t, Cd, color='blue')
+    ax2.plot(t, Cl, color='blue')
+
     ax1.plot(t_nn[t_start:], Cd_nn[t_start:], color='red')
     ax2.plot(t_nn[t_start:], Cl_nn[t_start:], color='red')
 
-    ax1.plot(t_nn, Cd[(tg-1)::tg], color='blue')
-    ax2.plot(t_nn, Cl[(tg-1)::tg], color='blue')
+    # ax1.plot(t_nn, Cd[(tg-1)::tg], color='yellow')
+    # ax2.plot(t_nn, Cl[(tg-1)::tg], color='yellow')
 
     obs_sps = obs[::tg][1:][...,2:]
     print(obs_sps.shape)
@@ -174,8 +192,8 @@ if __name__ == '__main__':
     ax3.set_ylabel(r"$state$", fontsize=15)
     ax3.set_xlim(0, nt * tg * dt)
     
-    ax1.set_ylim(0, 4)
-    ax2.set_ylim(-2, 2)
-    ax3.set_ylim(0, 1)
+    ax1.set_ylim(2.5, 3.5)
+    ax2.set_ylim(-1.5, 1.5)
+    # ax3.set_ylim(0, 1e-1)
 
     plt.savefig(f'logs/coef_phase1.jpg')
