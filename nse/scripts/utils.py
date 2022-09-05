@@ -122,11 +122,9 @@ def fftd2D(u, device):
 
     return ux, uy, u_lap
 
-def AD2D(u, device):
-    nv = u.shape[-2]
-    dimu = u.shape[-1]
-    
-
+# def AD2D(u, device):
+#     nv = u.shape[-2]
+#     dimu = u.shape[-1]
 
 class AverageMeter(object):
     def __init__(self):
@@ -197,6 +195,9 @@ class ReadData:
         return self.obs, self.Cd, self.Cl, self.ctr
 
     def get_params(self):
+        self.nt = self.ctr.shape[-1]
+        self.N0 = self.ctr.shape[0]
+        self.Ndata = self.N0 * self.nt
         if self.mode=='grid':
             return self.N0, self.nt, self.nx, self.ny
         elif self.mode=='vertex':
