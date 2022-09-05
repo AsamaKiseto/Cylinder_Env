@@ -21,7 +21,7 @@ def get_args(argv=None):
 
 # env init
 env = Cylinder_Rotation_Env(params={'dtr': 0.01, 'T': 1, 'rho_0': 1, 'mu' : 1/1000,
-                                    'traj_max_T': 20, 'dimx': 128, 'dimy': 64,
+                                    'traj_max_T': 20, 'dimx': 256, 'dimy': 64,
                                     'min_x' : 0,  'max_x' : 2.2, 
                                     'min_y' : 0,  'max_y' : 0.41, 
                                     'r' : 0.05,  'center':(0.2, 0.2),
@@ -71,6 +71,7 @@ if __name__ == '__main__':
 
     env.set_init()
     obs_temp = env.reset(mode='vertex')
+    # obs_temp = env.reset(mode='grid')
     mesh_num = obs_temp.shape[0]
     obs_v = np.zeros((N0, nT+1, mesh_num, 5))
 
@@ -79,17 +80,18 @@ if __name__ == '__main__':
             print(f'start # {Nf * k + l + 1}')
             start = default_timer()
 
-            obs_temp = env.reset()
+            obs_v[Nf * k + l, 0] = env.reset(mode='vertex')
+            obs[Nf * k + l, 0] = env.reset(mode='grid')
         
             for i in range(hf_nT):
                 f[Nf * k + l, i] = f1[k]
-                # obs[Nf * k + l, i+1], C_D[Nf * k + l, i], C_L[Nf * k + l, i] = env.step(f1[k])
-                obs_v[Nf * k + l, i+1], C_D[Nf * k + l, i], C_L[Nf * k + l, i] = env.step(f1[k], mode='vertex')
+                obs[Nf * k + l, i+1], C_D[Nf * k + l, i], C_L[Nf * k + l, i] = env.step(f1[k])
+                # obs_v[Nf * k + l, i+1], C_D[Nf * k + l, i], C_L[Nf * k + l, i] = env.step(f1[k], mode='vertex')
             
             for i in range(hf_nT, nT):
                 f[Nf * k + l, i] = f2[l]
-                # obs[Nf * k + l, i+1], C_D[Nf * k + l, i], C_L[Nf * k + l, i] = env.step(f2[l])
-                obs_v[Nf * k + l, i+1], C_D[Nf * k + l, i], C_L[Nf * k + l, i] = env.step(f2[l], mode='vertex')
+                obs[Nf * k + l, i+1], C_D[Nf * k + l, i], C_L[Nf * k + l, i] = env.step(f2[l])
+                # obs_v[Nf * k + l, i+1], C_D[Nf * k + l, i], C_L[Nf * k + l, i] = env.step(f2[l], mode='vertex')
         
             end = default_timer()
 
@@ -98,15 +100,17 @@ if __name__ == '__main__':
         # print(f'reward :{reward[k]}')
 
     # np to tensor
-    # obs_tensor = torch.Tensor(obs)
-    obs_tensor = torch.Tensor(obs_v)
+    obs_tensor = torch.Tensor(obs)
+    # obs_v_tensor = torch.Tensor(obs_v)
     C_D_tensor = torch.Tensor(C_D)
     C_L_tensor = torch.Tensor(C_L)
     f_tensor = torch.Tensor(f)
 
     data = [obs_tensor, C_D_tensor, C_L_tensor, f_tensor]
+    # data_v = [obs_v_tensor, C_D_tensor, C_L_tensor, f_tensor]
 
     # save data
     # torch.save(data, './data/nse_data_N0_{}_nT_{}_f1_{}_f2_{}'.format(N0, nT, args.f1, args.f2))
-    torch.save(data, './data/nse_data_irr')
+    # torch.save(data_v, './data/nse_data_irr')
+    torch.save(data, './data/nse_data_reg')
     # torch.save(data, './data/nse_data_test1')

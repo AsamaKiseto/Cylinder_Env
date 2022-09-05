@@ -20,6 +20,7 @@ def get_args(argv=None):
     parser.add_argument('--wd', default=1e-4, type=float, help='weight decay')
     parser.add_argument('--step_size', default=200, type=int, help='scheduler step size')
     parser.add_argument('--gamma', default=0.5, type=float, help='scheduler factor')
+    parser.add_argument('--gpu', default=0, type=int, help='device number')
 
     parser.add_argument('-tg', '--tg', default=20, type=int, help = 'time gap')
     parser.add_argument('-Ng', '--Ng', default=1, type=int, help = 'N gap')
@@ -58,31 +59,28 @@ if __name__=='__main__':
     data_path = 'data/nse_data'
     tg = args.tg     # sample evrey 20 timestamps
     Ng = args.Ng
-    data = ReadData(data_path)
+
+    data = ReadData(data_path, mode='vertex')
     data.split(Ng, tg)
     logs['data_norm'] = data.norm()
 
     # data param
-    N0, nt, nx, ny = data.get_params()
-    shape = [nx, ny]
+    N0, nt, nv = data.get_params()
  
     # loader
     train_loader, test_loader = data.trans2Dataset(args.batch_size)
 
     # model setting
-    nse_model = NSEModel_PIPN(args, shape, data.dt, logs['logs'])
+    nse_model = NSEModel_PIPN(args, data.dt, logs['logs'])
     params_num = nse_model.count_params()
 
-    nse_model.print_params()
-
-    print('N0: {}, nt: {}, nx: {}, ny: {}, device: {}'.format(N0, nt, nx, ny, nse_model.device))
+    print('N0: {}, nt: {}, nv: {}, device: {}'.format(N0, nt, nv, nse_model.device))
     print(f'Cd: {logs["data_norm"]["Cd"]}')
     print(f'Cl: {logs["data_norm"]["Cl"]}')
     print(f'ctr: {logs["data_norm"]["ctr"]}')
     print(f'obs: {logs["data_norm"]["obs"]}')
     print(f'param numbers of the model: {params_num}')
 
-    
     nse_model.process()
     logs['logs'] = nse_model.get_logs()
     torch.save([nse_model.model.state_dict(), logs], logs_fname)

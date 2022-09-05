@@ -168,13 +168,6 @@ class NSEModel_PIPN:
         self.params = args
         self.device = torch.device('cuda:{}'.format(self.params.gpu) if torch.cuda.is_available() else 'cpu')
 
-        model_params = dict()
-        model_params['modes'] = self.params.modes
-        model_params['width'] = self.params.width
-        model_params['L'] = self.params.L
-        model_params['shape'] = shape
-        model_params['f_channels'] = self.params.f_channels
-
         self.epochs = self.params.epochs
         self.batch_size = self.params.batch_size
         lr = self.params.lr

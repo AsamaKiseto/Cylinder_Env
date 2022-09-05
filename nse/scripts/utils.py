@@ -94,7 +94,6 @@ def fdmd2D(u, device):
 
     return ux, uy
 
-
 def fftd2D(u, device):
     nx = u.shape[-3]
     ny = u.shape[-2]
@@ -123,6 +122,12 @@ def fftd2D(u, device):
 
     return ux, uy, u_lap
 
+def AD2D(u, device):
+    nv = u.shape[-2]
+    dimu = u.shape[-1]
+    
+
+
 class AverageMeter(object):
     def __init__(self):
         self.reset()
@@ -140,10 +145,14 @@ class AverageMeter(object):
         self.avg = self.sum / self.count
 
 class ReadData:
-    def __init__(self, data_path):
+    def __init__(self, data_path, mode='grid'):
+        self.mode = mode
         self.obs, self.Cd, self.Cl, self.ctr = torch.load(data_path)
         self.obs = self.obs[..., 2:]
-        self.nx, self.ny = self.obs.shape[-3], self.obs.shape[-2]
+        if self.mode == 'grid':
+            self.nx, self.ny = self.obs.shape[-3], self.obs.shape[-2]
+        elif self.mode == 'vertex':
+            self.nv = self.obs.shape[-2]
         self.nt = self.ctr.shape[-1]
         self.N0 = self.ctr.shape[0]
         self.Ndata = self.N0 * self.nt
@@ -165,10 +174,14 @@ class ReadData:
         Cl_var = torch.sqrt(((self.Cl-Cl_mean)**2).mean())
         ctr_mean = self.ctr.mean()
         ctr_var = torch.sqrt(((self.ctr-ctr_mean)**2).mean())
-        obs_mean = self.obs.mean([0, 1, 2, 3])
-        _obs_mean = obs_mean.reshape(1, 1, 1, 1, -1).repeat(self.N0, self.nt+1, self.nx, self.ny, 1)
-        obs_var = torch.sqrt(((self.obs - _obs_mean)**2).mean([0, 1, 2, 3]))
-
+        if self.mode=='grid':
+            obs_mean = self.obs.mean([0, 1, 2, 3])
+            _obs_mean = obs_mean.reshape(1, 1, 1, 1, -1).repeat(self.N0, self.nt+1, self.nx, self.ny, 1)
+            obs_var = torch.sqrt(((self.obs - _obs_mean)**2).mean([0, 1, 2, 3]))
+        elif self.mode=='vertex':
+            obs_mean = self.obs.mean([0, 1, 2])
+            _obs_mean = obs_mean.reshape(1, 1, 1, -1).repeat(self.N0, self.nt+1, self.nv, 1)
+            obs_var = torch.sqrt(((self.obs - _obs_mean)**2).mean([0, 1, 2]))
         self.Cd = (self.Cd - Cd_mean)/Cd_var
         self.Cl = (self.Cl - Cl_mean)/Cl_var
 
@@ -184,13 +197,13 @@ class ReadData:
         return self.obs, self.Cd, self.Cl, self.ctr
 
     def get_params(self):
-        self.nt = self.ctr.shape[-1]
-        self.N0 = self.ctr.shape[0]
-        self.Ndata = self.N0 * self.nt
-        return self.N0, self.nt, self.nx, self.ny
+        if self.mode=='grid':
+            return self.N0, self.nt, self.nx, self.ny
+        elif self.mode=='vertex':
+            return self.N0, self.nt, self.nv
     
     def trans2Dataset(self, batch_size):
-        NSE_data = NSE_Dataset(self)
+        NSE_data = NSE_Dataset(self, self.mode)
         train_data, test_data = random_split(NSE_data, [int(0.8 * self.Ndata), int(0.2 * self.Ndata)])
         train_loader = DataLoader(dataset=train_data, batch_size=batch_size, shuffle=True)
         test_loader = DataLoader(dataset=test_data, batch_size=batch_size, shuffle=False)
@@ -198,15 +211,25 @@ class ReadData:
         
 
 class NSE_Dataset(Dataset):
-    def __init__(self, data):
-        N0, nt, nx, ny = data.get_params()
-        obs, Cd, Cl, ctr = data.get_data()
-        self.Ndata = data.Ndata
-        Cd = Cd.reshape(N0, nt, 1, 1, 1).repeat([1, 1, nx, ny, 1]).reshape(-1, nx, ny, 1)
-        Cl = Cl.reshape(N0, nt, 1, 1, 1).repeat([1, 1, nx, ny, 1]).reshape(-1, nx, ny, 1)
-        ctr = ctr.reshape(N0, nt, 1, 1, 1).repeat([1, 1, nx, ny, 1]).reshape(-1, nx, ny, 1)
-        input_data = obs[:, :-1].reshape(-1, nx, ny, 3)
-        output_data = obs[:, 1:].reshape(-1, nx, ny, 3) #- input_data
+    def __init__(self, data, mode='grid'):
+        if (mode == 'grid'):
+            N0, nt, nx, ny = data.get_params()
+            obs, Cd, Cl, ctr = data.get_data()
+            self.Ndata = data.Ndata
+            Cd = Cd.reshape(N0, nt, 1, 1, 1).repeat([1, 1, nx, ny, 1]).reshape(-1, nx, ny, 1)
+            Cl = Cl.reshape(N0, nt, 1, 1, 1).repeat([1, 1, nx, ny, 1]).reshape(-1, nx, ny, 1)
+            ctr = ctr.reshape(N0, nt, 1, 1, 1).repeat([1, 1, nx, ny, 1]).reshape(-1, nx, ny, 1)
+            input_data = obs[:, :-1].reshape(-1, nx, ny, 3)
+            output_data = obs[:, 1:].reshape(-1, nx, ny, 3)     #- input_data
+        elif (mode == 'vertex'):
+            N0, nt, nv = data.get_params()
+            obs, Cd, Cl, ctr = data.get_data()
+            self.Ndata = data.Ndata
+            Cd = Cd.reshape(N0, nt, 1, 1).repeat([1, 1, nv, 1]).reshape(-1, nv, 1)
+            Cl = Cl.reshape(N0, nt, 1, 1).repeat([1, 1, nv, 1]).reshape(-1, nv, 1)
+            ctr = ctr.reshape(N0, nt, 1, 1).repeat([1, 1, nv, 1]).reshape(-1, nv, 1)
+            input_data = obs[:, :-1].reshape(-1, nv, 3)
+            output_data = obs[:, 1:].reshape(-1, nv, 3) 
 
         self.ipt = torch.cat((input_data, ctr), dim=-1)
         self.opt = torch.cat((output_data, Cd, Cl), dim=-1)

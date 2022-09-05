@@ -377,28 +377,44 @@ class PIPN(nn.Module):
         super(PIPN, self).__init__()
 
         self.en = nn.Sequential(
-            nn.Linear(6, 64),
-            nn.Linear(64, 64),
+            nn.Conv1d(6, 64, 1),
+            nn.ReLU(),
+            nn.BatchNorm1d(64),
+            nn.Conv1d(64, 64, 1),
+            nn.ReLU(),
+            nn.BatchNorm1d(64),
         )
         self.la = nn.Sequential(
-            nn.Linear(64, 128),
-            nn.Linear(128, 1024),
+            nn.Conv1d(64, 128, 1),
+            nn.ReLU(),
+            nn.BatchNorm1d(128),
+            nn.Conv1d(128, 1024, 1),
+            nn.ReLU(),
+            nn.BatchNorm1d(1024),
+
         )
         self.de = nn.Sequential(
-            nn.Linear(1088, 512),
-            nn.Linear(512, 256),
-            nn.Linear(256, 128),
-            nn.Linear(128, 5),
+            nn.Conv1d(1088, 512),
+            nn.ReLU(),
+            nn.BatchNorm1d(512),
+            nn.Conv1d(512, 256),
+            nn.ReLU(),
+            nn.BatchNorm1d(256),
+            nn.Conv1d(256, 128),
+            nn.ReLU(),
+            nn.BatchNorm1d(128),
+            nn.Conv1d(128, 5),
         )
 
     def forward(self, x, f):
         bs = x.shape[0]
         f.reshape(bs, 1, 1, 1).repeat(1, x.shape[1], x.shape[2], 1)
         x = torch.cat((x, f), -1)
+        x = x.permute(0, 2, 1)
         w = self.en(x)
         v = self.la(w)
-        gf = v.mean(0).reshape(1, v.shape[1], v.shape[2], v.shape[3]).repeat(bs, 1, 1, 1)
-        u = torch.cat((w, gf), -1)
+        gf = v.mean(-1).reshape(1, v.shape[1], v.shape[2], v.shape[3]).repeat(bs, 1, 1, 1)
+        u = torch.cat((w, gf), 1)
         y = self.de(u)
 
         return y
