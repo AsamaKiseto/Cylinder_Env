@@ -36,6 +36,7 @@ def get_args(argv=None):
     parser = argparse.ArgumentParser(description='Put your hyperparameters')
     
     parser.add_argument('-op', '--operator_path', default='phase1_ex3_norm_pi', type=str, help='path of operator weight')
+    parser.add_argument('-s', '--scale', default='1', type=float, help='random scale')
     parser.add_argument('--t_start', default=10, type=int, help='data number')
     parser.add_argument('-k', '--k', default=0, type=int)
 
@@ -81,6 +82,7 @@ if __name__ == '__main__':
 
     t_start = args.t_start
     k = args.k  # k th traj
+    scale = args.scale
     
     # data param
     nx, ny = env.params['dimx'], env.params['dimy']
@@ -94,7 +96,7 @@ if __name__ == '__main__':
     t_nn = (np.arange(nt)) * 0.01 * tg
     t = (np.arange(nt * tg) + 1) * 0.01 
 
-    f = 10 * np.random.rand(nt) - 5
+    f = scale * np.random.rand(nt)
     # f = np.zeros(nt)
     # f = np.array([-1.60036191, 1.39814498, -1.18316184, 1.47186751, 1.20180103, -0.05713905, 0.72856494, -0.16206131, 0.55332571, 1.60028524, -1.12861622, 1.84941503,0.10701448, -1.59605537, 1.89202669, 0.04055561, 1.20823299, -0.61155347, -1.02384344, -0.04485761])
     # f = np.arange(nt) / nt * 4 - 2
@@ -143,7 +145,7 @@ if __name__ == '__main__':
     Cd_nn = Cd_nn * Cd_var + Cd_mean
     Cl_nn = Cl_nn * Cl_var + Cl_mean
     
-    torch.save([obs, Cd, Cl, obs_nn, Cd_nn, Cl_nn], 'logs/phase1_env_logs')
+    torch.save([obs, Cd, Cl, obs_nn, Cd_nn, Cl_nn], 'logs/phase1_env_logs_scale_{}'.format(scale))
 
     # dt = 0.01
     # tg = 5
@@ -155,7 +157,7 @@ if __name__ == '__main__':
     # t_nn = (np.arange(nt)) * 0.01 * tg
     # t = (np.arange(nt * tg) + 1) * 0.01 
 
-    obs, Cd, Cl, obs_nn, Cd_nn, Cl_nn = torch.load( 'logs/phase1_env_logs')
+    obs, Cd, Cl, obs_nn, Cd_nn, Cl_nn = torch.load( 'logs/phase1_env_logs_scale_{}'.format(scale))
     plt.figure(figsize=(12,10))
     ax1 = plt.subplot2grid((3, 2), (0, 0), colspan=2)
     ax2 = plt.subplot2grid((3, 2), (1, 0), colspan=2)
@@ -196,4 +198,4 @@ if __name__ == '__main__':
     ax2.set_ylim(-1.5, 1.5)
     # ax3.set_ylim(0, 1e-1)
 
-    plt.savefig(f'logs/coef_phase1.jpg')
+    plt.savefig(f'logs/coef_phase1_scale_{scale}.jpg')

@@ -146,8 +146,8 @@ class ReadData:
     def __init__(self, data_path, mode='grid'):
         self.mode = mode
         self.obs, self.Cd, self.Cl, self.ctr = torch.load(data_path)
-        self.obs = self.obs[..., 2:]
         if self.mode == 'grid':
+            self.obs = self.obs[..., 2:]
             self.nx, self.ny = self.obs.shape[-3], self.obs.shape[-2]
         elif self.mode == 'vertex':
             self.nv = self.obs.shape[-2]
@@ -229,8 +229,8 @@ class NSE_Dataset(Dataset):
             Cd = Cd.reshape(N0, nt, 1, 1).repeat([1, 1, nv, 1]).reshape(-1, nv, 1)
             Cl = Cl.reshape(N0, nt, 1, 1).repeat([1, 1, nv, 1]).reshape(-1, nv, 1)
             ctr = ctr.reshape(N0, nt, 1, 1).repeat([1, 1, nv, 1]).reshape(-1, nv, 1)
-            input_data = obs[:, :-1].reshape(-1, nv, 3)
-            output_data = obs[:, 1:].reshape(-1, nv, 3) 
+            input_data = obs[:, :-1].reshape(-1, nv, 5)
+            output_data = obs[:, 1:].reshape(-1, nv, 5) 
 
         self.ipt = torch.cat((input_data, ctr), dim=-1)
         self.opt = torch.cat((output_data, Cd, Cl), dim=-1)

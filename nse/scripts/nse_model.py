@@ -164,7 +164,7 @@ class NSEModel_FNO:
 
 
 class NSEModel_PIPN:
-    def __init__(self, args, shape, dt, logs):
+    def __init__(self, args, dt, logs):
         self.logs = logs
         self.params = args
         self.device = torch.device('cuda:{}'.format(self.params.gpu) if torch.cuda.is_available() else 'cpu')
@@ -189,8 +189,7 @@ class NSEModel_PIPN:
         return c
     
     def train_test(self, epoch, train_loader, test_loader):
-        lambda1, lambda2, lambda3, lambda4, lambda5 = self.params.lambda1, self.params.lambda2, \
-                                                      self.params.lambda3, self.params.lambda4, self.params.lambda5
+        lambda1, lambda5 = self.params.lambda1, self.params.lambda5
         self.model.train()
 
         t1 = default_timer()
@@ -205,14 +204,14 @@ class NSEModel_PIPN:
             self.optimizer.zero_grad()
 
             # split data read in train_loader
-            in_train, f_train = x_train[:, :, :, :-1], x_train[:, 0, 0, -1]
-            out_train, Cd_train, Cl_train = y_train[:, :, :, :-2], y_train[:, 0, 0, -2], y_train[:, 0, 0, -1]
+            in_train, f_train = x_train[..., :-1], x_train[:, 0, -1]
+            out_train, Cd_train, Cl_train = y_train[:, :, 2:-2], y_train[:, 0, -2], y_train[:, 0, -1]
             # put data into model
             pred = self.model(in_train, f_train)
             # prediction items
-            out_pred = pred[:, :, :, :3]
-            Cd_pred = torch.mean(pred[:, :, :, -2].reshape(self.batch_size, -1), 1)
-            Cl_pred = torch.mean(pred[:, :, :, -1].reshape(self.batch_size, -1), 1)
+            out_pred = pred[..., :3]
+            Cd_pred = torch.mean(pred[..., -2].reshape(self.batch_size, -1), 1)
+            Cl_pred = torch.mean(pred[..., -1].reshape(self.batch_size, -1), 1)
 
             # loss1: prediction loss; loss2: rec loss of state
             # loss3: rec loss of f; loss4: latent loss
@@ -220,14 +219,14 @@ class NSEModel_PIPN:
                     + rel_error(Cd_pred, Cd_train).mean()\
                     + rel_error(Cl_pred, Cl_train).mean()
             # loss_pde = Lpde(out_pred, in_train, self.dt)
-            loss = lambda1 * loss1 + lambda5 * loss_pde
+            loss = lambda1 * loss1 # + lambda5 * loss_pde
             
             loss.backward()
             self.optimizer.step()
 
             train_loss.update(loss.item(), x_train.shape[0])
             train_loss1.update(loss1.item(), x_train.shape[0])
-            train_loss5.update(loss_pde.item(), x_train.shape[0])
+            # train_loss5.update(loss_pde.item(), x_train.shape[0])
         
         self.logs['train_loss'].append(train_loss.avg)
         self.logs['train_loss_trans'].append(train_loss1.avg)
@@ -247,23 +246,23 @@ class NSEModel_PIPN:
                 x_test, y_test = x_test.to(device), y_test.to(device)
 
                 # split data read in test_loader
-                in_test, f_test = x_test[:, :, :, :-1], x_test[:, 0, 0, -1]
-                out_test, Cd_test, Cl_test = y_test[:, :, :, :-2], y_test[:, 0, 0, -2], y_test[:, 0, 0, -1]
+                in_test, f_test = x_test[..., :-1], x_test[:, 0, -1]
+                out_test, Cd_test, Cl_test = y_test[:, :, 2:-2], y_test[:, 0, -2], y_test[:, 0, -1]
                 # put data into model
                 pred = self.model(in_test, f_test)
                 # prediction items
-                out_pred = pred[:, :, :, :3]
-                Cd_pred = torch.mean(pred[:, :, :, -2].reshape(self.batch_size, -1), 1)
-                Cl_pred = torch.mean(pred[:, :, :, -1].reshape(self.batch_size, -1), 1)
+                out_pred = pred[..., :3]
+                Cd_pred = torch.mean(pred[..., -2].reshape(self.batch_size, -1), 1)
+                Cl_pred = torch.mean(pred[..., -1].reshape(self.batch_size, -1), 1)
                 loss1 = rel_error(out_pred, out_test).mean()\
                         + rel_error(Cd_pred, Cd_test).mean()\
                         + rel_error(Cl_pred, Cl_test).mean()
-                loss_pde = Lpde(out_pred, in_test, self.dt)
-                loss = lambda1 * loss1  + lambda5 * loss_pde
+                # loss_pde = Lpde(out_pred, in_test, self.dt)
+                loss = lambda1 * loss1  # + lambda5 * loss_pde
 
                 test_loss.update(loss.item(), x_test.shape[0])
                 test_loss1.update(loss1.item(), x_test.shape[0])
-                test_loss5.update(loss_pde.item(), x_test.shape[0])
+                # test_loss5.update(loss_pde.item(), x_test.shape[0])
             
             self.logs['test_loss'].append(test_loss.avg)
             self.logs['test_loss_trans'].append(test_loss1.avg)
