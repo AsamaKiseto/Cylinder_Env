@@ -37,7 +37,7 @@ def get_args(argv=None):
     
     parser.add_argument('-op', '--operator_path', default='phase1_ex3_norm_pi', type=str, help='path of operator weight')
     parser.add_argument('-s', '--scale', default='1', type=float, help='random scale')
-    parser.add_argument('--t_start', default=10, type=int, help='data number')
+    parser.add_argument('--t_start', default=0, type=int, help='data number')
     parser.add_argument('-k', '--k', default=0, type=int)
 
     return parser.parse_args(argv)
@@ -61,6 +61,7 @@ if __name__ == '__main__':
 
     # path
     operator_path = 'logs/' + args.operator_path
+    modify = True
 
     # mosel params setting
     state_dict, logs = torch.load(operator_path)
@@ -88,10 +89,10 @@ if __name__ == '__main__':
     nx, ny = env.params['dimx'], env.params['dimy']
     shape = [nx, ny]
     model_params['shape'] = shape
+    dt = env.params['dtr'] * env.params['T']
 
-    nT = 200
+    nT = 400
     nt = nT // tg
-    dt = 0.01
 
     t_nn = (np.arange(nt)) * 0.01 * tg
     t = (np.arange(nt * tg) + 1) * 0.01 
@@ -108,6 +109,7 @@ if __name__ == '__main__':
     obs_nn = torch.zeros(nt, nx, ny, 3)
     Cd_nn = torch.zeros(nt)
     Cl_nn = torch.zeros(nt)
+    Lpde_nn = torch.zeros(nt)
 
     obs = np.zeros((nT+1, nx, ny, 5))
     Cd = np.zeros(nT)
@@ -133,19 +135,23 @@ if __name__ == '__main__':
         print(f'# {i+1} f: {f[i]}')
         for j in range(tg):
             obs[i*tg + j + 1], Cd[i*tg + j], Cl[i*tg + j] = env.step(f[i])
-        pred, _, _, _ = load_model(out_nn, f_nn[i].reshape(1))
+        pred, _, _, _ = load_model(out_nn, f_nn[i].reshape(1), modify)
+        bf_mod = load_model.state_mo(out_nn, modify)
+        bf = bf_mod + out_nn
         out_nn = pred[:, :, :, :3]
-        out_mod = load_model.state_mo(out_nn)
+        out_mod = load_model.state_mo(out_nn, modify)
+        af = out_mod + out_nn
+        Lpde_nn[i] = Lpde(af, bf, dt*tg)
         # out_nn = out_nn + out_mod
         obs_nn[i] = out_nn
         Cd_nn[i] = torch.mean(pred[:, :, :, -2])
         Cl_nn[i] = torch.mean(pred[:, :, :, -1])
-        print(Cd_nn[i], Cl_nn[i])
+        print(Cd_nn[i], Cl_nn[i], Lpde_nn[i])
 
     Cd_nn = Cd_nn * Cd_var + Cd_mean
     Cl_nn = Cl_nn * Cl_var + Cl_mean
     
-    torch.save([obs, Cd, Cl, obs_nn, Cd_nn, Cl_nn], 'logs/phase1_env_logs_scale_{}'.format(scale))
+    torch.save([obs, Cd, Cl, obs_nn, Cd_nn, Cl_nn, Lpde_nn], 'logs/phase1_env_logs_scale_{}'.format(scale))
 
     # dt = 0.01
     # tg = 5
@@ -157,7 +163,7 @@ if __name__ == '__main__':
     # t_nn = (np.arange(nt)) * 0.01 * tg
     # t = (np.arange(nt * tg) + 1) * 0.01 
 
-    obs, Cd, Cl, obs_nn, Cd_nn, Cl_nn = torch.load( 'logs/phase1_env_logs_scale_{}'.format(scale))
+    obs, Cd, Cl, obs_nn, Cd_nn, Cl_nn, Lpde_nn = torch.load( 'logs/phase1_env_logs_scale_{}'.format(scale))
     plt.figure(figsize=(12,10))
     ax1 = plt.subplot2grid((3, 2), (0, 0), colspan=2)
     ax2 = plt.subplot2grid((3, 2), (1, 0), colspan=2)
