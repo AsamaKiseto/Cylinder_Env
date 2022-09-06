@@ -37,7 +37,7 @@ def get_args(argv=None):
     
     parser.add_argument('-op', '--operator_path', default='phase1_ex3_norm_pi', type=str, help='path of operator weight')
     parser.add_argument('-s', '--scale', default=1, type=float, help='random scale')
-    parser.add_argument('--t_start', default=0, type=int, help='data number')
+    parser.add_argument('--t_start', default=5, type=int, help='data number')
     parser.add_argument('-k', '--k', default=0, type=int)
 
     return parser.parse_args(argv)
