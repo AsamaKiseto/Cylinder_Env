@@ -11,7 +11,7 @@ def get_args(argv=None):
     return parser.parse_args(argv)
 
 def add_plots(ax, logs, label):
-    loss1, loss2, loss3, loss4 = logs['test_loss_trans'], logs['test_loss_u_t_rec'], logs['test_loss_f_t_rec'], logs['test_loss_trans_latent']
+    loss1, loss2, loss3, loss4, loss5 = logs['test_loss_trans'], logs['test_loss_u_t_rec'], logs['test_loss_f_t_rec'], logs['test_loss_trans_latent'], logs['test_loss_pde']
     for i in range(4):
         exec(f'ax[{i}].plot(loss{i+1}, label="Ex"+str(label))')
         exec(f'ax[{i}].legend()')
@@ -38,6 +38,7 @@ if __name__ == '__main__':
     N = len(ex_nums)
     print(ex_nums)
     _, logs_base = torch.load(f"logs/phase1_ex{ex_nums[0]}_norm")
+    logs_base = logs_base['logs']
     loss1, loss2, loss3, loss4 = logs_base['test_loss_trans'], logs_base['test_loss_u_t_rec'], logs_base['test_loss_f_t_rec'], logs_base['test_loss_trans_latent']
     for i in range(4):
         exec(f'ax[{i}].plot(loss{i+1}, color="black", label="Ex"+str({ex_nums[0]}))')
@@ -45,6 +46,6 @@ if __name__ == '__main__':
 
     for i in range(1, N):
         exec(f'_, logs_ex{ex_nums[i]} = torch.load("logs/phase1_ex{ex_nums[i]}_norm")')
-        exec(f'add_plots(ax, logs_ex{ex_nums[i]}, label={ex_nums[i]})')
+        exec(f'add_plots(ax, logs_ex{ex_nums[i]}["logs"], label={ex_nums[i]})')
 
     plt.savefig(f'logs/loss_plot_norm_ex_{ex_nums}.jpg')
