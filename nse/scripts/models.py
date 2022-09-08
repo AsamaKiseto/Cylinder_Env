@@ -394,15 +394,18 @@ class PIPN(nn.Module):
             nn.Conv1d(64, 128, 1),
             nn.ReLU(),
             nn.BatchNorm1d(128),
-            nn.Conv1d(128, 512, 1),
-            nn.ReLU(),
-            nn.BatchNorm1d(512),
-        )
-        self.de = nn.Sequential(
-            # nn.Conv1d(1088, 512, 1),
+            # nn.Conv1d(128, 512, 1),
             # nn.ReLU(),
             # nn.BatchNorm1d(512),
-            nn.Conv1d(576, 256, 1),
+            nn.Conv1d(128, 1024, 1),
+            nn.ReLU(),
+            nn.BatchNorm1d(1024),
+        )
+        self.de = nn.Sequential(
+            nn.Conv1d(1088, 512, 1),
+            nn.ReLU(),
+            nn.BatchNorm1d(512),
+            nn.Conv1d(512, 256, 1),
             nn.ReLU(),
             nn.BatchNorm1d(256),
             nn.Conv1d(256, 128, 1),
