@@ -46,7 +46,7 @@ if __name__ == '__main__':
 
     # load logs
     ex_nums = ['ex0_big', 'ex3_big', 'ex3_big_nomod']
-    label = ['base', 'modify', 'without modify']
+    label = ['base(without pde loss)', 'with modify', 'with without modify']
     N = len(ex_nums)
     print(ex_nums)
 

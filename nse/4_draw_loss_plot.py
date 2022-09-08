@@ -37,7 +37,7 @@ if __name__ == '__main__':
     # load logs
     # ex_nums = ['ex0', 'ex3', 'ex3_nomod']
     ex_nums = ['ex0_big', 'ex3_big', 'ex3_big_nomod']
-    label = ['base', 'modify', 'without modify']
+    label = ['base(without pde loss)', 'with modify', 'with without modify']
     N = len(ex_nums)
     print(ex_nums)
     _, logs_base = torch.load(f"logs/phase1_{ex_nums[0]}_grid_pi")
