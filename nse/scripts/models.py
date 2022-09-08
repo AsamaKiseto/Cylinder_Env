@@ -273,18 +273,21 @@ class state_mo(nn.Module):
         self.net += [ FNO_layer(modes1, modes2, width, last=True) ]
         self.net = nn.Sequential(*self.net)
 
-        self.fc0 = nn.Linear(5, width)
+        # self.fc0 = nn.Linear(6, width)
         self.fc1 = nn.Linear(width, 128)
-        self.fc2 = nn.Linear(128, 3)
+        # self.fc2 = nn.Linear(128, 3)
+        self.fc2 = nn.Linear(128, 2)
 
     def forward(self, x, modify):
         if modify == False:
             return 0
         
-        grid = self.get_grid(x.shape, x.device)
-        x = torch.cat((x, grid), dim=-1)    # [batch_size, nx, ny, 5]
-        x = self.fc0(x)
-        x = x.permute(0, 3, 1, 2)
+        # f = f.reshape(f.shape[0], 1, 1, 1).repeat(1, x.shape[1], x.shape[2], 1) 
+        # grid = self.get_grid(x.shape, x.device)
+        # x = torch.cat((x, grid), dim=-1)    # [batch_size, nx, ny, 5]
+        # x = torch.cat((x, f), dim=-1) 
+        # x = self.fc0(x)
+        # x = x.permute(0, 3, 1, 2)
         x = self.net(x)
         x = x.permute(0, 2, 3, 1)
         x = self.fc1(x)
@@ -325,9 +328,6 @@ class FNO_ensemble(nn.Module):
 
     def forward(self, x, f, modify=True):
         # x: [batch_size, nx, ny, 3]; f: [1]
-        
-        x_mod = self.state_mo(x, modify)
-        x = x + x_mod
 
         # print(f'x: {x.size()}')
         x_latent = self.stat_en(x)
@@ -341,9 +341,12 @@ class FNO_ensemble(nn.Module):
 
         # print(f'x_latent: {x_latent.size()}, f_latent: {f_latent.size()}')
         trans_out = self.trans(x_latent, f_latent)
+
+        mod = self.state_mo(trans_out, modify)
+
         pred = self.stat_de(trans_out)
         
-        return pred, x_rec, f_rec, trans_out
+        return pred, x_rec, f_rec, trans_out, mod
 
     def get_grid(self, shape, device):
         batchsize, nx, ny = shape[0], shape[1], shape[2]

@@ -74,7 +74,7 @@ def Lpde(state_af, state_bf, dt):
 
     loss = (L_state ** 2).mean()
 
-    return loss
+    return L_state
 
 def fdmd2D(u, device):
     bs = u.shape[0]
