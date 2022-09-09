@@ -35,9 +35,9 @@ import argparse
 def get_args(argv=None):
     parser = argparse.ArgumentParser(description='Put your hyperparameters')
     
-    parser.add_argument('-op', '--operator_path', default='ex7', type=str, help='path of operator weight')
-    parser.add_argument('-s', '--scale', default=0.1, type=float, help='random scale')
-    parser.add_argument('--t_start', default=10, type=int, help='data number')
+    parser.add_argument('-op', '--operator_path', default='ex0', type=str, help='path of operator weight')
+    parser.add_argument('-s', '--scale', default=0, type=float, help='random scale')
+    parser.add_argument('-ts', '--t_start', default=5, type=int, help='data number')
 
     return parser.parse_args(argv)
 
@@ -114,14 +114,14 @@ if __name__ == '__main__':
     model_params['shape'] = shape
     dt = env.params['dtr'] * env.params['T']
 
-    nT = 100
+    nT = 50
     nt = nT // tg
 
     t_nn = (np.arange(nt) + 1) * 0.01 * tg
     t = (np.arange(nt * tg) + 1) * 0.01 
 
     f = scale * (np.random.rand(nt) - 0.5)
-    # f = np.ones(nt) * (-3)
+    f = np.ones(nt)
     f_nn = torch.Tensor(f)
     print(f)
 
@@ -141,6 +141,15 @@ if __name__ == '__main__':
 
     for param in list(load_model.parameters()):
         param.requires_grad = False
+    
+    # env init step
+    start = default_timer()
+    nT_init = 10
+    for i in range(nT_init):
+        env.step(0.00)
+    end = default_timer()
+    print(f'init complete: {end - start}')
+    env.set_init()
 
     obs[0] = env.reset()
     for i in range(t_start):
@@ -170,7 +179,7 @@ if __name__ == '__main__':
     Cl_nn = Cl_nn * Cl_var + Cl_mean
 
     Cd_nn, Cl_nn, obs_nn = Cd_nn.detach().numpy(), Cl_nn.detach().numpy(), obs_nn.detach().numpy()
-    Cd_sps, Cl_sps, obs_sps = Cd[tg-1::tg], Cl[tg-1::tg], obs[::tg][1:][...,2:]
+    Cd_sps, Cl_sps, obs_sps = Cd[::tg], Cl[::tg], obs[::tg][1:][...,2:]
 
     Cd_nn[:t_start] = Cd_sps[:t_start]
     Cl_nn[:t_start] = Cl_sps[:t_start]

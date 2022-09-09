@@ -160,7 +160,7 @@ class ReadData:
         self.tg = tg
         self.dt = tg * 0.01
         self.obs = self.obs[::Ng, ::tg]
-        self.Cd, self.Cl = self.Cd[::Ng, ::tg], self.Cl[::Ng, ::tg]
+        self.Cd, self.Cl = self.Cd[::Ng, tg-1::tg], self.Cl[::Ng, tg-1::tg]
         self.ctr = self.ctr[::Ng, ::tg]
         self.get_params()
         return self.obs, self.Cd, self.Cl, self.ctr
