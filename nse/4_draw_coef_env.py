@@ -35,9 +35,9 @@ import argparse
 def get_args(argv=None):
     parser = argparse.ArgumentParser(description='Put your hyperparameters')
     
-    parser.add_argument('-op', '--operator_path', default='ex0', type=str, help='path of operator weight')
+    parser.add_argument('-op', '--operator_path', default='ex7', type=str, help='path of operator weight')
     parser.add_argument('-s', '--scale', default=0.1, type=float, help='random scale')
-    parser.add_argument('--t_start', default=2, type=int, help='data number')
+    parser.add_argument('--t_start', default=5, type=int, help='data number')
 
     return parser.parse_args(argv)
 
@@ -158,12 +158,13 @@ if __name__ == '__main__':
         bf = out_nn
         out_nn = pred[:, :, :, :3]
         af = out_nn
-        Lpde_nn[i] = ((Lpde(af, bf, dt) + mod) ** 2).mean()
+        Lpde_nn[i] = ((Lpde(af, bf, dt * tg) + mod) ** 2).mean()
         # out_nn = out_nn + out_mod
         obs_nn[i] = out_nn
         Cd_nn[i] = torch.mean(pred[:, :, :, -2])
         Cl_nn[i] = torch.mean(pred[:, :, :, -1])
-        print(Cd_nn[i], Cl_nn[i], Lpde_nn[i])
+        # print(Cd_nn[i], Cd[i*tg + tg-1], Cl_nn[i], Cl[i*tg + tg-1], Lpde_nn[i])
+        print(Lpde_nn[i])
 
     Cd_nn = Cd_nn * Cd_var + Cd_mean
     Cl_nn = Cl_nn * Cl_var + Cl_mean
@@ -241,8 +242,8 @@ if __name__ == '__main__':
     # ax1.set_ylim(2.5, 3.5)
     # ax2.set_ylim(-1.5, 1.5)
     ax[2].set_yscale('log')
-    ax[2].set_ylim(1e-4, 1)
+    ax[2].set_ylim(1e-4, 1e1)
     ax[3].set_yscale('log')
-    ax[3].set_ylim(1e-4, 1)
+    ax[3].set_ylim(1e-3, 1e1)
 
     plt.savefig(f'logs/coef_phase1_{args.operator_path}_scale_{scale}.jpg')

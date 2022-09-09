@@ -20,11 +20,11 @@ def draw_loss_plot(ex_nums, label):
         ax[i].grid(True, lw=0.4, ls="--", c=".50")
         ax[i].set_yscale('log')
         # ax[i].set_ylabel(f'loss{i+1}', fontsize=15)
-        # ax[i].set_ylim(y_min, y_max)
+        ax[i].set_ylim(1e-3, 1)
     
     ax[0].set_ylabel("pred loss", fontsize=10)
     ax[1].set_ylabel("recon loss of state", fontsize=10)
-    ax[2].set_ylabel("recon loss of $", fontsize=10)
+    ax[2].set_ylabel("recon loss of", fontsize=10)
     ax[3].set_ylabel("latent loss", fontsize=10)
     ax[4].set_ylabel("physical loss", fontsize=10)
 
