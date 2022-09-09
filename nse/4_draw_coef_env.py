@@ -179,7 +179,7 @@ if __name__ == '__main__':
     Cl_nn = Cl_nn * Cl_var + Cl_mean
 
     Cd_nn, Cl_nn, obs_nn = Cd_nn.detach().numpy(), Cl_nn.detach().numpy(), obs_nn.detach().numpy()
-    Cd_sps, Cl_sps, obs_sps = Cd[::tg], Cl[::tg], obs[::tg][1:][...,2:]
+    Cd_sps, Cl_sps, obs_sps = Cd[tg-1::tg], Cl[tg-1::tg], obs[::tg][1:][...,2:]
 
     Cd_nn[:t_start] = Cd_sps[:t_start]
     Cl_nn[:t_start] = Cl_sps[:t_start]
