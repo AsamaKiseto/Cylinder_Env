@@ -35,9 +35,9 @@ import argparse
 def get_args(argv=None):
     parser = argparse.ArgumentParser(description='Put your hyperparameters')
     
-    parser.add_argument('-op', '--operator_path', default='ex3', type=str, help='path of operator weight')
-    parser.add_argument('-s', '--scale', default=1, type=float, help='random scale')
-    parser.add_argument('--t_start', default=5, type=int, help='data number')
+    parser.add_argument('-op', '--operator_path', default='ex0', type=str, help='path of operator weight')
+    parser.add_argument('-s', '--scale', default=0.1, type=float, help='random scale')
+    parser.add_argument('--t_start', default=2, type=int, help='data number')
 
     return parser.parse_args(argv)
 
@@ -86,8 +86,8 @@ if __name__ == '__main__':
         logs = torch.load(logs_path)
 
     # mosel params setting
-    state_dict, logs = torch.load(operator_path)
-    params_args = logs['args']
+    state_dict, logs_model = torch.load(operator_path)
+    params_args = logs_model['args']
     L = params_args.L
     modes = params_args.modes
     width = params_args.width
@@ -99,14 +99,14 @@ if __name__ == '__main__':
     model_params['L'] = L
     model_params['f_channels'] = f_channels
 
-    Cd_mean, Cd_var = logs['data_norm']['Cd']
-    Cl_mean, Cl_var = logs['data_norm']['Cl']
-    ctr_mean, ctr_var = logs['data_norm']['ctr']
+    Cd_mean, Cd_var = logs_model['data_norm']['Cd']
+    Cl_mean, Cl_var = logs_model['data_norm']['Cl']
+    ctr_mean, ctr_var = logs_model['data_norm']['ctr']
 
     t_start = args.t_start
     scale = args.scale
-    logs['t_start'].append(args.t_start)
-    logs['scale'].append(args.scale)
+    logs['t_start'].append(t_start)
+    logs['scale'].append(scale)
     
     # data param
     nx, ny = env.params['dimx'], env.params['dimy']
@@ -114,10 +114,10 @@ if __name__ == '__main__':
     model_params['shape'] = shape
     dt = env.params['dtr'] * env.params['T']
 
-    nT = 400
+    nT = 100
     nt = nT // tg
 
-    t_nn = (np.arange(nt)) * 0.01 * tg
+    t_nn = (np.arange(nt) + 1) * 0.01 * tg
     t = (np.arange(nt * tg) + 1) * 0.01 
 
     f = scale * (np.random.rand(nt) - 0.5)
@@ -154,13 +154,11 @@ if __name__ == '__main__':
         print(f'# {i+1} f: {f[i]}')
         for j in range(tg):
             obs[i*tg + j + 1], Cd[i*tg + j], Cl[i*tg + j] = env.step(f[i])
-        pred, _, _, _ = load_model(out_nn, f_nn[i].reshape(1), modify)
-        bf_mod = load_model.state_mo(out_nn, modify)
-        bf = bf_mod + out_nn
+        pred, _, _, _, mod = load_model(out_nn, f_nn[i].reshape(1), modify)
+        bf = out_nn
         out_nn = pred[:, :, :, :3]
-        out_mod = load_model.state_mo(out_nn, modify)
-        af = out_mod + out_nn
-        Lpde_nn[i] = Lpde(af, bf, dt*tg)
+        af = out_nn
+        Lpde_nn[i] = ((Lpde(af, bf, dt) + mod) ** 2).mean()
         # out_nn = out_nn + out_mod
         obs_nn[i] = out_nn
         Cd_nn[i] = torch.mean(pred[:, :, :, -2])
@@ -211,43 +209,40 @@ if __name__ == '__main__':
     # t = (np.arange(nt * tg) + 1) * 0.01 
 
     # obs, Cd, Cl, obs_nn, Cd_nn, Cl_nn, Lpde_nn = torch.load( 'logs/phase1_env_logs_scale_{}'.format(scale))
-    plt.figure(figsize=(15,12))
-    ax1 = plt.subplot2grid((4, 2), (0, 0), colspan=2)
-    ax2 = plt.subplot2grid((4, 2), (1, 0), colspan=2)
-    ax3 = plt.subplot2grid((4, 2), (2, 0), colspan=2)
-    ax4 = plt.subplot2grid((4, 2), (3, 0), colspan=2)
 
-    ax1.grid(True, lw=0.4, ls="--", c=".50")
-    ax1.set_xlim(0, nt * tg * dt)
-    ax2.grid(True, lw=0.4, ls="--", c=".50")
-    ax2.set_xlim(0, nt * tg * dt)
-    ax3.grid(True, lw=0.4, ls="--", c=".50")
-    ax3.set_xlim(0, nt * tg * dt)
-    ax4.grid(True, lw=0.4, ls="--", c=".50")
-    ax4.set_xlim(0, nt * tg * dt)
+    # fig setting
+    fig, ax = plt.subplots(nrows=4, ncols=2, figsize=(15,12), dpi=1000)
+    ax = ax.flatten()
+    # plt.figure(figsize=(15, 12))
+    for i in range(4):
+        ax[i] = plt.subplot2grid((4, 2), (i, 0), colspan=2)
+        ax[i].grid(True, lw=0.4, ls="--", c=".50")
+        ax[i].set_xlim(0, nt * tg * dt)
 
-    ax1.set_title(r"$error/loss in different scales$", fontsize=15)
-    ax1.set_ylabel(r"$C_d$", fontsize=15)
-    ax2.set_ylabel(r"$C_l$", fontsize=15)
-    ax3.set_ylabel(r"$state$", fontsize=15)
-    ax4.set_ylabel(r"$L_{pde}$", fontsize=15)
-    ax4.set_xlabel(r"$t$", fontsize=15)
+    ax[0].set_title(r"$error/loss in different scales$", fontsize=15)
+    ax[0].set_ylabel(r"$C_d$", fontsize=15)
+    ax[1].set_ylabel(r"$C_l$", fontsize=15)
+    ax[2].set_ylabel(r"$state$", fontsize=15)
+    ax[3].set_ylabel(r"$L_{pde}$", fontsize=15)
+    ax[3].set_xlabel(r"$t$", fontsize=15)
     
-    ax1.plot(t, Cd, color='blue')
-    ax2.plot(t, Cl, color='blue')
+    ax[0].plot(t, Cd, color='blue')
+    ax[1].plot(t, Cl, color='blue')
 
-    ax1.plot(t_nn[t_start:], Cd_nn[t_start:], color='red')
-    ax2.plot(t_nn[t_start:], Cl_nn[t_start:], color='red')
+    ax[0].plot(t_nn, Cd_nn, color='red')
+    ax[1].plot(t_nn, Cl_nn, color='red')
 
-    ax1.plot(t_nn, Cd_sps, color='yellow')
-    ax2.plot(t_nn, Cl_sps, color='yellow')
+    ax[0].plot(t_nn, Cd_sps, color='yellow')
+    ax[1].plot(t_nn, Cl_sps, color='yellow')
 
-    ax3.plot(t_nn, obs_var)
-    ax4.plot(t_nn, Lpde_nn)
+    ax[2].plot(t_nn, obs_var)
+    ax[3].plot(t_nn, Lpde_nn)
     
-    ax1.set_ylim(2.5, 3.5)
-    ax2.set_ylim(-1.5, 1.5)
-    ax3.set_ylim(0, 1)
-    ax4.set_ylim(0, 1)
+    # ax1.set_ylim(2.5, 3.5)
+    # ax2.set_ylim(-1.5, 1.5)
+    ax[2].set_yscale('log')
+    ax[2].set_ylim(1e-4, 1)
+    ax[3].set_yscale('log')
+    ax[3].set_ylim(1e-4, 1)
 
     plt.savefig(f'logs/coef_phase1_{args.operator_path}_scale_{scale}.jpg')
