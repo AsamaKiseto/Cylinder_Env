@@ -76,7 +76,7 @@ if __name__=='__main__':
     train_loader, test_loader = data.trans2Dataset(args.batch_size)
 
     # model setting
-    modify = True
+    modify = False
     logs['modify'] = modify
     nse_model = NSEModel_FNO(args, shape, data.dt, logs['logs'], modify)
     params_num = nse_model.count_params()
