@@ -37,7 +37,7 @@ def get_args(argv=None):
     
     parser.add_argument('-op', '--operator_path', default='ex7', type=str, help='path of operator weight')
     parser.add_argument('-s', '--scale', default=0.1, type=float, help='random scale')
-    parser.add_argument('--t_start', default=5, type=int, help='data number')
+    parser.add_argument('--t_start', default=10, type=int, help='data number')
 
     return parser.parse_args(argv)
 
