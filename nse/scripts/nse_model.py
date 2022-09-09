@@ -6,7 +6,7 @@ from scripts.models import *
 from scripts.utils import *
 
 class NSEModel_FNO:
-    def __init__(self, args, shape, dt, logs, modify=True):
+    def __init__(self, args, shape, dt, logs, modify):
         self.logs = logs
         self.params = args
         self.modify = modify
