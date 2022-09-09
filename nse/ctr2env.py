@@ -13,7 +13,7 @@ from fenics import plot
 
 # env init
 env = Cylinder_Rotation_Env(params={'dtr': 1, 'T': 0.01, 'rho_0': 1, 'mu' : 1/1000,
-                                    'traj_max_T': 20, 'dimx': 128, 'dimy': 64,
+                                    'traj_max_T': 20, 'dimx': 256, 'dimy': 64,
                                     'min_x' : 0,  'max_x' : 2.2, 
                                     'min_y' : 0,  'max_y' : 0.41, 
                                     'r' : 0.05,  'center':(0.2, 0.2),
