@@ -60,7 +60,6 @@ if __name__ == '__main__':
 
     # path
     operator_path = 'logs/phase1_' + args.operator_path + '_grid_pi'
-    modify = True
     logs_path = 'logs/phase1_env_logs_' + args.operator_path
 
     # logs
@@ -88,6 +87,7 @@ if __name__ == '__main__':
     # mosel params setting
     state_dict, logs_model = torch.load(operator_path)
     params_args = logs_model['args']
+    modify = logs_model['modify']
     L = params_args.L
     modes = params_args.modes
     width = params_args.width
