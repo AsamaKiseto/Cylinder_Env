@@ -11,6 +11,7 @@ def get_args(argv=None):
     parser.add_argument('-n', '--name', default='nse_operator', type=str, help='experiments name')
     parser.add_argument('-lf', '--logs_fname', default='test', type=str, help='logs file name')
     
+    parser.add_argument('-md', '--modify', default=True, type=bool, help='whether add modify ite')
     parser.add_argument('-L', '--L', default=2, type=int, help='the number of layers')
     parser.add_argument('-m', '--modes', default=16, type=int, help='the number of modes of Fourier layer')
     parser.add_argument('-w', '--width', default=32, type=int, help='the number of width of FNO layer')
@@ -76,7 +77,7 @@ if __name__=='__main__':
     train_loader, test_loader = data.trans2Dataset(args.batch_size)
 
     # model setting
-    modify = True
+    modify = args.modify
     logs['modify'] = modify
     nse_model = NSEModel_FNO(args, shape, data.dt, logs['logs'], modify)
     params_num = nse_model.count_params()
