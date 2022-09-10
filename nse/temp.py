@@ -22,3 +22,11 @@ obs, reward, Cd, Cl, f = torch.load('data/nse_data')
 data = [obs, Cd, Cl, f]
 
 torch.save(data, 'data/nse_data')
+
+
+import torch
+op = 'logs/phase1_ex0_grid_pi'
+state_dict, logs = torch.load(op)
+logs.keys()
+logs['modify'] = True
+torch.save([state_dict, logs], op)
