@@ -20,7 +20,7 @@ def get_args(argv=None):
     parser = argparse.ArgumentParser(description='Put your hyperparameters')
     
     parser.add_argument('-op', '--operator', default='ex0', type=str, help='path of operator weight')
-    parser.add_argument('-nt', '--nt', default=1, type=int, help='nums of timestamps')
+    parser.add_argument('-nt', '--nt', default=2, type=int, help='nums of timestamps')
     parser.add_argument('-tg', '--tg', default=5, type=int, help='gap of timestamps')
     parser.add_argument('-s', '--scale', default=0, type=float, help='random scale')
     parser.add_argument('-ts', '--t_start', default=0, type=int, help='data number')
@@ -43,6 +43,7 @@ print(env.params)
 class load_model():
     def __init__(self, operator_path, shape):
         # mosel params setting
+        print(operator_path)
         state_dict, logs_model = torch.load(operator_path)
         self.modify = logs_model['modify']
         # self.modify = True
