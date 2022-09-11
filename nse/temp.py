@@ -25,7 +25,7 @@ torch.save(data, 'data/nse_data')
 
 
 import torch
-op = 'logs/phase1_ex0_grid_pi'
+op = 'phase1_ex8_grid_pi'
 state_dict, logs = torch.load(op)
 logs.keys()
 logs['modify'] = True

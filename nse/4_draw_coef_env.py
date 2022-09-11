@@ -20,7 +20,7 @@ def get_args(argv=None):
     parser = argparse.ArgumentParser(description='Put your hyperparameters')
     
     parser.add_argument('-op', '--operator', default='ex0', type=str, help='path of operator weight')
-    parser.add_argument('-nt', '--nt', default=2, type=int, help='nums of timestamps')
+    parser.add_argument('-nt', '--nt', default=1, type=int, help='nums of timestamps')
     parser.add_argument('-tg', '--tg', default=5, type=int, help='gap of timestamps')
     parser.add_argument('-s', '--scale', default=0, type=float, help='random scale')
     parser.add_argument('-ts', '--t_start', default=0, type=int, help='data number')
@@ -41,12 +41,12 @@ print(env.params)
 
 
 class load_model():
-    def __init__(self, operator_path, shape):
+    def __init__(self, operator_path, shape, modify):
         # mosel params setting
         print(operator_path)
         state_dict, logs_model = torch.load(operator_path)
         self.modify = logs_model['modify']
-        # self.modify = True
+        # self.modify = modify
         self.data_norm = logs_model['data_norm']
         params_args = logs_model['args']
         L = params_args.L
@@ -137,9 +137,10 @@ if __name__ == '__main__':
     # path
     logs_path = 'logs/phase1_env_logs'
 
-    ex_nums = ['ex0', 'ex7', 'ex7_nomod']
+    # ex_nums = ['ex0', 'ex7', 'ex7_nomod']
     # ex_nums = ['ex0', 'ex7']
-    # ex_nums = ['ex0_big', 'ex3_big', 'ex3_big_nomod']
+    ex_nums = ['ex0_big', 'ex8_big', 'ex8_big_nomod']
+    modify = [True, True, False]
     label = ['without_pde_loss', 'with_modify', 'without_modify']
     # label = ['without_pde_loss', 'with_modify']
     n_model = len(ex_nums)
@@ -251,7 +252,7 @@ if __name__ == '__main__':
     # mosel setting
     for i in range(n_model):
         operator_path = 'logs/phase1_' + ex_nums[i] + '_grid_pi'
-        model = load_model(operator_path, shape)
+        model = load_model(operator_path, shape, modify[i])
         model.set_init(in_nn)
 
         # model step
