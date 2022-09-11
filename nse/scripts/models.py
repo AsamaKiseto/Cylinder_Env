@@ -357,6 +357,58 @@ class FNO_ensemble(nn.Module):
         return torch.cat((gridy, gridx), dim=-1).to(device) 
 
 
+class FNO_ensemble_test(nn.Module):
+    def __init__(self, params):
+        super(FNO_ensemble_test, self).__init__()
+
+        modes1 = params['modes']
+        modes2 = params['modes']
+        width = params['width']
+        L = params['L']
+        shape = params['shape']
+        f_channels = params['f_channels']
+        nx, ny = shape[0], shape[1]
+
+        self.stat_en = state_en(modes1, modes2, width, L)
+        self.stat_de = state_de(modes1, modes2, width, L)
+        self.state_mo = state_mo(modes1, modes2, width, L)
+
+        self.ctr_en = control_en(nx, ny, f_channels)
+        self.ctr_de = control_de(f_channels)
+
+        self.trans = trans_net(modes1, modes2, width, L, f_channels)
+
+    def forward(self, x, f, modify=True):
+        # x: [batch_size, nx, ny, 3]; f: [1]
+
+        # print(f'x: {x.size()}')
+        x_latent = self.stat_en(x)
+        x_rec = self.stat_de(x_latent)
+        
+        # print(f'x_rec: {x_rec.size()}')
+
+        f_latent = self.ctr_en(f)
+        f_rec = self.ctr_de(f_latent)
+        # print(f'f_rec: {f_rec.size()}')
+
+        # print(f'x_latent: {x_latent.size()}, f_latent: {f_latent.size()}')
+        trans_out = self.trans(x_latent, f_latent)
+
+        mod = self.state_mo(trans_out, modify)
+
+        pred = self.stat_de(trans_out)
+        
+        return pred, x_rec, f_rec, trans_out, mod
+
+    def get_grid(self, shape, device):
+        batchsize, nx, ny = shape[0], shape[1], shape[2]
+        gridy = torch.tensor(np.linspace(0, 2.2, nx), dtype=torch.float)
+        gridy = gridy.reshape(1, nx, 1, 1).repeat([batchsize, 1, ny, 1])
+        gridx = torch.tensor(np.linspace(0, 1, ny), dtype=torch.float)
+        gridx = gridx.reshape(1, 1, ny, 1).repeat([batchsize, nx, 1, 1])
+        return torch.cat((gridy, gridx), dim=-1).to(device) 
+
+
 class policy_net_cnn(nn.Module):
     def __init__(self):
         super(policy_net_cnn, self).__init__()

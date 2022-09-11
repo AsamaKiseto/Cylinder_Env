@@ -20,7 +20,7 @@ def get_args(argv=None):
     parser = argparse.ArgumentParser(description='Put your hyperparameters')
     
     parser.add_argument('-op', '--operator', default='ex0', type=str, help='path of operator weight')
-    parser.add_argument('-nt', '--nt', default=1, type=int, help='nums of timestamps')
+    parser.add_argument('-nt', '--nt', default=20, type=int, help='nums of timestamps')
     parser.add_argument('-tg', '--tg', default=5, type=int, help='gap of timestamps')
     parser.add_argument('-s', '--scale', default=0, type=float, help='random scale')
     parser.add_argument('-ts', '--t_start', default=0, type=int, help='data number')
@@ -41,7 +41,7 @@ print(env.params)
 
 
 class load_model():
-    def __init__(self, operator_path, shape, modify):
+    def __init__(self, operator_path, shape):
         # mosel params setting
         print(operator_path)
         state_dict, logs_model = torch.load(operator_path)
@@ -138,11 +138,12 @@ if __name__ == '__main__':
     logs_path = 'logs/phase1_env_logs'
 
     # ex_nums = ['ex0', 'ex7', 'ex7_nomod']
-    # ex_nums = ['ex0', 'ex7']
     ex_nums = ['ex0_big', 'ex8_big', 'ex8_big_nomod']
+    ex_nums = ['ex8']
+    # ex_nums = ['ex0', 'ex8', 'ex8_nomod']
     modify = [True, True, False]
     label = ['without_pde_loss', 'with_modify', 'without_modify']
-    # label = ['without_pde_loss', 'with_modify']
+    label = [ 'with_modify']
     n_model = len(ex_nums)
 
     # logs
@@ -252,7 +253,7 @@ if __name__ == '__main__':
     # mosel setting
     for i in range(n_model):
         operator_path = 'logs/phase1_' + ex_nums[i] + '_grid_pi'
-        model = load_model(operator_path, shape, modify[i])
+        model = load_model(operator_path, shape)
         model.set_init(in_nn)
 
         # model step
@@ -263,12 +264,12 @@ if __name__ == '__main__':
         model.save_logs(logs[ex_nums[i]])
         model.plot(ax, t_nn, label[i])
 
-    # ax1.set_ylim(2.5, 3.5)
-    # ax2.set_ylim(-1.5, 1.5)
+    ax[0].set_ylim(2.5, 3.5)
+    ax[1].set_ylim(-1.5, 1.5)
     ax[2].set_yscale('log')
     ax[2].set_ylim(1e-4, 1e1)
     ax[3].set_yscale('log')
-    ax[3].set_ylim(1e-3, 1e1)
+    ax[3].set_ylim(1e-3, 1e2)
 
     plt.savefig(f'logs/coef_phase1_scale_{scale}.jpg')
     torch.save(logs, logs_path)
