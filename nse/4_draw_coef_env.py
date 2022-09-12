@@ -19,11 +19,10 @@ import argparse
 def get_args(argv=None):
     parser = argparse.ArgumentParser(description='Put your hyperparameters')
     
-    parser.add_argument('-op', '--operator', default='ex0', type=str, help='path of operator weight')
-    parser.add_argument('-nt', '--nt', default=20, type=int, help='nums of timestamps')
+    parser.add_argument('-nt', '--nt', default=40, type=int, help='nums of timestamps')
     parser.add_argument('-tg', '--tg', default=5, type=int, help='gap of timestamps')
     parser.add_argument('-s', '--scale', default=0, type=float, help='random scale')
-    parser.add_argument('-ts', '--t_start', default=0, type=int, help='data number')
+    parser.add_argument('-ts', '--t_start', default=5, type=int, help='data number')
 
     return parser.parse_args(argv)
 
@@ -46,6 +45,7 @@ class load_model():
         print(operator_path)
         state_dict, logs_model = torch.load(operator_path)
         self.modify = logs_model['modify']
+        print(self.modify)
         # self.modify = modify
         self.data_norm = logs_model['data_norm']
         params_args = logs_model['args']
@@ -75,11 +75,9 @@ class load_model():
     
     def step(self, f_nn):
         pred, _, _, _, mod = self.model(self.in_nn, f_nn.reshape(1), self.modify)
-        bf = self.in_nn
         out_nn = pred[:, :, :, :3]
-        af = out_nn
-        self.in_nn = out_nn
-        Lpde_nn = ((Lpde(af, bf, self.dt) + mod) ** 2).mean()
+        Lpde_nn = ((Lpde(out_nn, self.in_nn, self.dt) + mod) ** 2).mean()
+        print(f'Lpde_nn: {Lpde_nn}')
         Cd_nn = torch.mean(pred[:, :, :, -2])
         Cl_nn = torch.mean(pred[:, :, :, -1])
 
@@ -88,6 +86,7 @@ class load_model():
         Cd_nn = Cd_nn * Cd_var + Cd_mean
         Cl_nn = Cl_nn * Cl_var + Cl_mean
 
+        self.in_nn = out_nn
         self.logs['Cd_nn'].append(Cd_nn.detach().numpy())
         self.logs['Cl_nn'].append(Cl_nn.detach().numpy())
         self.logs['obs_nn'].append(out_nn.squeeze().detach().numpy())
@@ -139,11 +138,11 @@ if __name__ == '__main__':
 
     # ex_nums = ['ex0', 'ex7', 'ex7_nomod']
     ex_nums = ['ex0_big', 'ex8_big', 'ex8_big_nomod']
-    ex_nums = ['ex8']
-    # ex_nums = ['ex0', 'ex8', 'ex8_nomod']
+    # ex_nums = ['ex8']
+    ex_nums = ['ex0', 'ex8', 'ex8_nomod']
     modify = [True, True, False]
     label = ['without_pde_loss', 'with_modify', 'without_modify']
-    label = [ 'with_modify']
+    # label = [ 'with_modify']
     n_model = len(ex_nums)
 
     # logs
@@ -244,11 +243,11 @@ if __name__ == '__main__':
     ax[3].set_ylabel(r"$L_{pde}$", fontsize=15)
     ax[3].set_xlabel(r"$t$", fontsize=15)
     
-    ax[0].plot(t, Cd, color='blue')
-    ax[1].plot(t, Cl, color='blue')
+    ax[0].plot(t, Cd, color='black')
+    ax[1].plot(t, Cl, color='black')
 
-    ax[0].plot(t_nn, Cd_sps, color='yellow')
-    ax[1].plot(t_nn, Cl_sps, color='yellow')
+    # ax[0].plot(t_nn, Cd_sps, color='yellow')
+    # ax[1].plot(t_nn, Cl_sps, color='yellow')
 
     # mosel setting
     for i in range(n_model):

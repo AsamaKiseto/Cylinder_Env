@@ -305,6 +305,44 @@ class state_mo(nn.Module):
         return torch.cat((gridx, gridy), dim=-1).to(device)
 
 
+class state_mo_test(nn.Module):
+    def __init__(self, modes1, modes2, width, L):
+        super(state_mo_test, self).__init__()
+
+        self.net = [ FNO_layer(modes1, modes2, width) for i in range(L-1) ]
+        self.net += [ FNO_layer(modes1, modes2, width, last=True) ]
+        self.net = nn.Sequential(*self.net)
+
+        self.fc0 = nn.Linear(5, width)
+        self.fc1 = nn.Linear(width, 128)
+        self.fc2 = nn.Linear(128, 3)
+        # self.fc2 = nn.Linear(128, 2)
+
+    def forward(self, x, modify):
+        if modify == False:
+            return 0
+        
+        grid = self.get_grid(x.shape, x.device)
+        x = torch.cat((x, grid), dim=-1)    # [batch_size, nx, ny, 6]
+        x = self.fc0(x)
+        x = x.permute(0, 3, 1, 2)
+        x = self.net(x)
+        x = x.permute(0, 2, 3, 1)
+        x = self.fc1(x)
+        x = F.gelu(x)
+        x = self.fc2(x)
+
+        return x    
+
+    def get_grid(self, shape, device):
+        batchsize, nx, ny = shape[0], shape[1], shape[2]
+        gridx = torch.tensor(np.linspace(0, 2.2, nx), dtype=torch.float)
+        gridx = gridx.reshape(1, nx, 1, 1).repeat([batchsize, 1, ny, 1])
+        gridy = torch.tensor(np.linspace(0, 0.41, ny), dtype=torch.float)
+        gridy = gridy.reshape(1, 1, ny, 1).repeat([batchsize, nx, 1, 1])
+        return torch.cat((gridx, gridy), dim=-1).to(device)
+
+
 class FNO_ensemble(nn.Module):
     def __init__(self, params):
         super(FNO_ensemble, self).__init__()
@@ -371,7 +409,7 @@ class FNO_ensemble_test(nn.Module):
 
         self.stat_en = state_en(modes1, modes2, width, L)
         self.stat_de = state_de(modes1, modes2, width, L)
-        self.state_mo = state_mo(modes1, modes2, width, L)
+        self.state_mo = state_mo_test(modes1, modes2, width, L)
 
         self.ctr_en = control_en(nx, ny, f_channels)
         self.ctr_de = control_de(f_channels)
@@ -382,6 +420,8 @@ class FNO_ensemble_test(nn.Module):
         # x: [batch_size, nx, ny, 3]; f: [1]
 
         # print(f'x: {x.size()}')
+        x_mod = self.state_mo(x, modify)
+        x = x + x_mod
         x_latent = self.stat_en(x)
         x_rec = self.stat_de(x_latent)
         
@@ -394,11 +434,9 @@ class FNO_ensemble_test(nn.Module):
         # print(f'x_latent: {x_latent.size()}, f_latent: {f_latent.size()}')
         trans_out = self.trans(x_latent, f_latent)
 
-        mod = self.state_mo(trans_out, modify)
-
         pred = self.stat_de(trans_out)
         
-        return pred, x_rec, f_rec, trans_out, mod
+        return pred, x_rec, f_rec, trans_out
 
     def get_grid(self, shape, device):
         batchsize, nx, ny = shape[0], shape[1], shape[2]
