@@ -19,7 +19,7 @@ import argparse
 def get_args(argv=None):
     parser = argparse.ArgumentParser(description='Put your hyperparameters')
     
-    parser.add_argument('-nt', '--nt', default=40, type=int, help='nums of timestamps')
+    parser.add_argument('-nt', '--nt', default=80, type=int, help='nums of timestamps')
     parser.add_argument('-tg', '--tg', default=5, type=int, help='gap of timestamps')
     parser.add_argument('-s', '--scale', default=0, type=float, help='random scale')
     parser.add_argument('-ts', '--t_start', default=5, type=int, help='data number')
@@ -38,6 +38,101 @@ env = Cylinder_Rotation_Env(params={'dtr': 0.01, 'T': 1, 'rho_0': 1, 'mu' : 1/10
 
 print(env.params)
 
+class load_model_test():
+    def __init__(self, operator_path, shape):
+        # mosel params setting
+        print(operator_path)
+        state_dict, logs_model = torch.load(operator_path)
+        self.modify = logs_model['modify']
+        print(self.modify)
+        # self.modify = modify
+        self.data_norm = logs_model['data_norm']
+        params_args = logs_model['args']
+        L = params_args.L
+        modes = params_args.modes
+        width = params_args.width
+        self.tg = params_args.tg
+        self.dt = self.tg * 0.01
+        f_channels = params_args.f_channels
+
+        model_params = dict()
+        model_params['modes'] = modes
+        model_params['width'] = width
+        model_params['L'] = L
+        model_params['f_channels'] = f_channels
+        model_params['shape'] = shape
+
+        # self.model = FNO_ensemble(model_params)
+        self.model = FNO_ensemble_test(model_params)
+        self.model.load_state_dict(state_dict)
+        self.model.eval()
+
+        self.logs = dict()
+        self.logs['obs_nn']=[]
+        self.logs['Cd_nn']=[]
+        self.logs['Cl_nn']=[]
+        self.logs['Lpde_nn']=[]
+    
+    def step(self, f_nn):
+        # pred, _, _, _, mod = self.model(self.in_nn, f_nn.reshape(1), self.modify)
+        # out_nn = pred[:, :, :, :3]
+        # Lpde_nn = ((Lpde(out_nn, self.in_nn, self.dt) + mod) ** 2).mean()
+        pred, _, _, _ = self.model(self.in_nn, f_nn.reshape(1), self.modify)
+        out_nn = pred[:, :, :, :3]
+        in_mod = self.model.state_mo(self.in_nn, self.modify)
+        out_mod = self.model.state_mo(out_nn, self.modify)
+        Lpde_nn = (Lpde(out_nn + out_mod, self.in_nn + in_mod, self.dt) ** 2).mean()
+        print(f'Lpde_nn: {Lpde_nn}')
+        Cd_nn = torch.mean(pred[:, :, :, -2])
+        Cl_nn = torch.mean(pred[:, :, :, -1])
+
+        Cd_mean, Cd_var = self.data_norm['Cd']
+        Cl_mean, Cl_var = self.data_norm['Cl']
+        Cd_nn = Cd_nn * Cd_var + Cd_mean
+        Cl_nn = Cl_nn * Cl_var + Cl_mean
+
+        self.in_nn = out_nn
+        self.logs['Cd_nn'].append(Cd_nn.detach().numpy())
+        self.logs['Cl_nn'].append(Cl_nn.detach().numpy())
+        self.logs['obs_nn'].append(out_nn.squeeze().detach().numpy())
+        self.logs['Lpde_nn'].append(Lpde_nn.detach().numpy())
+    
+    def set_init(self, state_nn):
+        self.in_nn = state_nn
+
+    def combine_data(self, data_ts):
+        obs_ts, Cd_ts, Cl_ts = data_ts
+        Lpde_ts = np.zeros(t_start)
+        self.obs_nn = np.concatenate((obs_ts, np.asarray(self.logs['obs_nn'])), 0)
+        self.Cd_nn = np.concatenate((Cd_ts, np.asarray(self.logs['Cd_nn'])), 0)
+        self.Cl_nn = np.concatenate((Cl_ts, np.asarray(self.logs['Cl_nn'])), 0)
+        self.Lpde_nn = np.concatenate((Lpde_ts, np.asarray(self.logs['Lpde_nn'])), 0)
+
+    def compute_error(self, data_sps):
+        obs_sps, Cd_sps, Cl_sps = data_sps
+        Cd_var = Cd_sps - self.Cd_nn
+        Cl_var = Cl_sps - self.Cl_nn
+        obs_var = obs_sps - self.obs_nn
+        self.Cd_var = np.mean((Cd_var.reshape(nt, -1)**2), 1)
+        self.Cl_var = np.mean((Cl_var.reshape(nt, -1)**2), 1)
+        self.obs_var = np.mean((obs_var.reshape(nt, -1)**2), 1)
+
+    def plot(self, ax, t_nn, label=None):
+        ax[0].plot(t_nn, self.Cd_nn, label=f'{label}')
+        ax[1].plot(t_nn, self.Cl_nn, label=f'{label}')
+        ax[2].plot(t_nn, self.obs_var, label=f'{label}')
+        ax[3].plot(t_nn, self.Lpde_nn, label=f'{label}')
+        for i in range(4):
+            ax[i].legend()
+    
+    def save_logs(self, logs):
+        logs['obs_nn'].append(self.obs_nn)
+        logs['Cd_nn'].append(self.Cd_nn)
+        logs['Cl_nn'].append(self.Cl_nn)
+        logs['Lpde_nn'].append(self.Lpde_nn)
+        logs['Cd_var'].append(self.Cd_var)
+        logs['Cl_var'].append(self.Cl_var)
+        logs['obs_var'].append(self.obs_var)
 
 class load_model():
     def __init__(self, operator_path, shape):
@@ -64,6 +159,7 @@ class load_model():
         model_params['shape'] = shape
 
         self.model = FNO_ensemble(model_params)
+        # self.model = FNO_ensemble_test(model_params)
         self.model.load_state_dict(state_dict)
         self.model.eval()
 
@@ -77,6 +173,11 @@ class load_model():
         pred, _, _, _, mod = self.model(self.in_nn, f_nn.reshape(1), self.modify)
         out_nn = pred[:, :, :, :3]
         Lpde_nn = ((Lpde(out_nn, self.in_nn, self.dt) + mod) ** 2).mean()
+        # pred, _, _, _ = self.model(self.in_nn, f_nn.reshape(1), self.modify)
+        # out_nn = pred[:, :, :, :3]
+        # in_mod = self.model.state_mo(self.in_nn, self.modify)
+        # out_mod = self.model.state_mo(out_nn, self.modify)
+        # Lpde_nn = (Lpde(out_nn + out_mod, self.in_nn + in_mod, self.dt) ** 2).mean()
         print(f'Lpde_nn: {Lpde_nn}')
         Cd_nn = torch.mean(pred[:, :, :, -2])
         Cl_nn = torch.mean(pred[:, :, :, -1])
@@ -134,13 +235,13 @@ if __name__ == '__main__':
     args = get_args()
 
     # path
-    logs_path = 'logs/phase1_env_logs'
+    logs_path = 'logs/phase1_env_logs_test'
 
     # ex_nums = ['ex0', 'ex7', 'ex7_nomod']
     ex_nums = ['ex0_big', 'ex8_big', 'ex8_big_nomod']
     # ex_nums = ['ex8']
     ex_nums = ['ex0', 'ex8', 'ex8_nomod']
-    modify = [True, True, False]
+    ex_nums = ['ex0_big', 'ex8_big']
     label = ['without_pde_loss', 'with_modify', 'without_modify']
     # label = [ 'with_modify']
     n_model = len(ex_nums)
@@ -187,7 +288,7 @@ if __name__ == '__main__':
     t_nn = (np.arange(nt) + 1) * 0.01 * tg
     t = (np.arange(nt * tg) + 1) * 0.01 
     f = scale * (np.random.rand(nt) - 0.5)
-    # f = np.ones(nt)
+    # f = np.ones(nt) * 0.111111111
     f_nn = torch.Tensor(f)
     print(f)
 
@@ -246,13 +347,12 @@ if __name__ == '__main__':
     ax[0].plot(t, Cd, color='black')
     ax[1].plot(t, Cl, color='black')
 
-    # ax[0].plot(t_nn, Cd_sps, color='yellow')
-    # ax[1].plot(t_nn, Cl_sps, color='yellow')
-
     # mosel setting
     for i in range(n_model):
         operator_path = 'logs/phase1_' + ex_nums[i] + '_grid_pi'
         model = load_model(operator_path, shape)
+        # operator_path = 'logs/phase1_' + ex_nums[i] + '_grid_pi' + '_test'
+        # model = load_model_test(operator_path, shape)
         model.set_init(in_nn)
 
         # model step

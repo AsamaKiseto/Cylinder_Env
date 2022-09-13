@@ -46,16 +46,15 @@ def draw_loss_plot(ex_nums, label):
     plt.savefig('logs/loss_plot.jpg')
 
 # draw generality of scale
-def add_generality_plots(ax, logs, tl, label):
-    scale, Cd_var, Cl_var, obs_var, Lpde_nn = logs['scale'], logs['Cd_var'], logs['Cl_var'], logs['obs_var'], logs['Lpde_nn']
+def add_generality_plots(ax, scale, logs, tl, label):
+    Cd_var, Cl_var, obs_var, Lpde_nn = logs['Cd_var'], logs['Cl_var'], logs['obs_var'], logs['Lpde_nn']
     loss1, loss2, loss3, loss4 = np.asarray(Cd_var)[:, :tl].mean(-1), np.asarray(Cl_var)[:, :tl].mean(-1), \
                                  np.asarray(obs_var)[:, :tl].mean(-1), np.asarray(Lpde_nn)[:, :tl].mean(-1)
-    scale = np.asarray(scale)
     for i in range(4):
         exec(f'ax[{i}].plot(scale, loss{i+1}, label=label)')
         exec(f'ax[{i}].legend()')
 
-def draw_generality(ex_nums, label, tl):
+def draw_generality(logs, ex_nums, label, tl):
     
     # fig setting
     fig, ax = plt.subplots(nrows=4, ncols=2, figsize=(15,12), dpi=1000)
@@ -67,7 +66,7 @@ def draw_generality(ex_nums, label, tl):
         ax[i].set_yscale('log')
         # ax[i].set_ylim(y_min, y_max)
 
-    ax[0].set_title(r"$error/loss in different scales$", fontsize=15)
+    ax[0].set_title("error/loss in different scales", fontsize=15)
     ax[0].set_ylabel(r"$C_d$", fontsize=15)
     ax[1].set_ylabel(r"$C_l$", fontsize=15)
     ax[2].set_ylabel(r"$state$", fontsize=15)
@@ -79,9 +78,10 @@ def draw_generality(ex_nums, label, tl):
     N = len(ex_nums)
     print(ex_nums)
 
-    logs_base = torch.load(f"logs/phase1_env_logs_{ex_nums[0]}")
+    logs_base = logs[f'{ex_nums[0]}']
+    scale = logs['scale']
     # Cd_var, Cl_var, obs_var, Lpde_nn
-    scale, Cd_var, Cl_var, obs_var, Lpde_nn = logs_base['scale'], logs_base['Cd_var'], logs_base['Cl_var'], logs_base['obs_var'], logs_base['Lpde_nn']
+    Cd_var, Cl_var, obs_var, Lpde_nn = logs_base['Cd_var'], logs_base['Cl_var'], logs_base['obs_var'], logs_base['Lpde_nn']
     loss1, loss2, loss3, loss4 = np.asarray(Cd_var)[:, :tl].mean(-1), np.asarray(Cl_var)[:, :tl].mean(-1), \
                                  np.asarray(obs_var)[:, :tl].mean(-1), np.asarray(Lpde_nn)[:, :tl].mean(-1)
     scale = np.asarray(scale)
@@ -90,7 +90,7 @@ def draw_generality(ex_nums, label, tl):
         exec(f'ax[{i}].legend()')
 
     for i in range(1, N):
-        exec(f'logs_ex{ex_nums[i]} = torch.load("logs/phase1_env_logs_{ex_nums[i]}")')
-        exec(f'add_generality_plots(ax, logs_ex{ex_nums[i]}, tl, label="{label[i]}")')
+        exec(f'logs_{ex_nums[i]} = logs["{ex_nums[i]}"]')
+        exec(f'add_generality_plots(ax, scale, logs_{ex_nums[i]}, tl, label="{label[i]}")')
 
     plt.savefig(f'logs/loss_genrlty_{tl}.jpg')
