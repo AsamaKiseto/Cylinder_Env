@@ -266,10 +266,11 @@ class trans_net(nn.Module):
 
 
 class state_mo(nn.Module):
-    def __init__(self, modes1, modes2, width, L):
+    def __init__(self, modes1, modes2, width, L, f_channels):
         super(state_mo, self).__init__()
 
-        self.net = [ FNO_layer(modes1, modes2, width) for i in range(L-1) ]
+        self.net = [ FNO_layer_trans(modes1, modes2, width, f_channels) ]
+        self.net += [ FNO_layer(modes1, modes2, width) for i in range(L-1) ]
         self.net += [ FNO_layer(modes1, modes2, width, last=True) ]
         self.net = nn.Sequential(*self.net)
 
@@ -278,7 +279,7 @@ class state_mo(nn.Module):
         # self.fc2 = nn.Linear(128, 3)
         self.fc2 = nn.Linear(128, 2)
 
-    def forward(self, x, modify):
+    def forward(self, x, f, modify):
         if modify == False:
             return 0
         
@@ -288,6 +289,7 @@ class state_mo(nn.Module):
         # x = torch.cat((x, f), dim=-1) 
         # x = self.fc0(x)
         # x = x.permute(0, 3, 1, 2)
+        x = torch.cat((x, f), dim=1)
         x = self.net(x)
         x = x.permute(0, 2, 3, 1)
         x = self.fc1(x)
@@ -357,7 +359,7 @@ class FNO_ensemble(nn.Module):
 
         self.stat_en = state_en(modes1, modes2, width, L)
         self.stat_de = state_de(modes1, modes2, width, L)
-        self.state_mo = state_mo(modes1, modes2, width, L)
+        self.state_mo = state_mo(modes1, modes2, width, L, f_channels)
 
         self.ctr_en = control_en(nx, ny, f_channels)
         self.ctr_de = control_de(f_channels)
@@ -379,8 +381,7 @@ class FNO_ensemble(nn.Module):
 
         # print(f'x_latent: {x_latent.size()}, f_latent: {f_latent.size()}')
         trans_out = self.trans(x_latent, f_latent)
-
-        mod = self.state_mo(trans_out, modify)
+        mod = self.state_mo(x_latent, f_latent, modify)
 
         pred = self.stat_de(trans_out)
         
