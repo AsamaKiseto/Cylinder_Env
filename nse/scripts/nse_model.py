@@ -61,13 +61,12 @@ class NSEModel_FNO:
             in_train, f_train = x_train[:, :, :, :-1], x_train[:, 0, 0, -1]
             out_train, Cd_train, Cl_train = y_train[:, :, :, :-2], y_train[:, 0, 0, -2], y_train[:, 0, 0, -1]
             # put data into model
-            pred, x_rec, f_rec, trans_out, mod = self.model(in_train, f_train, self.modify)
+            pred, x_rec, f_rec, trans_out = self.model(in_train, f_train)
+            mod = self.model.state_mo(in_train, f_train, out_train)
             out_latent = self.model.stat_en(out_train)
             in_rec = x_rec[:, :, :, :3]
             # prediction items
             out_pred = pred[:, :, :, :3]
-            # in_mod = self.model.state_mo(in_train, self.modify)
-            # out_mod = self.model.state_mo(out_pred, self.modify)
 
             Cd_pred = torch.mean(pred[:, :, :, -2].reshape(self.batch_size, -1), 1)
             Cl_pred = torch.mean(pred[:, :, :, -1].reshape(self.batch_size, -1), 1)
@@ -93,6 +92,38 @@ class NSEModel_FNO:
             train_loss3.update(loss3.item(), x_train.shape[0])
             train_loss4.update(loss4.item(), x_train.shape[0])
             train_loss5.update(loss_pde.item(), x_train.shape[0])
+        
+        if epoch % 20 == 0:
+            for x_train in train_loader:
+                x_train = x_train.to(device)
+
+                # split data read in train_loader
+                in_train, f_train = x_train[:, :, :, :-1], x_train[:, 0, 0, -1]
+                f_train = f_train.requires_grad_(True)
+                
+                # put data into model
+                self.model.eval()
+                pred, _, _, _ = self.model(in_train, f_train)
+                out_pred = pred[:, :, :, :3]
+                mod = self.model.state_mo(in_train, f_train, out_pred)
+                loss_pde = ((Lpde(out_pred, in_train, self.dt) + mod) ** 2).mean()
+                loss_pde.backward(gradient = torch.ones(self.batch_size))
+                dLf = f_train.grad
+                print(dLf.shape)
+                scale = 0.01
+                f_new = f_train + scale * dLf
+
+                self.model.train()
+                self.model.state_mo.eval()
+                self.optimizer.zero_grad()
+
+                pred, _, _, _ = self.model(in_train, f_new)
+                out_pred = pred[:, :, :, :3]
+                mod = self.model.state_mo(in_train, f_new, out_pred)
+                loss_pde = ((Lpde(out_pred, in_train, self.dt) + mod) ** 2).mean()
+                loss_pde.backward()
+                self.optimizer.step()
+
         
         self.logs['train_loss'].append(train_loss.avg)
         self.logs['train_loss_f_t_rec'].append(train_loss3.avg)
@@ -121,13 +152,12 @@ class NSEModel_FNO:
                 in_test, f_test = x_test[:, :, :, :-1], x_test[:, 0, 0, -1]
                 out_test, Cd_test, Cl_test = y_test[:, :, :, :-2], y_test[:, 0, 0, -2], y_test[:, 0, 0, -1]
                 # put data into model
-                pred, x_rec, f_rec, trans_out, mod = self.model(in_test, f_test, self.modify)
+                pred, x_rec, f_rec, trans_out = self.model(in_test, f_test)
+                mod = self.model.state_mo(in_test, f_test, out_test)
                 out_latent = self.model.stat_en(out_test)
                 in_rec = x_rec[:, :, :, :3]
                 # prediction items
                 out_pred = pred[:, :, :, :3]
-                # in_mod = self.model.state_mo(in_test, self.modify)
-                # out_mod = self.model.state_mo(out_pred, self.modify)
 
                 Cd_pred = torch.mean(pred[:, :, :, -2].reshape(self.batch_size, -1), 1)
                 Cl_pred = torch.mean(pred[:, :, :, -1].reshape(self.batch_size, -1), 1)

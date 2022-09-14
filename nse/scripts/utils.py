@@ -172,14 +172,14 @@ class ReadData:
         Cl_var = torch.sqrt(((self.Cl-Cl_mean)**2).mean())
         ctr_mean = self.ctr.mean()
         ctr_var = torch.sqrt(((self.ctr-ctr_mean)**2).mean())
-        if self.mode=='grid':
-            obs_mean = self.obs.mean([0, 1, 2, 3])
-            _obs_mean = obs_mean.reshape(1, 1, 1, 1, -1).repeat(self.N0, self.nt+1, self.nx, self.ny, 1)
-            obs_var = torch.sqrt(((self.obs - _obs_mean)**2).mean([0, 1, 2, 3]))
-        elif self.mode=='vertex':
-            obs_mean = self.obs.mean([0, 1, 2])
-            _obs_mean = obs_mean.reshape(1, 1, 1, -1).repeat(self.N0, self.nt+1, self.nv, 1)
-            obs_var = torch.sqrt(((self.obs - _obs_mean)**2).mean([0, 1, 2]))
+        # if self.mode=='grid':
+        #     obs_mean = self.obs.mean([0, 1, 2, 3])
+        #     _obs_mean = obs_mean.reshape(1, 1, 1, 1, -1).repeat(self.N0, self.nt+1, self.nx, self.ny, 1)
+        #     obs_var = torch.sqrt(((self.obs - _obs_mean)**2).mean([0, 1, 2, 3]))
+        # elif self.mode=='vertex':
+        #     obs_mean = self.obs.mean([0, 1, 2])
+        #     _obs_mean = obs_mean.reshape(1, 1, 1, -1).repeat(self.N0, self.nt+1, self.nv, 1)
+        #     obs_var = torch.sqrt(((self.obs - _obs_mean)**2).mean([0, 1, 2]))
         self.Cd = (self.Cd - Cd_mean)/Cd_var
         self.Cl = (self.Cl - Cl_mean)/Cl_var
 
@@ -187,7 +187,7 @@ class ReadData:
         self.norm['Cd'] = [Cd_mean, Cd_var]
         self.norm['Cl'] = [Cl_mean, Cl_var]
         self.norm['ctr'] = [ctr_mean, ctr_var]
-        self.norm['obs'] = [obs_mean, obs_var]
+        # self.norm['obs'] = [obs_mean, obs_var]
 
         return self.norm
 

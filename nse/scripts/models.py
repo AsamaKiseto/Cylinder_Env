@@ -2,6 +2,8 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
+from scripts.utils import *
     
 #===========================================================================
 # 2d fourier layers
@@ -266,37 +268,49 @@ class trans_net(nn.Module):
 
 
 class state_mo(nn.Module):
-    def __init__(self, modes1, modes2, width, L, f_channels):
+    def __init__(self, modes1, modes2, width, L):
         super(state_mo, self).__init__()
 
-        self.net = [ FNO_layer_trans(modes1, modes2, width, f_channels) ]
-        self.net += [ FNO_layer(modes1, modes2, width) for i in range(L-1) ]
+        # self.net = [ FNO_layer_trans(modes1, modes2, width, f_channels) ]
+        self.net = [ FNO_layer(modes1, modes2, width) for i in range(L-1) ]
         self.net += [ FNO_layer(modes1, modes2, width, last=True) ]
         self.net = nn.Sequential(*self.net)
 
-        # self.fc0 = nn.Linear(6, width)
+        self.fc0 = nn.Linear(15, width)  # (dim_u = 2 + dim_grad_u = 4 + dim_grad_p = 2 + dim_laplace_u = 2 + dim_u_next = 2 + dim_grid = 2 + dim_f = 1 = 15)
         self.fc1 = nn.Linear(width, 128)
         # self.fc2 = nn.Linear(128, 3)
         self.fc2 = nn.Linear(128, 2)
 
-    def forward(self, x, f, modify):
-        if modify == False:
-            return 0
+    def forward(self, x, f, x_next):
+        grid = self.get_grid(x.shape, x.device) # 2
+        f = f.reshape(f.shape[0], 1, 1, 1).repeat(1, x.shape[1], x.shape[2], 1) # 1
+        u_bf = x[..., :-1]   # 2
+        p_bf = x[..., -1].reshape(-1, x.shape[1], x.shape[2], 1)
+        u_af = x_next[..., :-1]  # 2
+        ux, uy = fdmd2D(u_bf, x.device)   # input 2 + 2
+        px, py = fdmd2D(p_bf, x.device)
+        uxx, _ = fdmd2D(ux, x.device)
+        _, uyy = fdmd2D(uy, x.device)
+        u_lap = uxx + uyy   # input 2
+        p_grad = torch.cat((px, py), -1)    # input 2
+        ipt = torch.cat((grid, u_bf, f, u_af, ux, uy, p_grad, u_lap), -1)
+        opt = self.fc0(ipt).permute(0, 3, 1, 2)
+        opt = self.net(opt).permute(0, 2, 3, 1)
+        opt = self.fc1(opt)
+        opt = F.gelu(opt)
+        opt = self.fc2(opt)
         
-        # f = f.reshape(f.shape[0], 1, 1, 1).repeat(1, x.shape[1], x.shape[2], 1) 
-        # grid = self.get_grid(x.shape, x.device)
         # x = torch.cat((x, grid), dim=-1)    # [batch_size, nx, ny, 5]
-        # x = torch.cat((x, f), dim=-1) 
+        # x = torch.cat((x, f), dim=-1)  
         # x = self.fc0(x)
         # x = x.permute(0, 3, 1, 2)
-        x = torch.cat((x, f), dim=1)
-        x = self.net(x)
-        x = x.permute(0, 2, 3, 1)
-        x = self.fc1(x)
-        x = F.gelu(x)
-        x = self.fc2(x)
+        # x = self.net(x)
+        # x = x.permute(0, 2, 3, 1)
+        # x = self.fc1(x)
+        # x = F.gelu(x)
+        # x = self.fc2(x)
 
-        return x    # [batch_size, nx, ny, 5]
+        return opt    # [batch_size, nx, ny, 5]
 
     def get_grid(self, shape, device):
         batchsize, nx, ny = shape[0], shape[1], shape[2]
@@ -359,14 +373,15 @@ class FNO_ensemble(nn.Module):
 
         self.stat_en = state_en(modes1, modes2, width, L)
         self.stat_de = state_de(modes1, modes2, width, L)
-        self.state_mo = state_mo(modes1, modes2, width, L, f_channels)
+        self.state_mo = state_mo(modes1, modes2, width, L)
 
         self.ctr_en = control_en(nx, ny, f_channels)
         self.ctr_de = control_de(f_channels)
 
         self.trans = trans_net(modes1, modes2, width, L, f_channels)
 
-    def forward(self, x, f, modify=True):
+    # def forward(self, x, f, modify=True):
+    def forward(self, x, f):
         # x: [batch_size, nx, ny, 3]; f: [1]
 
         # print(f'x: {x.size()}')
@@ -378,14 +393,14 @@ class FNO_ensemble(nn.Module):
         f_latent = self.ctr_en(f)
         f_rec = self.ctr_de(f_latent)
         # print(f'f_rec: {f_rec.size()}')
+        # mod = self.state_mo(x_latent, f_latent, modify)
 
         # print(f'x_latent: {x_latent.size()}, f_latent: {f_latent.size()}')
         trans_out = self.trans(x_latent, f_latent)
-        mod = self.state_mo(x_latent, f_latent, modify)
-
+        
         pred = self.stat_de(trans_out)
         
-        return pred, x_rec, f_rec, trans_out, mod
+        return pred, x_rec, f_rec, trans_out #, mod
 
     def get_grid(self, shape, device):
         batchsize, nx, ny = shape[0], shape[1], shape[2]

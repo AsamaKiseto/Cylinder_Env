@@ -86,7 +86,7 @@ if __name__=='__main__':
     print(f'Cd: {logs["data_norm"]["Cd"]}')
     print(f'Cl: {logs["data_norm"]["Cl"]}')
     print(f'ctr: {logs["data_norm"]["ctr"]}')
-    print(f'obs: {logs["data_norm"]["obs"]}')
+    # print(f'obs: {logs["data_norm"]["obs"]}')
     print(f'param numbers of the model: {params_num}')
 
     nse_model.process(train_loader, test_loader)
