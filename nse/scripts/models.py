@@ -402,14 +402,6 @@ class FNO_ensemble(nn.Module):
         
         return pred, x_rec, f_rec, trans_out #, mod
 
-    def get_grid(self, shape, device):
-        batchsize, nx, ny = shape[0], shape[1], shape[2]
-        gridy = torch.tensor(np.linspace(0, 2.2, nx), dtype=torch.float)
-        gridy = gridy.reshape(1, nx, 1, 1).repeat([batchsize, 1, ny, 1])
-        gridx = torch.tensor(np.linspace(0, 1, ny), dtype=torch.float)
-        gridx = gridx.reshape(1, 1, ny, 1).repeat([batchsize, nx, 1, 1])
-        return torch.cat((gridy, gridx), dim=-1).to(device) 
-
 
 class FNO_ensemble_test(nn.Module):
     def __init__(self, params):

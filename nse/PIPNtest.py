@@ -133,24 +133,32 @@ def model_train(model, epochs):
     model.eval()
 
 model1 = test1()
+optimizer1 = torch.optim.Adam(model1.parameters(), lr=1e-2)
 model2 = test2()
-model_train(model1, epochs)
-model_train(model2, epochs)
+optimizer2 = torch.optim.Adam(model2.parameters(), lr=1e-2)
+# model_train(model1, epochs)
+# model_train(model2, epochs)
 
 model3 = test3()
 optimizer3 = torch.optim.Adam(model3.parameters(), lr=1e-2)
 for epoch in range(1, epochs + 1):
-        model3.train()
-        
-        optimizer3.zero_grad()
-        zm = model3(xy)
-        loss = ((z - zm)**2).sum()
+    model1.train()
+    model2.train()
+    model3.train()
 
-        loss.backward()
-        optimizer3.step()
+    optimizer3.zero_grad()
 
-        if(epoch% (epochs//10)==0): 
-            print(f'# {epoch} loss: {loss}')
+    zm3 = model3(xy)
+
+    loss3 = ((z - zm3)**2).sum() 
+    loss = loss3
+    loss.backward()
+    optimizer1.step()
+    optimizer2.step()
+    optimizer3.step()
+
+    if(epoch% (epochs//10)==0): 
+        print(f'# {epoch} loss: {loss}')
 model3.eval()
 
 num = 100
