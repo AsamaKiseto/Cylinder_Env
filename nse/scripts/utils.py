@@ -172,14 +172,14 @@ class ReadData:
         Cl_var = torch.sqrt(((self.Cl-Cl_mean)**2).mean())
         ctr_mean = self.ctr.mean()
         ctr_var = torch.sqrt(((self.ctr-ctr_mean)**2).mean())
-        # if self.mode=='grid':
-        #     obs_mean = self.obs.mean([0, 1, 2, 3])
-        #     _obs_mean = obs_mean.reshape(1, 1, 1, 1, -1).repeat(self.N0, self.nt+1, self.nx, self.ny, 1)
-        #     obs_var = torch.sqrt(((self.obs - _obs_mean)**2).mean([0, 1, 2, 3]))
-        # elif self.mode=='vertex':
-        #     obs_mean = self.obs.mean([0, 1, 2])
-        #     _obs_mean = obs_mean.reshape(1, 1, 1, -1).repeat(self.N0, self.nt+1, self.nv, 1)
-        #     obs_var = torch.sqrt(((self.obs - _obs_mean)**2).mean([0, 1, 2]))
+        if self.mode=='grid':
+            obs_mean = self.obs.mean([0, 1, 2, 3])
+            _obs_mean = obs_mean.reshape(1, 1, 1, 1, -1).repeat(self.N0, self.nt+1, self.nx, self.ny, 1)
+            obs_var = torch.sqrt(((self.obs - _obs_mean)**2).mean([0, 1, 2, 3]))
+        elif self.mode=='vertex':
+            obs_mean = self.obs.mean([0, 1, 2])
+            _obs_mean = obs_mean.reshape(1, 1, 1, -1).repeat(self.N0, self.nt+1, self.nv, 1)
+            obs_var = torch.sqrt(((self.obs - _obs_mean)**2).mean([0, 1, 2]))
         self.Cd = (self.Cd - Cd_mean)/Cd_var
         self.Cl = (self.Cl - Cl_mean)/Cl_var
 
@@ -187,7 +187,7 @@ class ReadData:
         self.norm['Cd'] = [Cd_mean, Cd_var]
         self.norm['Cl'] = [Cl_mean, Cl_var]
         self.norm['ctr'] = [ctr_mean, ctr_var]
-        # self.norm['obs'] = [obs_mean, obs_var]
+        self.norm['obs'] = [obs_mean, obs_var]
 
         return self.norm
 
@@ -243,3 +243,38 @@ class NSE_Dataset(Dataset):
         y = torch.FloatTensor(self.opt[idx])
         return x, y
 
+
+class PredLog():
+    def __init__(self, mode, length):
+        self.length = length
+        self.mode = mode
+        self.loss = AverageMeter()
+        self.loss1 = AverageMeter()
+        self.loss2 = AverageMeter()
+        self.loss3 = AverageMeter()
+        self.loss4 = AverageMeter()
+        self.loss_pde = AverageMeter()
+    
+    def update(self, loss, loss1, loss2, loss3, loss4, loss_pde):
+        self.loss.update(loss.item(), self.length)
+        self.loss1.update(loss1.item(), self.length)
+        self.loss2.update(loss2.item(), self.length)
+        self.loss3.update(loss3.item(), self.length)
+        self.loss4.update(loss4.item(), self.length)
+        self.loss_pde.update(loss_pde.item(), self.length)
+
+    def save_log(self, logs):
+        if self.mode =='train':
+            logs['train_loss'].append(self.loss.avg)
+            logs['train_loss_trans'].append(self.loss1.avg)
+            logs['train_loss_u_t_rec'].append(self.loss2.avg)
+            logs['train_loss_f_t_rec'].append(self.loss3.avg)
+            logs['train_loss_trans_latent'].append(self.loss4.avg)
+            logs['train_loss_pde'].append(self.loss_pde.avg)
+        elif self.mode =='test':
+            logs['test_loss'].append(self.loss.avg)
+            logs['test_loss_trans'].append(self.loss1.avg)
+            logs['test_loss_u_t_rec'].append(self.loss2.avg)
+            logs['test_loss_f_t_rec'].append(self.loss3.avg)
+            logs['test_loss_trans_latent'].append(self.loss4.avg)
+            logs['test_loss_pde'].append(self.loss_pde.avg)

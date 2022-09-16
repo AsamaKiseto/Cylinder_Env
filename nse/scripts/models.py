@@ -373,7 +373,7 @@ class FNO_ensemble(nn.Module):
 
         self.stat_en = state_en(modes1, modes2, width, L)
         self.stat_de = state_de(modes1, modes2, width, L)
-        self.state_mo = state_mo(modes1, modes2, width, L)
+        self.state_mo = state_mo(modes1, modes2, width, L+2)
 
         self.ctr_en = control_en(nx, ny, f_channels)
         self.ctr_de = control_de(f_channels)
