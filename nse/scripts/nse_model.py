@@ -87,9 +87,11 @@ class NSEModel_FNO:
                         dLu = in_new.grad
                         # print(f_new.shape, in_new.shape)
                         # print(dLu.shape, dLf.shape)
-                        scale = 0.01
+                        scale = self.params.phys_scale
                         f_new = f_new.data + scale * dLf    # use .data to generate new leaf tensor
                         in_new = in_new.data + scale * dLu
+                        print((dLf ** 2).mean(), (dLu ** 2).mean())
+                        # print(f_new.mean(),in_new.mean())
                     
                     in_train, f_train = in_new.data, f_new.data
                     
