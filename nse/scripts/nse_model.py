@@ -62,7 +62,10 @@ class NSEModel_FNO:
             train_log.update(loss, loss1, loss2, loss3, loss4, loss_pde)
         
         if epoch % self.params.phys_gap == 0:
-            for _ in range(1, self.params.phys_epochs+1):
+            for phys_epoch in range(1, self.params.phys_epochs+1):
+                loss_pde = AverageMeter()
+                t3 = default_timer()
+
                 for x_train, _ in train_loader:
                     x_train = x_train.to(device)
 
@@ -80,18 +83,21 @@ class NSEModel_FNO:
                         pred, _, _, _ = self.model(in_new, f_new)
                         out_pred = pred[:, :, :, :3]
                         mod = self.model.state_mo(in_new, f_new, out_pred)
-                        loss_pde = ((Lpde(out_pred, in_new, self.dt) + mod) ** 2).mean()
-                        loss_pde.backward()
+                        loss = ((Lpde(out_pred, in_new, self.dt) + mod) ** 2).mean()
+                        loss.backward()
                         # print(f_new.is_leaf, in_new.is_leaf)
                         dLf = f_new.grad
                         dLu = in_new.grad
                         # print(f_new.shape, in_new.shape)
                         # print(dLu.shape, dLf.shape)
-                        scale = self.params.phys_scale
-                        f_new = f_new.data + scale * dLf    # use .data to generate new leaf tensor
-                        in_new = in_new.data + scale * dLu
-                        # print('f in : {} {}'.format((f_new ** 2).mean(), (in_new ** 2).mean()))
-                        # print('dLf dLu : {} {}'.format((dLf ** 2).mean(), (dLu ** 2).mean()))
+                        phys_scale = self.params.phys_scale
+                        scale1 = torch.sqrt((f_new.data ** 2).mean() / (dLf ** 2).mean()) * phys_scale
+                        scale2 = torch.sqrt((in_new.data ** 2).mean() / (dLu ** 2).mean()) * phys_scale
+                        # print(f'scale:{scale1} {scale2}')
+                        f_new = f_new.data + scale1 * dLf    # use .data to generate new leaf tensor
+                        in_new = in_new.data + scale2 * dLu
+                        # print('f in : {:1.4e} {:1.4e}'.format((f_new ** 2).mean(), (in_new ** 2).mean()))
+                        # print('dLf dLu : {:1.4e} {:1.4e}'.format((dLf ** 2).mean(), (dLu ** 2).mean()))
                         # print(f_new.mean(),in_new.mean())
                     
                     in_train, f_train = in_new.data, f_new.data
@@ -107,9 +113,13 @@ class NSEModel_FNO:
                     pred, _, _, _ = self.model(in_train, f_train)
                     out_pred = pred[:, :, :, :3]
                     mod = self.model.state_mo(in_train, f_train, out_pred)
-                    loss_pde = ((Lpde(out_pred, in_train, self.dt) + mod) ** 2).mean()
-                    loss_pde.backward()
+                    loss = ((Lpde(out_pred, in_train, self.dt) + mod) ** 2).mean()
+                    loss.backward()
                     self.optimizer.step()
+                    loss_pde.update(loss.item(), self.params.batch_size)
+                
+                t4 = default_timer()
+                print('----phys training: # {} {:1.2f} (pde): {:1.2e} | '.format(phys_epoch, t4-t3, loss_pde.avg))
 
             for param in list(self.model.parameters()):
                 param.requires_grad = True
