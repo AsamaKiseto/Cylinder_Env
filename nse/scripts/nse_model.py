@@ -74,7 +74,7 @@ class NSEModel_FNO:
                         param.requires_grad = False
 
                     # 3 steps to generate new data along gradient
-                    for _ in range(3):
+                    for _ in range(self.params.phys_steps):
                         f_new = f_new.requires_grad_(True)
                         in_new = in_new.requires_grad_(True)
                         pred, _, _, _ = self.model(in_new, f_new)
