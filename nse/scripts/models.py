@@ -268,8 +268,13 @@ class trans_net(nn.Module):
 
 
 class state_mo(nn.Module):
-    def __init__(self, modes1, modes2, width, L):
+    def __init__(self, params):
         super(state_mo, self).__init__()
+
+        modes1 = params['modes']
+        modes2 = params['modes']
+        width = params['width']
+        L = params['L'] + 2
 
         # self.net = [ FNO_layer_trans(modes1, modes2, width, f_channels) ]
         self.net = [ FNO_layer(modes1, modes2, width) for i in range(L-1) ]
@@ -373,7 +378,7 @@ class FNO_ensemble(nn.Module):
 
         self.stat_en = state_en(modes1, modes2, width, L)
         self.stat_de = state_de(modes1, modes2, width, L)
-        self.state_mo = state_mo(modes1, modes2, width, L+2)
+        # self.state_mo = state_mo(modes1, modes2, width, L+2)
 
         self.ctr_en = control_en(nx, ny, f_channels)
         self.ctr_de = control_de(f_channels)
