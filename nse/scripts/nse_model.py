@@ -153,7 +153,6 @@ class NSEModel_FNO:
         t4 = default_timer()
         print('----phys training: # {} {:1.2f} (pde): {:1.2e} | '.format(phys_epoch, t4-t3, loss_pde.avg))
 
-
     def pred_loss(self, ipt, ctr, opt):
         opt, Cd, Cl = opt
         # put data into model
