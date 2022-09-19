@@ -92,4 +92,4 @@ if __name__=='__main__':
     print(f'param numbers of the model: {params_num}')
 
     nse_model.process(train_loader, test_loader)
-    torch.save([nse_model.model.state_dict(), logs], logs_fname)
+    torch.save([nse_model.pred_model.state_dict(), nse_model.phys_model.state_dict(), logs], logs_fname)

@@ -138,16 +138,6 @@ class NSEModel_FNO:
             
             for param in list(self.pred_model.parameters()):
                 param.requires_grad = True
-
-            # for name, param in self.model.named_parameters():
-            #     print(name, param.requires_grad)
-            #     param.requires_grad = True
-            #     print(name, param.requires_grad)
-
-            # for name, param in self.model.state_mo.named_parameters():
-            #     print(name, param.requires_grad)
-            #     param.requires_grad = False
-            #     print(name, param.requires_grad)
             
             self.pred_model.train()
             self.pred_optimizer.zero_grad()
@@ -185,6 +175,7 @@ class NSEModel_FNO:
         for epoch in range(1, self.params.epochs+1):
             self.data_train_test(epoch, train_loader, test_loader)
             if epoch % self.params.phys_gap == 0:
+                # freeze phys_model trained in data training
                 for param in list(self.phys_model.parameters()):
                     param.requires_grad = False
 
