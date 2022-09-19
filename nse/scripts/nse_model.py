@@ -101,7 +101,7 @@ class NSEModel_FNO:
             x_train = x_train.to(self.device)
 
             # split data read in train_loader
-            in_new, f_new = x_train[:, :, :, :-1], x_train[:, 0, 0, -1]
+            in_new, ctr_new = x_train[:, :, :, :-1], x_train[:, 0, 0, -1]
 
             self.pred_model.eval()
             self.phys_model.eval()
@@ -110,33 +110,33 @@ class NSEModel_FNO:
 
             # 3 steps to generate new data along gradient
             for _ in range(self.params.phys_steps):
-                f_new = f_new.requires_grad_(True)
+                ctr_new = ctr_new.requires_grad_(True)
                 in_new = in_new.requires_grad_(True)
-                pred, _, _, _ = self.pred_model(in_new, f_new)
+                pred, _, _, _ = self.pred_model(in_new, ctr_new)
                 out_pred = pred[:, :, :, :3]
-                mod = self.phys_model(in_new, f_new, out_pred)
+                mod = self.phys_model(in_new, ctr_new, out_pred)
                 loss = ((Lpde(out_pred, in_new, self.dt) + mod) ** 2).mean()
                 loss.backward()
-                # print(f_new.is_leaf, in_new.is_leaf)
-                dLf = f_new.grad
+                # print(ctr_new.is_leaf, in_new.is_leaf)
+                dLf = ctr_new.grad
                 dLu = in_new.grad
-                # print(f_new.shape, in_new.shape)
+                # print(ctr_new.shape, in_new.shape)
                 # print(dLu.shape, dLf.shape)
                 phys_scale = self.params.phys_scale
-                # scale1 = torch.sqrt((f_new.data ** 2).mean() / (dLf ** 2).mean()) * phys_scale
+                # scale1 = torch.sqrt((ctr_new.data ** 2).mean() / (dLf ** 2).mean()) * phys_scale
                 # scale2 = torch.sqrt((in_new.data ** 2).mean() / (dLu ** 2).mean()) * phys_scale
                 scale1 = torch.sqrt(loss.data / (dLf ** 2).mean()) * phys_scale
                 scale2 = torch.sqrt(loss.data / (dLu ** 2).mean()) * phys_scale
                 # print(f'scale:{scale1} {scale2}')
-                f_new = f_new.data + scale1 * dLf    # use .data to generate new leaf tensor
+                ctr_new = ctr_new.data + scale1 * dLf    # use .data to generate new leaf tensor
                 in_new = in_new.data + scale2 * dLu
-                # f_new = f_new.data + 0.1 * dLf    # use .data to generate new leaf tensor
+                # ctr_new = ctr_new.data + 0.1 * dLf    # use .data to generate new leaf tensor
                 # in_new = in_new.data + 0.1 * dLu
-                # print('f in : {:1.4e} {:1.4e}'.format((f_new ** 2).mean(), (in_new ** 2).mean()))
+                # print('f in : {:1.4e} {:1.4e}'.format((ctr_new ** 2).mean(), (in_new ** 2).mean()))
                 # print('dLf dLu : {:1.4e} {:1.4e}'.format((dLf ** 2).mean(), (dLu ** 2).mean()))
-                # print(f_new.mean(),in_new.mean())
+                # print(ctr_new.mean(),in_new.mean())
             
-            in_train, f_train = in_new.data, f_new.data
+            in_train, ctr_train = in_new.data, ctr_new.data
             
             for param in list(self.pred_model.parameters()):
                 param.requires_grad = True
@@ -144,9 +144,9 @@ class NSEModel_FNO:
             self.pred_model.train()
             self.pred_optimizer.zero_grad()
 
-            pred, _, _, _ = self.pred_model(in_train, f_train)
+            pred, _, _, _ = self.pred_model(in_train, ctr_train)
             out_pred = pred[:, :, :, :3]
-            mod = self.phys_model(in_train, f_train, out_pred)
+            mod = self.phys_model(in_train, ctr_train, out_pred)
             loss = ((Lpde(out_pred, in_train, self.dt) + mod) ** 2).mean()
             loss.backward()
             self.pred_optimizer.step()

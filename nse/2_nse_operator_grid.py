@@ -20,9 +20,9 @@ def get_args(argv=None):
     parser.add_argument('--phys_steps', default=2, type=int, help = 'Number of Phys Epochs')
     parser.add_argument('--phys_scale', default=0.001, type=float, help = 'Number of Phys Epochs')
 
-    parser.add_argument('-bs', '--batch_size', default=64, type=int, help = 'batch size')
-    parser.add_argument('-eps', '--epochs', default=500, type=int, help = 'Number of Epochs')
-    parser.add_argument('-lr', '--lr', default=1e-3, type=float, help='learning rate')
+    parser.add_argument('--batch_size', default=64, type=int, help = 'batch size')
+    parser.add_argument('--epochs', default=500, type=int, help = 'Number of Epochs')
+    parser.add_argument('--lr', default=1e-3, type=float, help='learning rate')
     parser.add_argument('--wd', default=1e-4, type=float, help='weight decay')
     parser.add_argument('--step_size', default=100, type=int, help='scheduler step size')
     parser.add_argument('--gamma', default=0.5, type=float, help='scheduler factor')
@@ -63,13 +63,13 @@ if __name__=='__main__':
     logs['logs']['train_loss']=[]
     logs['logs']['train_loss_trans']=[]
     logs['logs']['train_loss_u_t_rec']=[]
-    logs['logs']['train_loss_f_t_rec']=[]
+    logs['logs']['train_loss_ctr_t_rec']=[]
     logs['logs']['train_loss_trans_latent']=[]
     logs['logs']['train_loss_pde'] = []
     logs['logs']['test_loss']=[]
     logs['logs']['test_loss_trans']=[]
     logs['logs']['test_loss_u_t_rec']=[]
-    logs['logs']['test_loss_f_t_rec']=[]
+    logs['logs']['test_loss_ctr_t_rec']=[]
     logs['logs']['test_loss_trans_latent']=[]
     logs['logs']['test_loss_pde'] = []
 

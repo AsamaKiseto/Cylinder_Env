@@ -286,9 +286,9 @@ class state_mo(nn.Module):
         # self.fc2 = nn.Linear(128, 3)
         self.fc2 = nn.Linear(128, 2)
 
-    def forward(self, x, f, x_next):
+    def forward(self, x, ctr, x_next):
         grid = self.get_grid(x.shape, x.device) # 2
-        f = f.reshape(f.shape[0], 1, 1, 1).repeat(1, x.shape[1], x.shape[2], 1) # 1
+        ctr = ctr.reshape(ctr.shape[0], 1, 1, 1).repeat(1, x.shape[1], x.shape[2], 1) # 1
         u_bf = x[..., :-1]   # 2
         p_bf = x[..., -1].reshape(-1, x.shape[1], x.shape[2], 1)
         u_af = x_next[..., :-1]  # 2
@@ -298,7 +298,7 @@ class state_mo(nn.Module):
         _, uyy = fdmd2D(uy, x.device)
         u_lap = uxx + uyy   # input 2
         p_grad = torch.cat((px, py), -1)    # input 2
-        ipt = torch.cat((grid, u_bf, f, u_af, ux, uy, p_grad, u_lap), -1)
+        ipt = torch.cat((grid, u_bf, ctr, u_af, ux, uy, p_grad, u_lap), -1)
         opt = self.fc0(ipt).permute(0, 3, 1, 2)
         opt = self.net(opt).permute(0, 2, 3, 1)
         opt = self.fc1(opt)
@@ -386,26 +386,19 @@ class FNO_ensemble(nn.Module):
         self.trans = trans_net(modes1, modes2, width, L, f_channels)
 
     # def forward(self, x, f, modify=True):
-    def forward(self, x, f):
+    def forward(self, x, ctr):
         # x: [batch_size, nx, ny, 3]; f: [1]
-
-        # print(f'x: {x.size()}')
         x_latent = self.stat_en(x)
         x_rec = self.stat_de(x_latent)
-        
-        # print(f'x_rec: {x_rec.size()}')
 
-        f_latent = self.ctr_en(f)
-        f_rec = self.ctr_de(f_latent)
-        # print(f'f_rec: {f_rec.size()}')
-        # mod = self.state_mo(x_latent, f_latent, modify)
+        ctr_latent = self.ctr_en(ctr)
+        ctr_rec = self.ctr_de(ctr_latent)
 
-        # print(f'x_latent: {x_latent.size()}, f_latent: {f_latent.size()}')
-        trans_out = self.trans(x_latent, f_latent)
+        trans_out = self.trans(x_latent, ctr_latent)
         
         pred = self.stat_de(trans_out)
         
-        return pred, x_rec, f_rec, trans_out #, mod
+        return pred, x_rec, ctr_rec, trans_out #, mod
 
 
 class FNO_ensemble_test(nn.Module):
