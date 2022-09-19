@@ -18,7 +18,7 @@ def get_args(argv=None):
     parser.add_argument('--phys_gap', default=2, type=int, help = 'Number of gap of Phys')
     parser.add_argument('--phys_epochs', default=1, type=int, help = 'Number of Phys Epochs')
     parser.add_argument('--phys_steps', default=2, type=int, help = 'Number of Phys Epochs')
-    parser.add_argument('--phys_scale', default=0.001, type=float, help = 'Number of Phys Epochs')
+    parser.add_argument('--phys_scale', default=0.05, type=float, help = 'Number of Phys Epochs')
 
     parser.add_argument('--batch_size', default=64, type=int, help = 'batch size')
     parser.add_argument('--epochs', default=500, type=int, help = 'Number of Epochs')
