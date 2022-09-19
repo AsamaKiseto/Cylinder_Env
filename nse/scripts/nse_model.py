@@ -123,8 +123,10 @@ class NSEModel_FNO:
                 # print(f_new.shape, in_new.shape)
                 # print(dLu.shape, dLf.shape)
                 phys_scale = self.params.phys_scale
-                scale1 = torch.sqrt((f_new.data ** 2).mean() / (dLf ** 2).mean()) * phys_scale
-                scale2 = torch.sqrt((in_new.data ** 2).mean() / (dLu ** 2).mean()) * phys_scale
+                # scale1 = torch.sqrt((f_new.data ** 2).mean() / (dLf ** 2).mean()) * phys_scale
+                # scale2 = torch.sqrt((in_new.data ** 2).mean() / (dLu ** 2).mean()) * phys_scale
+                scale1 = torch.sqrt(loss.data / (dLf ** 2).mean()) * phys_scale
+                scale2 = torch.sqrt(loss.data / (dLu ** 2).mean()) * phys_scale
                 # print(f'scale:{scale1} {scale2}')
                 f_new = f_new.data + scale1 * dLf    # use .data to generate new leaf tensor
                 in_new = in_new.data + scale2 * dLu
