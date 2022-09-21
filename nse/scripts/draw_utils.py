@@ -5,7 +5,7 @@ import torch
 # draw loss plot
 def add_loss_plots(ax, logs, label):
     loss1, loss2, loss3, loss4, loss5 = logs['test_loss_trans'], logs['test_loss_u_t_rec'], \
-                                        logs['test_loss_f_t_rec'], logs['test_loss_trans_latent'], logs['test_loss_pde']
+                                        logs['test_loss_ctr_t_rec'], logs['test_loss_trans_latent'], logs['test_loss_pde']
     for i in range(5):
         exec(f'ax[{i}].plot(loss{i+1}, label=label)')
         exec(f'ax[{i}].legend()')
@@ -31,16 +31,16 @@ def draw_loss_plot(ex_nums, label):
     # load logs
     N = len(ex_nums)
     print(ex_nums)
-    _, logs_base = torch.load(f"logs/phase1_{ex_nums[0]}_grid_pi")
+    _, _, logs_base = torch.load(f"logs/phase1_{ex_nums[0]}_grid_pi")
     logs_base = logs_base['logs']
     loss1, loss2, loss3, loss4, loss5 = logs_base['test_loss_trans'], logs_base['test_loss_u_t_rec'], \
-                                        logs_base['test_loss_f_t_rec'], logs_base['test_loss_trans_latent'], logs_base['test_loss_pde']
+                                        logs_base['test_loss_ctr_t_rec'], logs_base['test_loss_trans_latent'], logs_base['test_loss_pde']
     for i in range(5):
         exec(f'ax[{i}].plot(loss{i+1}, color="black", label="{label[0]}")')
         exec(f'ax[{i}].legend()')
 
     for i in range(1, N):
-        exec(f'_, logs_ex{ex_nums[i]} = torch.load("logs/phase1_{ex_nums[i]}_grid_pi")')
+        exec(f'_, _, logs_ex{ex_nums[i]} = torch.load("logs/phase1_{ex_nums[i]}_grid_pi")')
         exec(f'add_loss_plots(ax, logs_ex{ex_nums[i]}["logs"], label="{label[i]}")')
 
     plt.savefig('logs/loss_plot.jpg')
