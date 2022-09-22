@@ -22,7 +22,7 @@ class NSEModel_FNO:
         self.pred_model = FNO_ensemble(model_params).to(self.device)
         self.phys_model = state_mo(model_params).to(self.device)
         self.pred_optimizer = torch.optim.Adam(self.pred_model.parameters(), lr=self.params.lr, weight_decay=self.params.wd)
-        self.phys_optimizer = torch.optim.Adam(self.phys_model.parameters(), lr=self.params.lr, weight_decay=self.params.wd)
+        self.phys_optimizer = torch.optim.Adam(self.phys_model.parameters(), lr=self.params.lr * 5, weight_decay=self.params.wd)
         self.scheduler = torch.optim.lr_scheduler.StepLR(self.pred_optimizer, step_size=self.params.step_size, gamma=self.params.gamma)
 
     def count_params(self):
@@ -61,12 +61,13 @@ class NSEModel_FNO:
             mod = self.phys_model(in_train, ctr_train, out_train)
             loss_pde = ((Lpde(out_train, in_train, self.dt) + mod) ** 2).mean()
     
-            loss = lambda1 * loss1 + lambda2 * loss2 + lambda3 * loss3 + lambda4 * loss4 + lambda5 * loss_pde
-            loss.backward()
+            loss_pred = lambda1 * loss1 + lambda2 * loss2 + lambda3 * loss3 + lambda4 * loss4 #+ lambda5 * loss_pde
+            loss_pred.backward()
+            loss_pde.backward()
             self.pred_optimizer.step()
             self.phys_optimizer.step()
 
-            train_log.update(loss, loss1, loss2, loss3, loss4, loss_pde)
+            train_log.update(loss1, loss2, loss3, loss4, loss_pde)
         
         self.scheduler.step()
         t2 = default_timer()
@@ -84,8 +85,7 @@ class NSEModel_FNO:
                 loss1, loss2, loss3, loss4 = self.pred_loss(in_test, ctr_test, opt_test)
                 mod = self.phys_model(in_test, ctr_test, out_test)
                 loss_pde = ((Lpde(out_test, in_test, self.dt) + mod) ** 2).mean()
-                loss = lambda1 * loss1 + lambda2 * loss2 + lambda3 * loss3 + lambda4 * loss4 + lambda5 * loss_pde
-                test_log.update(loss, loss1, loss2, loss3, loss4, loss_pde)
+                test_log.update(loss1, loss2, loss3, loss4, loss_pde)
             test_log.save_log(self.logs)
 
         print('# {} {:1.2f} | (pred): {:1.2e}  (rec)state: {:1.2e}  ctr: {:1.2e} (latent): {:1.2e} (pde): {:1.2e} |'
@@ -170,7 +170,7 @@ class NSEModel_FNO:
     def process(self, train_loader, test_loader):
         for epoch in range(1, self.params.epochs+1):
             self.data_train_test(epoch, train_loader, test_loader)
-            if epoch % self.params.phys_gap == 0:
+            if epoch % self.params.phys_gap == 0 and epoch != self.params.epochs:
                 # freeze phys_model trained in data training
                 for param in list(self.phys_model.parameters()):
                     param.requires_grad = False
@@ -179,5 +179,10 @@ class NSEModel_FNO:
                     self.phys_train(phys_epoch, train_loader)
                 
                 for param in list(self.phys_model.parameters()):
-                    param.requires_grad = True    
+                    param.requires_grad = True
+            self.save_log()
+
+    def save_log(self):
+        self.logs['pred_model'].append(self.pred_model.state_dict())
+        self.logs['phys_model'].append(self.phys_model.state_dict())
 

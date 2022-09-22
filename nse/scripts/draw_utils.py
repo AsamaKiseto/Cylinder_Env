@@ -94,3 +94,53 @@ def draw_generality(logs, ex_nums, label, tl):
         exec(f'add_generality_plots(ax, scale, logs_{ex_nums[i]}, tl, label="{label[i]}")')
 
     plt.savefig(f'logs/loss_genrlty_{tl}.jpg')
+
+
+def add_generality_plots_multi(ax, scale_k, logs, t_nn, label):
+    Cd_var, Cl_var, obs_var, Lpde_nn = logs['Cd_var'], logs['Cl_var'], logs['obs_var'], logs['Lpde_nn']
+    loss1, loss2, loss3, loss4 = np.asarray(Cd_var), np.asarray(Cl_var), np.asarray(obs_var), np.asarray(Lpde_nn)
+    for i in range(4):
+        exec(f'ax[{i}].plot(t_nn, loss{i+1}[scale_k], label=label)')
+        exec(f'ax[{i}].legend()')
+
+
+def draw_generality_multi(logs, ex_nums, label, t_nn, scale_k, name_ex):
+    
+    # fig setting
+    fig, ax = plt.subplots(nrows=4, ncols=2, figsize=(15,12), dpi=1000)
+    ax = ax.flatten()
+    # plt.figure(figsize=(15, 12))
+    for i in range(4):
+        ax[i] = plt.subplot2grid((4, 2), (i, 0), colspan=2)
+        ax[i].grid(True, lw=0.4, ls="--", c=".50")
+        ax[i].set_yscale('log')
+        # ax[i].set_ylim(y_min, y_max)
+
+    ax[0].set_title("error/loss in different scales", fontsize=15)
+    ax[0].set_ylabel(r"$C_d$", fontsize=15)
+    ax[1].set_ylabel(r"$C_l$", fontsize=15)
+    ax[2].set_ylabel(r"$state$", fontsize=15)
+    ax[3].set_ylabel(r"$L_{pde}$", fontsize=15)
+    ax[3].set_xlabel(r"$scale$", fontsize=15)
+
+    # load logs
+    
+    N = len(ex_nums)
+    print(ex_nums)
+
+    logs_base = logs[f'{ex_nums[0]}']
+    scale = logs['scale']
+    # Cd_var, Cl_var, obs_var, Lpde_nn
+    Cd_var, Cl_var, obs_var, Lpde_nn = logs_base['Cd_var'], logs_base['Cl_var'], logs_base['obs_var'], logs_base['Lpde_nn']
+    loss1, loss2, loss3, loss4 = np.asarray(Cd_var), np.asarray(Cl_var), np.asarray(obs_var), np.asarray(Lpde_nn)
+
+    scale = np.asarray(scale)
+    for i in range(4):
+        exec(f'ax[{i}].plot(t_nn, loss{i+1}[scale_k], color="black", label="{label[0]}")')
+        exec(f'ax[{i}].legend()')
+
+    for i in range(1, N):
+        exec(f'logs_{ex_nums[i]} = logs["{ex_nums[i]}"]')
+        exec(f'add_generality_plots_multi(ax, scale_k, logs_{ex_nums[i]}, t_nn, label="{label[i]}")')
+
+    plt.savefig(f'logs/loss_genrlty_{name_ex}_{scale_k}.jpg')

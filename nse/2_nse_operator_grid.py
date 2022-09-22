@@ -60,13 +60,14 @@ if __name__=='__main__':
     obs_af = obs[:, 1:]
     logs['data_norm'] = data.norm()
     logs['logs'] = dict()
-    logs['logs']['train_loss']=[]
+    logs['logs']['pred_model'] = []
+    logs['logs']['phys_model'] = []
+
     logs['logs']['train_loss_trans']=[]
     logs['logs']['train_loss_u_t_rec']=[]
     logs['logs']['train_loss_ctr_t_rec']=[]
     logs['logs']['train_loss_trans_latent']=[]
     logs['logs']['train_loss_pde'] = []
-    logs['logs']['test_loss']=[]
     logs['logs']['test_loss_trans']=[]
     logs['logs']['test_loss_u_t_rec']=[]
     logs['logs']['test_loss_ctr_t_rec']=[]

@@ -14,10 +14,17 @@ if __name__ == '__main__':
     args = get_args()
     tl = args.t_length
 
-    ex_nums = ['ex0', 'ex8']
-    # ex_nums = ['ex0_big', 'ex3_big', 'ex3_big_nomod']
-    label = ['without_pde_loss', 'with_modify']
+    nt = 80
+    tg = 5
+    t_nn = (np.arange(nt) + 1) * 0.01 * tg
 
-    logs = torch.load('logs/phase1_env_logs')
+    ex_nums = ['ex0', 'ex1_3', 'ex4_3']
+    label = ['baseline', '2-step', '1-step']
+    
+    name_ex = '1_2'
+    logs = torch.load('logs/phase1_env_logs_' + name_ex)
 
-    draw_generality(logs, ex_nums, label, tl)
+    scale_k = [0, 5, 10]
+    # draw_generality(logs, ex_nums, label, tl)
+    for i in range(len(scale_k)):
+        draw_generality_multi(logs, ex_nums, label, t_nn, scale_k[i], name_ex)

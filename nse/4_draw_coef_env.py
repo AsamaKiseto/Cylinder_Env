@@ -19,10 +19,11 @@ import argparse
 def get_args(argv=None):
     parser = argparse.ArgumentParser(description='Put your hyperparameters')
     
-    parser.add_argument('-lf', '--log_file', default='test', type=str, help='data number')
+    parser.add_argument('-lf', '--log_file', default='test', type=str, help='log file name')
     parser.add_argument('-nt', '--nt', default=20, type=int, help='nums of timestamps')
     parser.add_argument('-tg', '--tg', default=5, type=int, help='gap of timestamps')
     parser.add_argument('-s', '--scale', default=0, type=float, help='random scale')
+    parser.add_argument('-f', '--f_base', default=0, type=float, help='base f')
     parser.add_argument('-ts', '--t_start', default=5, type=int, help='data number')
 
     return parser.parse_args(argv)
@@ -72,6 +73,7 @@ class load_model():
         self.logs['Cd_nn']=[]
         self.logs['Cl_nn']=[]
         self.logs['Lpde_nn']=[]
+        self.logs['Lpde_obs']=[]
     
     def step(self, ctr_nn):
         pred, _, _, _ = self.pred_model(self.in_nn, ctr_nn.reshape(1))
@@ -93,32 +95,39 @@ class load_model():
         self.logs['obs_nn'].append(out_nn.squeeze().detach().numpy())
         self.logs['Lpde_nn'].append(Lpde_nn.detach().numpy())
     
+    def cal_Lpde_obs(self, obs_in, ctr, obs_out):
+        mod = self.phys_model(obs_in, ctr.reshape(1), obs_out)
+        Lpde_obs = ((Lpde(obs_out, obs_in, self.dt) + mod) ** 2).mean()
+        self.logs['Lpde_obs'].append(Lpde_obs.detach().numpy())
+    
     def set_init(self, state_nn):
         self.in_nn = state_nn
 
-    def combine_data(self, data_ts):
+    def combine_data(self, data_ts, t_start):
         obs_ts, Cd_ts, Cl_ts = data_ts
         Lpde_ts = np.zeros(t_start)
         self.obs_nn = np.concatenate((obs_ts, np.asarray(self.logs['obs_nn'])), 0)
         self.Cd_nn = np.concatenate((Cd_ts, np.asarray(self.logs['Cd_nn'])), 0)
         self.Cl_nn = np.concatenate((Cl_ts, np.asarray(self.logs['Cl_nn'])), 0)
         self.Lpde_nn = np.concatenate((Lpde_ts, np.asarray(self.logs['Lpde_nn'])), 0)
+        self.Lpde_obs = np.asarray(self.logs['Lpde_obs'])
 
     def compute_error(self, data_sps):
         obs_sps, Cd_sps, Cl_sps = data_sps
+        nt = obs_sps.shape[0] - 1
         Cd_var = Cd_sps - self.Cd_nn
         Cl_var = Cl_sps - self.Cl_nn
-        obs_var = obs_sps - self.obs_nn
-        self.Cd_var = np.mean((Cd_var.reshape(nt, -1)**2), 1)
-        self.Cl_var = np.mean((Cl_var.reshape(nt, -1)**2), 1)
-        self.obs_var = np.mean((obs_var.reshape(nt, -1)**2), 1)
+        obs_var = obs_sps[1:] - self.obs_nn
+        self.Cd_var = (Cd_var.reshape(nt, -1)**2).sum(1) / (Cd_sps.reshape(nt, -1)**2).sum(1)
+        self.Cl_var = (Cl_var.reshape(nt, -1)**2).sum(1) / (Cl_sps.reshape(nt, -1)**2).sum(1)
+        self.obs_var = (obs_var.reshape(nt, -1)**2).sum(1) / (obs_sps[1:].reshape(nt, -1)**2).sum(1)
+        print(self.obs_var.shape, obs_var.shape, obs_sps[1:].shape)
 
-    def plot(self, ax, t_nn, label=None):
-        ax[0].plot(t_nn, self.Cd_nn, label=f'{label}')
-        ax[1].plot(t_nn, self.Cl_nn, label=f'{label}')
-        ax[2].plot(t_nn, self.obs_var, label=f'{label}')
-        ax[3].plot(t_nn, self.Lpde_nn, label=f'{label}')
-        for i in range(4):
+    def plot(self, ax, t_nn, t_start, label=None):
+        ax[0].plot(t_nn[t_start:], self.obs_var[t_start:] + self.Cd_var[t_start:] + self.Cl_var[t_start:], label=f'{label}')
+        ax[1].plot(t_nn[t_start:], self.Lpde_obs[t_start:], label=f'{label}')
+        ax[2].plot(t_nn[t_start:], self.Lpde_nn[t_start:], label=f'{label}')
+        for i in range(3):
             ax[i].legend()
     
     def save_logs(self, logs):
@@ -129,6 +138,7 @@ class load_model():
         logs['Cd_var'].append(self.Cd_var)
         logs['Cl_var'].append(self.Cl_var)
         logs['obs_var'].append(self.obs_var)
+        logs['Lpde_obs'].append(self.Lpde_obs)
 
 if __name__ == '__main__':
     # argparser
@@ -137,7 +147,7 @@ if __name__ == '__main__':
     # path
     logs_path = f'logs/phase1_env_logs_{args.log_file}'
 
-    ex_nums = ['ex0', 'ex3_2', 'ex4_2']
+    ex_nums = ['ex0', 'ex1_3', 'ex4_3']
     label = ['baseline', '2-step', '1-step']
     # label = [ 'with_modify']
     n_model = len(ex_nums)
@@ -163,6 +173,7 @@ if __name__ == '__main__':
             logs[ex_nums[i]]['Cd_var']=[]
             logs[ex_nums[i]]['Cl_var']=[]
             logs[ex_nums[i]]['obs_var']=[]
+            logs[ex_nums[i]]['Lpde_obs']=[]
 
     else:
         logs = torch.load(logs_path)
@@ -183,7 +194,7 @@ if __name__ == '__main__':
     nT = nt * tg
     t_nn = (np.arange(nt) + 1) * 0.01 * tg
     t = (np.arange(nt * tg) + 1) * 0.01 
-    f = scale * (np.random.rand(nt) - 0.5) + 1 / 7
+    f = scale * (np.random.rand(nt) - 0.5) + args.f_base
     # f = scale * (np.random.rand(nt) - 0.5) + 1
     # f = np.ones(nt) * 0.111111111
     f_nn = torch.Tensor(f)
@@ -217,8 +228,8 @@ if __name__ == '__main__':
         for j in range(tg):
             obs[i*tg + j + 1], Cd[i*tg + j], Cl[i*tg + j] = env.step(f[i])
     
-    obs_sps, Cd_sps, Cl_sps = obs[::tg][1:][...,2:], Cd[tg-1::tg], Cl[tg-1::tg]
-    obs_ts, Cd_ts, Cl_ts = obs_sps[:t_start], Cd_sps[:t_start], Cl_sps[:t_start]
+    obs_sps, Cd_sps, Cl_sps = obs[::tg][...,2:], Cd[tg-1::tg], Cl[tg-1::tg]
+    obs_ts, Cd_ts, Cl_ts = obs_sps[1:t_start+1], Cd_sps[:t_start], Cl_sps[:t_start]
     data_ts = [obs_ts, Cd_ts, Cl_ts]
     data_sps = [obs_sps, Cd_sps, Cl_sps]
 
@@ -227,43 +238,45 @@ if __name__ == '__main__':
     logs['Cl'].append(Cl)
 
     # fig setting
-    fig, ax = plt.subplots(nrows=4, ncols=2, figsize=(15,12), dpi=1000)
+    fig, ax = plt.subplots(nrows=3, ncols=2, figsize=(15,12), dpi=1000)
     ax = ax.flatten()
-    for i in range(4):
-        ax[i] = plt.subplot2grid((4, 2), (i, 0), colspan=2)
+    for i in range(3):
+        ax[i] = plt.subplot2grid((3, 2), (i, 0), colspan=2)
         ax[i].grid(True, lw=0.4, ls="--", c=".50")
         ax[i].set_xlim(0, nt * tg * dt)
         
     ax[0].set_title(r"$error/loss in different scales$", fontsize=15)
-    ax[0].set_ylabel(r"$C_d$", fontsize=15)
-    ax[1].set_ylabel(r"$C_l$", fontsize=15)
-    ax[2].set_ylabel(r"$state$", fontsize=15)
-    ax[3].set_ylabel(r"$L_{pde}$", fontsize=15)
-    ax[3].set_xlabel(r"$t$", fontsize=15)
+    ax[0].set_ylabel(r"$state$", fontsize=15)
+    ax[1].set_ylabel(r"$L_{pde} of obs$", fontsize=15)
+    ax[2].set_ylabel(r"$L_{pde} of pred$", fontsize=15)
+    ax[2].set_xlabel(r"$t$", fontsize=15)
     
-    ax[0].plot(t, Cd, color='black')
-    ax[1].plot(t, Cl, color='black')
+    # ax[0].plot(t, Cd, color='black')
+    # ax[1].plot(t, Cl, color='black')
 
     # mosel setting
     for i in range(n_model):
         operator_path = 'logs/phase1_' + ex_nums[i] + '_grid_pi'
         model = load_model(operator_path, shape)
         model.set_init(in_nn)
-
+        
         # model step
+        for k in range(t_start):
+            model.cal_Lpde_obs(torch.Tensor(obs_sps[k]).unsqueeze(0), f_nn[k], torch.Tensor(obs_sps[k+1]).unsqueeze(0))
         for k in range(t_start, nt):
             model.step(f_nn[k])
-        model.combine_data(data_ts)
+            model.cal_Lpde_obs(torch.Tensor(obs_sps[k]).unsqueeze(0), f_nn[k], torch.Tensor(obs_sps[k+1]).unsqueeze(0))
+        model.combine_data(data_ts, t_start)
         model.compute_error(data_sps)
         model.save_logs(logs[ex_nums[i]])
-        model.plot(ax, t_nn, label[i])
+        model.plot(ax, t_nn, t_start, label[i])
 
-    ax[0].set_ylim(2.5, 3.5)
-    ax[1].set_ylim(-1.5, 1.5)
+    ax[0].set_yscale('log')
+    ax[0].set_ylim(1e-4, 1e1)
+    ax[1].set_yscale('log')
+    ax[1].set_ylim(1e-3, 1e2)
     ax[2].set_yscale('log')
-    ax[2].set_ylim(1e-4, 1e1)
-    ax[3].set_yscale('log')
-    ax[3].set_ylim(1e-3, 1e2)
+    ax[2].set_ylim(1e-3, 1e2)
 
-    plt.savefig(f'logs/coef_phase1_scale_{scale}.jpg')
+    plt.savefig(f'logs/pics/coef_phase1_{args.log_file}_{scale}.jpg')
     torch.save(logs, logs_path)

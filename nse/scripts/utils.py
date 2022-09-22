@@ -248,15 +248,13 @@ class PredLog():
     def __init__(self, mode, length):
         self.length = length
         self.mode = mode
-        self.loss = AverageMeter()
         self.loss1 = AverageMeter()
         self.loss2 = AverageMeter()
         self.loss3 = AverageMeter()
         self.loss4 = AverageMeter()
         self.loss_pde = AverageMeter()
     
-    def update(self, loss, loss1, loss2, loss3, loss4, loss_pde):
-        self.loss.update(loss.item(), self.length)
+    def update(self, loss1, loss2, loss3, loss4, loss_pde):
         self.loss1.update(loss1.item(), self.length)
         self.loss2.update(loss2.item(), self.length)
         self.loss3.update(loss3.item(), self.length)
@@ -265,14 +263,12 @@ class PredLog():
 
     def save_log(self, logs):
         if self.mode =='train':
-            logs['train_loss'].append(self.loss.avg)
             logs['train_loss_trans'].append(self.loss1.avg)
             logs['train_loss_u_t_rec'].append(self.loss2.avg)
             logs['train_loss_ctr_t_rec'].append(self.loss3.avg)
             logs['train_loss_trans_latent'].append(self.loss4.avg)
             logs['train_loss_pde'].append(self.loss_pde.avg)
         elif self.mode =='test':
-            logs['test_loss'].append(self.loss.avg)
             logs['test_loss_trans'].append(self.loss1.avg)
             logs['test_loss_u_t_rec'].append(self.loss2.avg)
             logs['test_loss_ctr_t_rec'].append(self.loss3.avg)
