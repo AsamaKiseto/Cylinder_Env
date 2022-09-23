@@ -1,0 +1,118 @@
+import numpy as np
+import matplotlib.pyplot as plt 
+import torch
+
+from scripts.models import *
+from scripts.utils import *
+from scripts.draw_utils import *
+
+
+# data param
+nx, ny = 256, 64
+shape = [nx, ny]
+dt = 0.01
+
+logs = torch.load('logs/phase1_env_logs_1')
+scale, obs, Cd, Cl = logs['scale'], np.asarray(logs['obs']), np.asarray(logs['Cd']), np.asarray(logs['Cl'])
+
+k = 1
+tg = 5
+t_start = 5
+nt = 80
+t_nn = (np.arange(nt) + 1) * 0.01 * tg
+obs_sps, Cd_sps, Cl_sps = obs[:, ::tg][...,2:], Cd[:, tg-1::tg], Cl[:, tg-1::tg]
+
+obs_sps0, obs_sps1, obs_sps2, obs_sps3 = obs_sps[0][1:], obs_sps[1::3][:, 1:], obs_sps[2::3][:, 1:], obs_sps[3::3][:, 1:]
+Cd_sps0, Cd_sps1, Cd_sps2, Cd_sps3 = Cd_sps[0], Cd_sps[1::3], Cd_sps[2::3], Cd_sps[3::3]
+Cl_sps0, Cl_sps1, Cl_sps2, Cl_sps3 = Cl_sps[0], Cl_sps[1::3], Cl_sps[2::3], Cl_sps[3::3]
+
+ex_name = 'ex4_3'
+obs_nn, Cd_nn, Cl_nn = logs[ex_name]['obs_nn'], logs[ex_name]['Cd_nn'], logs[ex_name]['Cl_nn']
+obs_nn, Cd_nn, Cl_nn = np.asarray(obs_nn), np.asarray(Cd_nn), np.asarray(Cl_nn)
+
+Lpde_obs, Lpde_nn = logs[ex_name]['Lpde_obs'], logs[ex_name]['Lpde_nn']
+Lpde_obs, Lpde_nn = np.asarray(Lpde_obs), np.asarray(Lpde_nn)
+
+obs_nn0, obs_nn1, obs_nn2, obs_nn3 = obs_nn[0], obs_nn[1::3], obs_nn[2::3], obs_nn[3::3]
+Cd_nn0, Cd_nn1, Cd_nn2, Cd_nn3 = Cd_nn[0], Cd_nn[1::3], Cd_nn[2::3], Cd_nn[3::3]
+Cl_nn0, Cl_nn1, Cl_nn2, Cl_nn3 = Cl_nn[0], Cl_nn[1::3], Cl_nn[2::3], Cl_nn[3::3]
+Lpde_obs0, Lpde_obs1, Lpde_obs2, Lpde_obs3 = Lpde_obs[0], Lpde_obs[1::3], Lpde_obs[2::3], Lpde_obs[3::3]
+Lpde_nn0, Lpde_nn1, Lpde_nn2, Lpde_nn3 = Lpde_nn[0], Lpde_nn[1::3], Lpde_nn[2::3], Lpde_nn[3::3]
+
+size = obs_sps1.shape[0]
+
+error0 = ((obs_nn0 - obs_sps0) ** 2).reshape(nt, -1).sum(1) / (obs_sps0 ** 2).reshape(nt, -1).sum(1) + \
+         ((Cd_nn0 - Cd_sps0) ** 2).reshape(nt, -1).sum(1) / (Cd_sps0 ** 2).reshape(nt, -1).sum(1) + \
+         ((Cl_nn0 - Cl_sps0) ** 2).reshape(nt, -1).sum(1) / (Cl_sps0 ** 2).reshape(nt, -1).sum(1)
+error1 = ((obs_nn1 - obs_sps1) ** 2).reshape(size, nt, -1).sum(2) / (obs_sps1 ** 2).reshape(size, nt, -1).sum(2) + \
+         ((Cd_nn1 - Cd_sps1) ** 2).reshape(size, nt, -1).sum(2) / (Cd_sps1 ** 2).reshape(size, nt, -1).sum(2) + \
+         ((Cl_nn1 - Cl_sps1) ** 2).reshape(size, nt, -1).sum(2) / (Cl_sps1 ** 2).reshape(size, nt, -1).sum(2)
+error2 = ((obs_nn2 - obs_sps2) ** 2).reshape(size, nt, -1).sum(2) / (obs_sps2 ** 2).reshape(size, nt, -1).sum(2) + \
+         ((Cd_nn2 - Cd_sps2) ** 2).reshape(size, nt, -1).sum(2) / (Cd_sps2 ** 2).reshape(size, nt, -1).sum(2) + \
+         ((Cl_nn2 - Cl_sps2) ** 2).reshape(size, nt, -1).sum(2) / (Cl_sps2 ** 2).reshape(size, nt, -1).sum(2)
+error3 = ((obs_nn3 - obs_sps3) ** 2).reshape(size, nt, -1).sum(2) / (obs_sps3 ** 2).reshape(size, nt, -1).sum(2) + \
+         ((Cd_nn3 - Cd_sps3) ** 2).reshape(size, nt, -1).sum(2) / (Cd_sps3 ** 2).reshape(size, nt, -1).sum(2) + \
+         ((Cl_nn3 - Cl_sps3) ** 2).reshape(size, nt, -1).sum(2) / (Cl_sps3 ** 2).reshape(size, nt, -1).sum(2)
+
+
+error0_1 = ((obs_nn0 - obs_sps0) ** 2).reshape(nt, -1).mean(1) 
+error0_2 = ((Cd_nn0 - Cd_sps0) ** 2).reshape(nt, -1).mean(1) 
+error0_3 = ((Cl_nn0 - Cl_sps0) ** 2).reshape(nt, -1).mean(1) 
+error0_4 = Lpde_obs0.reshape(nt, -1).mean(1) 
+error0_5 = Lpde_nn0.reshape(nt, -1).mean(1) 
+error1_1 = ((obs_nn1 - obs_sps1) ** 2).reshape(size, nt, -1).mean(2).mean(0)
+error1_2 = ((Cd_nn1 - Cd_sps1) ** 2).reshape(size, nt, -1).mean(2).mean(0) 
+error1_3 = ((Cl_nn1 - Cl_sps1) ** 2).reshape(size, nt, -1).mean(2).mean(0) 
+error1_4 = Lpde_obs1.reshape(size, nt, -1).mean(2).mean(0)
+error1_5 = Lpde_nn1.reshape(size, nt, -1).mean(2).mean(0)
+error2_1 = ((obs_nn2 - obs_sps2) ** 2).reshape(size, nt, -1).mean(2).mean(0) 
+error2_2 = ((Cd_nn2 - Cd_sps2) ** 2).reshape(size, nt, -1).mean(2).mean(0) 
+error2_3 = ((Cl_nn2 - Cl_sps2) ** 2).reshape(size, nt, -1).mean(2).mean(0) 
+error2_4 = Lpde_obs2.reshape(size, nt, -1).mean(2).mean(0)
+error2_5 = Lpde_nn2.reshape(size, nt, -1).mean(2).mean(0)
+error3_1 = ((obs_nn3 - obs_sps3) ** 2).reshape(size, nt, -1).mean(2).mean(0) 
+error3_2 = ((Cd_nn3 - Cd_sps3) ** 2).reshape(size, nt, -1).mean(2).mean(0) 
+error3_3 = ((Cl_nn3 - Cl_sps3) ** 2).reshape(size, nt, -1).mean(2).mean(0) 
+error3_4 = Lpde_obs3.reshape(size, nt, -1).mean(2).mean(0)
+error3_5 = Lpde_nn3.reshape(size, nt, -1).mean(2).mean(0)
+
+
+error0 = error0_1 + error0_2 + error0_3
+error1 = (error1_1 + error1_2 + error1_3)
+error2 = (error2_1 + error2_2 + error2_3)
+error3 = (error3_1 + error3_2 + error3_3)
+
+# fig setting
+fig, ax = plt.subplots(nrows=5, ncols=2, figsize=(15,12), dpi=1000)
+ax = ax.flatten()
+for i in range(5):
+    ax[i] = plt.subplot2grid((5, 2), (i, 0), colspan=2)
+    ax[i].grid(True, lw=0.4, ls="--", c=".50")
+    ax[i].set_xlim(0, nt * tg * dt)
+    ax[i].set_yscale('log')
+    
+ax[0].set_title("error/loss in different scales", fontsize=15)
+ax[0].set_ylabel("Cd error", fontsize=15)
+ax[1].set_ylabel("Cl error", fontsize=15)
+ax[2].set_ylabel("state error", fontsize=15)
+ax[3].set_ylabel("phys loss of obs", fontsize=15)
+ax[4].set_ylabel("phys loss of pred", fontsize=15)
+ax[4].set_xlabel("t", fontsize=15)
+
+ax[0].set_ylim(1e-4, 1e-1)
+ax[1].set_ylim(1e-4, 1)
+ax[2].set_ylim(1e-3, 1)
+ax[3].set_ylim(1e-3, 1e2)
+ax[4].set_ylim(1e-3, 1e2)
+
+label = ["0", "0.1", "0.5"]
+for i in range(len(label)):
+    exec(f'ax[0].plot(t_nn, error{i}_2, label={label[i]})')
+    exec(f'ax[1].plot(t_nn, error{i}_3, label={label[i]})')
+    exec(f'ax[2].plot(t_nn, error{i}_1, label={label[i]})')
+    exec(f'ax[3].plot(t_nn, error{i}_4, label={label[i]})')
+    exec(f'ax[4].plot(t_nn, error{i}_5, label={label[i]})')
+    for j in range(5):
+        ax[j].legend()
+
+plt.savefig(f'logs/coef_phase1_test_{ex_name}.jpg')
