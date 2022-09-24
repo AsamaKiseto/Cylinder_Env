@@ -12,7 +12,7 @@ nx, ny = 256, 64
 shape = [nx, ny]
 dt = 0.01
 
-logs = torch.load('logs/phase1_env_logs_2')
+logs = torch.load('logs/phase1_env_logs_1')
 scale, obs, Cd, Cl = logs['scale'], np.asarray(logs['obs']), np.asarray(logs['Cd']), np.asarray(logs['Cl'])
 
 k = 1
@@ -20,12 +20,12 @@ tg = 5
 t_start = 5
 nt = 80
 t_nn = (np.arange(nt) + 1) * 0.01 * tg
-label = [0, 2]
+label = [1, 2]
 obs_sps, Cd_sps, Cl_sps = obs[:, ::tg][...,2:], Cd[:, tg-1::tg], Cl[:, tg-1::tg]
 
-obs_sps0, obs_sps1, obs_sps2, obs_sps3 = obs_sps[0][1:], obs_sps[1::3][:, 1:], obs_sps[2::3][:, 1:], obs_sps[3::3][:, 1:]
-Cd_sps0, Cd_sps1, Cd_sps2, Cd_sps3 = Cd_sps[0], Cd_sps[1::3], Cd_sps[2::3], Cd_sps[3::3]
-Cl_sps0, Cl_sps1, Cl_sps2, Cl_sps3 = Cl_sps[0], Cl_sps[1::3], Cl_sps[2::3], Cl_sps[3::3]
+obs_sps1, obs_sps2 = obs_sps[::2][:, 1:], obs_sps[1::2][:, 1:]
+Cd_sps1, Cd_sps2 = Cd_sps[::2], Cd_sps[1::2]
+Cl_sps1, Cl_sps2 = Cl_sps[::2], Cl_sps[1::2]
 
 ex_name = 'ex0'
 obs_nn, Cd_nn, Cl_nn = logs[ex_name]['obs_nn'], logs[ex_name]['Cd_nn'], logs[ex_name]['Cl_nn']
@@ -34,19 +34,15 @@ obs_nn, Cd_nn, Cl_nn = np.asarray(obs_nn), np.asarray(Cd_nn), np.asarray(Cl_nn)
 Lpde_obs, Lpde_nn = logs[ex_name]['Lpde_obs'], logs[ex_name]['Lpde_nn']
 Lpde_obs, Lpde_nn = np.asarray(Lpde_obs), np.asarray(Lpde_nn)
 
-obs_nn0, obs_nn1, obs_nn2, obs_nn3 = obs_nn[0], obs_nn[1::3], obs_nn[2::3], obs_nn[3::3]
-Cd_nn0, Cd_nn1, Cd_nn2, Cd_nn3 = Cd_nn[0], Cd_nn[1::3], Cd_nn[2::3], Cd_nn[3::3]
-Cl_nn0, Cl_nn1, Cl_nn2, Cl_nn3 = Cl_nn[0], Cl_nn[1::3], Cl_nn[2::3], Cl_nn[3::3]
-Lpde_obs0, Lpde_obs1, Lpde_obs2, Lpde_obs3 = Lpde_obs[0], Lpde_obs[1::3], Lpde_obs[2::3], Lpde_obs[3::3]
-Lpde_nn0, Lpde_nn1, Lpde_nn2, Lpde_nn3 = Lpde_nn[0], Lpde_nn[1::3], Lpde_nn[2::3], Lpde_nn[3::3]
+obs_nn1, obs_nn2 = obs_nn[::2], obs_nn[1::2]
+Cd_nn1, Cd_nn2 = Cd_nn[::2], Cd_nn[1::2]
+Cl_nn1, Cl_nn2 = Cl_nn[::2], Cl_nn[1::2]
+Lpde_obs1, Lpde_obs2 = Lpde_obs[::2], Lpde_obs[1::2]
+Lpde_nn1, Lpde_nn2 = Lpde_nn[::2], Lpde_nn[1::2]
 
 size = obs_sps1.shape[0]
 
-error0_1 = ((obs_nn0 - obs_sps0) ** 2).reshape(nt, -1).mean(1) 
-error0_2 = ((Cd_nn0 - Cd_sps0) ** 2).reshape(nt, -1).mean(1) 
-error0_3 = ((Cl_nn0 - Cl_sps0) ** 2).reshape(nt, -1).mean(1) 
-error0_4 = Lpde_obs0.reshape(nt, -1).mean(1) 
-error0_5 = Lpde_nn0.reshape(nt, -1).mean(1) 
+
 error1_1 = ((obs_nn1 - obs_sps1) ** 2).reshape(size, nt, -1).mean(2).mean(0)
 error1_2 = ((Cd_nn1 - Cd_sps1) ** 2).reshape(size, nt, -1).mean(2).mean(0) 
 error1_3 = ((Cl_nn1 - Cl_sps1) ** 2).reshape(size, nt, -1).mean(2).mean(0) 
@@ -57,11 +53,6 @@ error2_2 = ((Cd_nn2 - Cd_sps2) ** 2).reshape(size, nt, -1).mean(2).mean(0)
 error2_3 = ((Cl_nn2 - Cl_sps2) ** 2).reshape(size, nt, -1).mean(2).mean(0) 
 error2_4 = Lpde_obs2.reshape(size, nt, -1).mean(2).mean(0)
 error2_5 = Lpde_nn2.reshape(size, nt, -1).mean(2).mean(0)
-error3_1 = ((obs_nn3 - obs_sps3) ** 2).reshape(size, nt, -1).mean(2).mean(0) 
-error3_2 = ((Cd_nn3 - Cd_sps3) ** 2).reshape(size, nt, -1).mean(2).mean(0) 
-error3_3 = ((Cl_nn3 - Cl_sps3) ** 2).reshape(size, nt, -1).mean(2).mean(0) 
-error3_4 = Lpde_obs3.reshape(size, nt, -1).mean(2).mean(0)
-error3_5 = Lpde_nn3.reshape(size, nt, -1).mean(2).mean(0)
 
 # fig setting
 fig_num = 5

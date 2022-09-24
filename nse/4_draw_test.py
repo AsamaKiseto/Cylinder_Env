@@ -26,7 +26,7 @@ obs_sps0, obs_sps1, obs_sps2, obs_sps3 = obs_sps[0][1:], obs_sps[1::3][:, 1:], o
 Cd_sps0, Cd_sps1, Cd_sps2, Cd_sps3 = Cd_sps[0], Cd_sps[1::3], Cd_sps[2::3], Cd_sps[3::3]
 Cl_sps0, Cl_sps1, Cl_sps2, Cl_sps3 = Cl_sps[0], Cl_sps[1::3], Cl_sps[2::3], Cl_sps[3::3]
 
-ex_name = 'ex4_3'
+ex_name = 'ex0'
 obs_nn, Cd_nn, Cl_nn = logs[ex_name]['obs_nn'], logs[ex_name]['Cd_nn'], logs[ex_name]['Cl_nn']
 obs_nn, Cd_nn, Cl_nn = np.asarray(obs_nn), np.asarray(Cd_nn), np.asarray(Cl_nn)
 
@@ -83,18 +83,19 @@ error2 = (error2_1 + error2_2 + error2_3)
 error3 = (error3_1 + error3_2 + error3_3)
 
 # fig setting
-fig, ax = plt.subplots(nrows=5, ncols=2, figsize=(15,12), dpi=1000)
+fig_num = 5
+fig, ax = plt.subplots(nrows=fig_num, ncols=2, figsize=(15,12), dpi=1000)
 ax = ax.flatten()
-for i in range(5):
-    ax[i] = plt.subplot2grid((5, 2), (i, 0), colspan=2)
+for i in range(fig_num):
+    ax[i] = plt.subplot2grid((fig_num, 2), (i, 0), colspan=2)
     ax[i].grid(True, lw=0.4, ls="--", c=".50")
     ax[i].set_xlim(0, nt * tg * dt)
     ax[i].set_yscale('log')
     
 ax[0].set_title("error/loss in different scales", fontsize=15)
-ax[0].set_ylabel("Cd error", fontsize=15)
-ax[1].set_ylabel("Cl error", fontsize=15)
-ax[2].set_ylabel("state error", fontsize=15)
+ax[0].set_ylabel("state error", fontsize=15)
+ax[1].set_ylabel("Cd error", fontsize=15)
+ax[2].set_ylabel("Cl error", fontsize=15)
 ax[3].set_ylabel("phys loss of obs", fontsize=15)
 ax[4].set_ylabel("phys loss of pred", fontsize=15)
 ax[4].set_xlabel("t", fontsize=15)
@@ -107,12 +108,8 @@ ax[4].set_ylim(1e-3, 1e2)
 
 label = ["0", "0.1", "0.5"]
 for i in range(len(label)):
-    exec(f'ax[0].plot(t_nn, error{i}_2, label={label[i]})')
-    exec(f'ax[1].plot(t_nn, error{i}_3, label={label[i]})')
-    exec(f'ax[2].plot(t_nn, error{i}_1, label={label[i]})')
-    exec(f'ax[3].plot(t_nn, error{i}_4, label={label[i]})')
-    exec(f'ax[4].plot(t_nn, error{i}_5, label={label[i]})')
     for j in range(5):
+        exec(f'ax[j].plot(t_nn[t_start:], error{i}_{j+1}[t_start:], label={label[i]})')
         ax[j].legend()
 
 plt.savefig(f'logs/coef_phase1_test_{ex_name}.jpg')

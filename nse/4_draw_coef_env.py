@@ -135,9 +135,9 @@ class load_model():
         Cd_var = Cd_sps - self.Cd_nn
         Cl_var = Cl_sps - self.Cl_nn
         obs_var = obs_sps[1:] - self.obs_nn
-        self.Cd_var = (Cd_var.reshape(nt, -1)**2).sum(1) / (Cd_sps.reshape(nt, -1)**2).sum(1)
-        self.Cl_var = (Cl_var.reshape(nt, -1)**2).sum(1) / (Cl_sps.reshape(nt, -1)**2).sum(1)
-        self.obs_var = (obs_var.reshape(nt, -1)**2).sum(1) / (obs_sps[1:].reshape(nt, -1)**2).sum(1)
+        self.Cd_var = (Cd_var.reshape(nt, -1)**2).sum(1)
+        self.Cl_var = (Cl_var.reshape(nt, -1)**2).sum(1)
+        self.obs_var = (obs_var.reshape(nt, -1)**2).sum(1)
 
     def plot(self, ax, t_nn, t_start, label=None):
         ax[1].plot(t_nn[t_start:], self.obs_var[t_start:] + self.Cd_var[t_start:] + self.Cl_var[t_start:], label=f'{label}')
@@ -167,6 +167,9 @@ if __name__ == '__main__':
     label = ['baseline', '2-step', '1-step']
     ex_nums = ['ex0', 'ex1_3']
     label = ['baseline', 'phys-included']
+    
+    ex_nums = ['ex0']
+    label = ['baseline']
     # label = [ 'with_modify']
     n_model = len(ex_nums)
 
@@ -286,9 +289,9 @@ if __name__ == '__main__':
         out_nn, Cd_nn, Cl_nn = model.cul_1step(obs_sps, f_nn)
         print(Cd_nn, Cd_sps)
         print(Cl_nn, Cl_sps)
-        error_1step = ((out_nn - obs_sps[1:])**2).reshape(nt, -1).sum(1) / ((obs_sps[1:])**2).reshape(nt, -1).sum(1) + \
-                      ((Cd_nn - Cd_sps)**2).reshape(nt, -1).sum(1) / ((Cd_sps)**2).reshape(nt, -1).sum(1) + \
-                      ((Cl_nn - Cl_sps)**2).reshape(nt, -1).sum(1) / ((Cl_sps)**2).reshape(nt, -1).sum(1)
+        error_1step = ((out_nn - obs_sps[1:])**2).reshape(nt, -1).mean(1) + \
+                      ((Cd_nn - Cd_sps)**2).reshape(nt, -1).mean(1) + \
+                      ((Cl_nn - Cl_sps)**2).reshape(nt, -1).mean(1)
         print(error_1step)
         logs[ex_nums[i]]['error_1step'].append(error_1step)
         ax[0].plot(t_nn[t_start:], error_1step[t_start:], label=f'{label[i]}')
@@ -306,9 +309,9 @@ if __name__ == '__main__':
         model.plot(ax, t_nn, t_start, label[i])
 
     ax[0].set_yscale('log')
-    ax[0].set_ylim(1e-4, 1e1)
+    ax[0].set_ylim(1e-5, 1)
     ax[1].set_yscale('log')
-    ax[1].set_ylim(1e-4, 1e1)
+    ax[1].set_ylim(1e-5, 1)
     ax[2].set_yscale('log')
     ax[2].set_ylim(1e-3, 1e2)
     ax[3].set_yscale('log')
