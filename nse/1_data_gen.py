@@ -112,5 +112,6 @@ if __name__ == '__main__':
     # save data
     # torch.save(data, './data/nse_data_N0_{}_nT_{}_f1_{}_f2_{}'.format(N0, nT, args.f1, args.f2))
     # torch.save(data_v, './data/nse_data_irr')
-    torch.save(data, f'./data/test_data/nse_data_reg_{args.data_name}')
+    # torch.save(data, './data/nse_data_reg_extra')
+    torch.save(data, f'./data/test_data/nse_data_reg_scale_{args.scale}_{args.data_name}')
     # torch.save(data, './data/nse_data_test1')
