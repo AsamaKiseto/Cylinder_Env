@@ -16,6 +16,7 @@ def get_args(argv=None):
     parser.add_argument('-dn', '--data_name', default="test", type=str)
     parser.add_argument('-fb', '--f_base', default=-1, type=float)
     parser.add_argument('-s', '--scale', default=0, type=float)
+    parser.add_argument('-N0', '--N0', default=100, type=int)
 
     return parser.parse_args(argv)
 
