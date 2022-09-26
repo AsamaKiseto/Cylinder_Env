@@ -80,7 +80,7 @@ class load_model():
         out_nn = np.zeros((nt, nx, ny, 3))
         Cd_nn, Cl_nn = np.zeros(nt), np.zeros(nt)
         for k in range(nt):
-            pred, _, _, _ = model.pred_model(torch.Tensor(obs_sps[k]).unsqueeze(0), ctr[k].reshape(1))
+            pred, _, _, _ = self.pred_model(torch.Tensor(obs_sps[k]).unsqueeze(0), ctr[k].reshape(1))
             out_nn[k] = pred[:, :, :, :3].detach().numpy()
             Cd_nn[k] = torch.mean(pred[:, :, :, -2]).detach().numpy()
             Cl_nn[k] = torch.mean(pred[:, :, :, -1]).detach().numpy()

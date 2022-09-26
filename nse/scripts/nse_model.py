@@ -221,3 +221,73 @@ class NSEModel_FNO:
         logs['pred_model'].append(self.pred_model.state_dict())
         logs['phys_model'].append(self.phys_model.state_dict())
 
+
+class LoadModel():
+    def __init__(self, operator_path, shape):
+        # mosel params setting
+        print(operator_path)
+        state_dict_pred, state_dict_phys, logs_model = torch.load(operator_path)
+        self.data_norm = logs_model['data_norm']
+        params_args = logs_model['args']
+        L = params_args.L
+        modes = params_args.modes
+        width = params_args.width
+        f_channels = params_args.f_channels
+        self.dt = params_args.tg* 0.01
+
+        model_params = dict()
+        model_params['modes'] = modes
+        model_params['width'] = width
+        model_params['L'] = L
+        model_params['f_channels'] = f_channels
+        model_params['shape'] = shape
+
+        self.pred_model = FNO_ensemble(model_params)
+        self.pred_model.load_state_dict(state_dict_pred)
+        self.pred_model.eval()
+        self.phys_model = state_mo(model_params)
+        self.phys_model.load_state_dict(state_dict_phys)
+        self.phys_model.eval()
+    
+    def cal_1step(self, obs, ctr):
+        nt, nx, ny = obs.shape[0] - 1, obs.shape[1], obs.shape[2]
+        out_nn = np.zeros((nt, nx, ny, 3))
+        Cd_nn, Cl_nn = np.zeros(nt), np.zeros(nt)
+        for k in range(nt):
+            pred, _, _, _ = self.pred_model(torch.Tensor(obs[k]).unsqueeze(0), ctr[k].reshape(1))
+            out_nn[k] = pred[:, :, :, :3].detach().numpy()
+            Cd_nn[k] = torch.mean(pred[:, :, :, -2]).detach().numpy()
+            Cl_nn[k] = torch.mean(pred[:, :, :, -1]).detach().numpy()
+        
+        Cd_mean, Cd_var = self.data_norm['Cd']
+        Cl_mean, Cl_var = self.data_norm['Cl']
+        Cd_nn = Cd_nn * Cd_var.item() + Cd_mean.item()
+        Cl_nn = Cl_nn * Cl_var.item() + Cl_mean.item()
+        return out_nn, Cd_nn, Cl_nn
+
+    def step(self, ctr_nn):
+        pred, _, _, _ = self.pred_model(self.in_nn, ctr_nn.reshape(1))
+        out_nn = pred[:, :, :, :3]
+        mod = self.phys_model(self.in_nn, ctr_nn.reshape(1), out_nn)
+        Lpde_pred = ((Lpde(out_nn, self.in_nn, self.dt) + mod) ** 2).mean()
+        print(f'Lpde_nn: {Lpde_pred}')
+        Cd_nn = torch.mean(pred[:, :, :, -2])
+        Cl_nn = torch.mean(pred[:, :, :, -1])
+
+        Cd_mean, Cd_var = self.data_norm['Cd']
+        Cl_mean, Cl_var = self.data_norm['Cl']
+        Cd_nn = Cd_nn * Cd_var + Cd_mean
+        Cl_nn = Cl_nn * Cl_var + Cl_mean
+
+        self.in_nn = out_nn
+        return out_nn, Cd_nn, Cl_nn, Lpde_pred
+    
+    def cal_Lpde_obs(self, obs_in, ctr, obs_out):
+        mod = self.phys_model(obs_in, ctr.reshape(1), obs_out)
+        Lpde_obs = ((Lpde(obs_out, obs_in, self.dt) + mod) ** 2).mean().detach().numpy()
+        self.logs['Lpde_obs'].append(Lpde_obs)
+    
+    def set_init(self, state_nn):
+        self.in_nn = state_nn
+
+    

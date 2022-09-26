@@ -280,3 +280,5 @@ class PredLog():
             logs['test_loss_ctr_t_rec'].append(self.loss3.avg)
             logs['test_loss_trans_latent'].append(self.loss4.avg)
             logs['test_loss_pde'].append(self.loss_pde.avg)
+
+
