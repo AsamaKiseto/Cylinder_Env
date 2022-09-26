@@ -52,9 +52,9 @@ if __name__=='__main__':
 
     # load data
     data_path = 'data/' + args.data_path
-    tg = args.tg     # sample evrey 20 timestamps
+    tg = args.tg     # sample evrey 5 timestamps
     Ng = args.Ng
-    data = ReadData(data_path)
+    data = LoadData(data_path)
     obs, Cd, Cl, ctr = data.split(Ng, tg)
     obs_bf = obs[:, :-1]
     obs_af = obs[:, 1:]
@@ -79,10 +79,10 @@ if __name__=='__main__':
     shape = [nx, ny]
 
     # loader
-    train_loader, test_loader = data.trans2Dataset(args.batch_size)
+    train_loader, test_loader = data.trans2TrainingSet(args.batch_size)
 
     # model setting
-    nse_model = NSEModel_FNO(args, shape, data.dt, logs['logs'])
+    nse_model = NSEModel_FNO(args, shape, data.dt)
     params_num = nse_model.count_params()
 
     print('N0: {}, nt: {}, nx: {}, ny: {}, device: {}'.format(N0, nt, nx, ny, nse_model.device))
@@ -92,5 +92,5 @@ if __name__=='__main__':
     print(f'obs: {logs["data_norm"]["obs"]}')
     print(f'param numbers of the model: {params_num}')
 
-    nse_model.process(train_loader, test_loader)
+    nse_model.process(train_loader, test_loader, logs['logs'])
     torch.save([nse_model.pred_model.state_dict(), nse_model.phys_model.state_dict(), logs], logs_fname)

@@ -142,7 +142,8 @@ class AverageMeter(object):
         self.count += n
         self.avg = self.sum / self.count
 
-class ReadData:
+
+class LoadData:
     def __init__(self, data_path, mode='grid'):
         self.mode = mode
         self.obs, self.Cd, self.Cl, self.ctr = torch.load(data_path)
@@ -203,13 +204,19 @@ class ReadData:
         elif self.mode=='vertex':
             return self.N0, self.nt, self.nv
     
-    def trans2Dataset(self, batch_size):
+    def trans2TrainingSet(self, batch_size):
         NSE_data = NSE_Dataset(self, self.mode)
         train_data, test_data = random_split(NSE_data, [int(0.8 * self.Ndata), int(0.2 * self.Ndata)])
         train_loader = DataLoader(dataset=train_data, batch_size=batch_size, shuffle=True)
         test_loader = DataLoader(dataset=test_data, batch_size=batch_size, shuffle=False)
         return train_loader, test_loader
-        
+    
+    def trans2CheckSet(self, batch_size):
+        NSE_data = NSE_Dataset(self, self.mode)
+        check_num = int(0.1 * self.Ndata)
+        check_data, _ = random_split(NSE_data, [check_num, self.Ndata - check_num])
+        data_loader = DataLoader(dataset=check_data, batch_size=batch_size, shuffle=True)
+        return data_loader
 
 class NSE_Dataset(Dataset):
     def __init__(self, data, mode='grid'):
@@ -242,7 +249,6 @@ class NSE_Dataset(Dataset):
         x = torch.FloatTensor(self.ipt[idx])
         y = torch.FloatTensor(self.opt[idx])
         return x, y
-
 
 class PredLog():
     def __init__(self, mode, length):

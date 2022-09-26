@@ -6,8 +6,7 @@ from scripts.models import *
 from scripts.utils import *
 
 class NSEModel_FNO:
-    def __init__(self, args, shape, dt, logs):
-        self.logs = logs
+    def __init__(self, args, shape, dt):
         self.params = args
         self.dt = dt
         self.device = torch.device('cuda:{}'.format(self.params.gpu) if torch.cuda.is_available() else 'cpu')
@@ -33,7 +32,7 @@ class NSEModel_FNO:
             c += reduce(operator.mul, list(p.size()))
         return c
     
-    def data_train_test(self, epoch, train_loader, test_loader):
+    def data_train_test(self, epoch, train_loader, test_loader, logs):
         lambda1, lambda2, lambda3, lambda4, lambda5 = self.params.lambda1, self.params.lambda2, \
                                                       self.params.lambda3, self.params.lambda4, self.params.lambda5
         self.pred_model.train()
@@ -71,7 +70,7 @@ class NSEModel_FNO:
         
         self.scheduler.step()
         t2 = default_timer()
-        train_log.save_log(self.logs)
+        train_log.save_log(logs)
         self.pred_model.eval()
         self.phys_model.eval()
 
@@ -86,7 +85,7 @@ class NSEModel_FNO:
                 mod = self.phys_model(in_test, ctr_test, out_test)
                 loss_pde = ((Lpde(out_test, in_test, self.dt) + mod) ** 2).mean()
                 test_log.update(loss1, loss2, loss3, loss4, loss_pde)
-            test_log.save_log(self.logs)
+            test_log.save_log(logs)
 
         print('# {} {:1.2f} | (pred): {:1.2e}  (rec)state: {:1.2e}  ctr: {:1.2e} (latent): {:1.2e} (pde): {:1.2e} |'
               .format(epoch, t2-t1, train_log.loss1.avg, train_log.loss2.avg, train_log.loss3.avg, train_log.loss4.avg, train_log.loss_pde.avg) + 
@@ -149,6 +148,10 @@ class NSEModel_FNO:
         
         t4 = default_timer()
         print('----phys training: # {} {:1.2f} (pde): {:1.2e} | '.format(phys_epoch, t4-t3, loss_pde.avg))
+    
+    def load_state(self, pred_log, phys_log):
+        self.pred_model.load_state_dict(pred_log)
+        self.phys_model.load_state_dict(phys_log)
 
     def pred_loss(self, ipt, ctr, opt):
         opt, Cd, Cl = opt
@@ -167,9 +170,9 @@ class NSEModel_FNO:
         loss4 = rel_error(trans_out, opt_latent).mean()
         return loss1, loss2, loss3, loss4
 
-    def process(self, train_loader, test_loader):
+    def process(self, train_loader, test_loader, logs):
         for epoch in range(1, self.params.epochs+1):
-            self.data_train_test(epoch, train_loader, test_loader)
+            self.data_train_test(epoch, train_loader, test_loader, logs)
             if epoch % self.params.phys_gap == 0 and epoch != self.params.epochs:
                 # freeze phys_model trained in data training
                 for param in list(self.phys_model.parameters()):
@@ -180,9 +183,41 @@ class NSEModel_FNO:
                 
                 for param in list(self.phys_model.parameters()):
                     param.requires_grad = True
-            self.save_log()
+            self.save_log(logs)
 
-    def save_log(self):
-        self.logs['pred_model'].append(self.pred_model.state_dict())
-        self.logs['phys_model'].append(self.phys_model.state_dict())
+    def simulate(self, data_loader):
+        self.pred_model.eval()
+        self.phys_model.eval()
+
+        loss1, loss2, loss3, loss4, loss5, loss6 = AverageMeter(), AverageMeter(), AverageMeter(), AverageMeter(), AverageMeter(), AverageMeter()
+
+        with torch.no_grad():
+            for x_test, y_test in data_loader:
+                x_test, y_test = x_test.to(self.device), y_test.to(self.device)
+                # split data read in test_loader
+                in_test, ctr_test = x_test[:, :, :, :-1], x_test[:, 0, 0, -1]
+                out_test, Cd_test, Cl_test = y_test[:, :, :, :-2], y_test[:, 0, 0, -2], y_test[:, 0, 0, -1]
+                opt_test = [out_test, Cd_test, Cl_test]
+                loss_pred, loss_rec1, loss_rec2, loss_lat = self.pred_loss(in_test, ctr_test, opt_test)
+                
+                mod_test = self.phys_model(in_test, ctr_test, out_test)
+                loss_pde_obs = ((Lpde(out_test, in_test, self.dt) + mod_test) ** 2).mean()
+
+                pred, _, _, _ = self.pred_model(in_test, ctr_test)
+                out_pred = pred[:, :, :, :3]
+                mod_pred = self.phys_model(in_test, ctr_test, out_pred)
+                loss_pde_pred = ((Lpde(out_pred, in_test, self.dt) + mod_pred) ** 2).mean()
+
+                loss1.update(loss_pred.item(), self.params.batch_size)
+                loss2.update(loss_rec1.item(), self.params.batch_size)
+                loss3.update(loss_rec2.item(), self.params.batch_size)
+                loss4.update(loss_lat.item(), self.params.batch_size)
+                loss5.update(loss_pde_obs.item(), self.params.batch_size)
+                loss6.update(loss_pde_pred.item(), self.params.batch_size)
+                
+        return loss1.avg, loss2.avg, loss3.avg, loss4.avg, loss5.avg, loss6.avg
+
+    def save_log(self, logs):
+        logs['pred_model'].append(self.pred_model.state_dict())
+        logs['phys_model'].append(self.phys_model.state_dict())
 

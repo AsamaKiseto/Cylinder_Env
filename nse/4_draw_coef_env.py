@@ -269,7 +269,7 @@ if __name__ == '__main__':
         ax[i].grid(True, lw=0.4, ls="--", c=".50")
         ax[i].set_xlim(0, nt * tg * dt)
         
-    ax[0].set_title("error/loss in different scales", fontsize=15)
+    ax[0].set_title("Error/Loss in Different Scales", fontsize=15)
     ax[0].set_ylabel("One-step data loss", fontsize=15)
     ax[1].set_ylabel("Cumul data loss", fontsize=15)
     ax[2].set_ylabel("phys loss of obs", fontsize=15)
