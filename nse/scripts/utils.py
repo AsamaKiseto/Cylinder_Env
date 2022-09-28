@@ -200,8 +200,10 @@ class LoadData:
         self.N0 = self.ctr.shape[0]
         self.Ndata = self.N0 * self.nt
         if self.mode=='grid':
+            print(f'N0: {self.N0}, nt: {self.nt}, nx: {self.nx}, ny: {self.ny}')
             return self.N0, self.nt, self.nx, self.ny
         elif self.mode=='vertex':
+            print(f'N0: {self.N0}, nt: {self.nt}, nv: {self.nv}')
             return self.N0, self.nt, self.nv
     
     def trans2TrainingSet(self, batch_size):
