@@ -25,7 +25,7 @@ if __name__=='__main__':
     obs, Cd, Cl, ctr = data.split(Ng, tg)
     obs_bf = obs[:, :-1]
     obs_af = obs[:, 1:]
-    logs['data_norm'] = data.normalize('norm')
+    logs['data_norm'] = data.normalize(method = 'logs_norm', logs = model_log['data_norm'])
     logs['pred_model'] = []
     logs['phys_model'] = []
 

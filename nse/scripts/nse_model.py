@@ -41,8 +41,8 @@ class NSEModel_FNO:
         self.phys_model.train()
 
         t1 = default_timer()
-        train_log = PredLog(num = 6, length=self.params.batch_size)
-        test_log = PredLog(num = 6, length=self.params.batch_size)
+        train_log = PredLog(length=self.params.batch_size)
+        test_log = PredLog(length=self.params.batch_size)
 
         device = self.device
         for x_train, y_train in train_loader:

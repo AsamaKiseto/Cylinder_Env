@@ -205,7 +205,21 @@ class LoadData:
             self.norm['ctr'] = [ctr_min, ctr_range]
             self.norm['obs'] = [obs_min, obs_range]
 
-        elif method == 'logs':
+        elif method == 'logs_norm':
+            Cd_mean, Cd_var = logs['data_norm']['Cd']
+            Cl_mean, Cl_var = logs['data_norm']['Cl']
+            ctr_mean, ctr_var = logs['data_norm']['ctr']
+            obs_mean, obs_var = logs['data_norm']['obs']
+
+            self.Cd = (self.Cd - Cd_mean)/Cd_var
+            self.Cl = (self.Cl - Cl_mean)/Cl_var
+
+            self.norm['Cd'] = [Cd_mean, Cd_var]
+            self.norm['Cl'] = [Cl_mean, Cl_var]
+            self.norm['ctr'] = [ctr_mean, ctr_var]
+            self.norm['obs'] = [obs_mean, obs_var]
+
+        elif method == 'logs_unif':
             Cd_min, Cd_range = logs['data_norm']['Cd']
             Cl_min, Cl_range = logs['data_norm']['Cl']
             ctr_min, ctr_range = logs['data_norm']['ctr']
@@ -219,6 +233,8 @@ class LoadData:
             self.norm['Cl'] = [Cl_min, Cl_range]
             self.norm['ctr'] = [ctr_min, ctr_range]
             self.norm['obs'] = [obs_min, obs_range]
+        
+        
 
         return self.norm
 
