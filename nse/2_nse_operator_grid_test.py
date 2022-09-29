@@ -12,7 +12,6 @@ if __name__=='__main__':
     args.epochs = 100
     args.step_size = 20
     args.lr = 1e-4
-    args.batch_size = 32
 
     logs = dict()
     logs['args'] = args
