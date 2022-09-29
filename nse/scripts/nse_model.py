@@ -23,7 +23,8 @@ class NSEModel_FNO:
         self.phys_model = state_mo(model_params).to(self.device)
         self.pred_optimizer = torch.optim.Adam(self.pred_model.parameters(), lr=self.params.lr, weight_decay=self.params.wd)
         self.phys_optimizer = torch.optim.Adam(self.phys_model.parameters(), lr=self.params.lr * 5, weight_decay=self.params.wd)
-        self.scheduler = torch.optim.lr_scheduler.StepLR(self.pred_optimizer, step_size=self.params.step_size, gamma=self.params.gamma)
+        self.pred_scheduler = torch.optim.lr_scheduler.StepLR(self.pred_optimizer, step_size=self.params.step_size, gamma=self.params.gamma)
+        self.phys_scheduler = torch.optim.lr_scheduler.StepLR(self.phys_optimizer, step_size=self.params.step_size, gamma=self.params.gamma)
 
     def count_params(self):
         c = 0
@@ -70,7 +71,7 @@ class NSEModel_FNO:
             loss_list = [loss1, loss2, loss3, loss4, loss5, loss6]
             train_log.update(loss_list)
         
-        self.scheduler.step()
+        self.pred_scheduler.step()
         t2 = default_timer()
         self.pred_model.eval()
         self.phys_model.eval()
@@ -148,6 +149,7 @@ class NSEModel_FNO:
             self.pred_optimizer.step()
             loss_pde.update(loss.item(), self.params.batch_size)
         
+        self.phys_scheduler.step()
         t4 = default_timer()
         print('----phys training: # {} {:1.2f} (pde): {:1.2e} | '.format(phys_epoch, t4-t3, loss_pde.avg))
     
