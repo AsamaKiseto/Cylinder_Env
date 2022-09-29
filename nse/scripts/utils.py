@@ -230,10 +230,10 @@ class LoadData:
         self.N0 = self.ctr.shape[0]
         self.Ndata = self.N0 * self.nt
         if self.mode=='grid':
-            print(f'N0: {self.N0}, nt: {self.nt}, nx: {self.nx}, ny: {self.ny}')
+            # print(f'N0: {self.N0}, nt: {self.nt}, nx: {self.nx}, ny: {self.ny}')
             return self.N0, self.nt, self.nx, self.ny
         elif self.mode=='vertex':
-            print(f'N0: {self.N0}, nt: {self.nt}, nv: {self.nv}')
+            # print(f'N0: {self.N0}, nt: {self.nt}, nv: {self.nv}')
             return self.N0, self.nt, self.nv
     
     def trans2TrainingSet(self, batch_size):
@@ -283,18 +283,23 @@ class NSE_Dataset(Dataset):
         return x, y
 
 class PredLog():
-    def __init__(self, num, length):
+    def __init__(self, length):
         self.length = length
-        self.loss = [AverageMeter()] * num
+        self.loss1 = AverageMeter()
+        self.loss2 = AverageMeter()
+        self.loss3 = AverageMeter()
+        self.loss4 = AverageMeter()
+        self.loss5 = AverageMeter()
+        self.loss6 = AverageMeter()
     
     def update(self, loss_list):
         for i in range(len(loss_list)):
-            self.loss[i].update(loss_list[i].item(), self.length)
+            exec(f'self.loss{i+1}.update(loss_list[{i}].item(), self.length)')
 
     def save_log(self, logs):
-        logs['test_loss_trans'].append(self.loss[0].avg)
-        logs['test_loss_u_t_rec'].append(self.loss[1].avg)
-        logs['test_loss_ctr_t_rec'].append(self.loss[2].avg)
-        logs['test_loss_trans_latent'].append(self.loss[3].avg)
-        logs['test_loss_pde_obs'].append(self.loss[4].avg)
-        logs['test_loss_pde_pred'].append(self.loss[5].avg)
+        logs['test_loss_trans'].append(self.loss1.avg)
+        logs['test_loss_u_t_rec'].append(self.loss2.avg)
+        logs['test_loss_ctr_t_rec'].append(self.loss3.avg)
+        logs['test_loss_trans_latent'].append(self.loss4.avg)
+        logs['test_loss_pde_obs'].append(self.loss5.avg)
+        logs['test_loss_pde_pred'].append(self.loss6.avg)

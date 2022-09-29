@@ -91,9 +91,9 @@ class NSEModel_FNO:
             test_log.save_log(logs)
 
         print('# {} {:1.2f} | (pred): {:1.2e}  (rec) state: {:1.2e}  ctr: {:1.2e} (latent): {:1.2e} (pde) obs: {:1.2e} |'
-              .format(epoch, t2-t1, train_log.loss[0].avg, train_log.loss[1].avg, train_log.loss[2].avg, train_log.loss[3].avg, train_log.loss[4].avg) + 
+              .format(epoch, t2-t1, train_log.loss1.avg, train_log.loss2.avg, train_log.loss3.avg, train_log.loss4.avg, train_log.loss5.avg) + 
               '(pred): {:1.2e}  (rec) state: {:1.2e}  ctr: {:1.2e} (latent): {:1.2e} (pde) obs: {:1.2e} pred: {:1.2e}'
-              .format(test_log.loss[0].avg, test_log.loss[1].avg, test_log.loss[2].avg, test_log.loss[3].avg, test_log.loss[4].avg, test_log.loss[5].avg))
+              .format(test_log.loss1.avg, test_log.loss2.avg, test_log.loss3.avg, test_log.loss4.avg, test_log.loss5.avg, test_log.loss6.avg))
 
     def phys_train(self, phys_epoch, train_loader):
         loss_pde = AverageMeter()
