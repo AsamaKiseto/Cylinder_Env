@@ -22,9 +22,7 @@ if __name__=='__main__':
     Ng = args.Ng
     data = LoadData(data_path)
     obs, Cd, Cl, ctr = data.split(Ng, tg)
-    obs_bf = obs[:, :-1]
-    obs_af = obs[:, 1:]
-    logs['data_norm'] = data.normalize(method = 'logs_norm', logs = model_log['data_norm'])
+    logs['data_norm'] = data.normalize(method = 'logs_norm', logs = model_log)
     logs['pred_model'] = []
     logs['phys_model'] = []
 
