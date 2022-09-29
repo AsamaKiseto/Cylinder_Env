@@ -56,16 +56,15 @@ if __name__=='__main__':
     data = LoadData(data_path)
     obs, Cd, Cl, ctr = data.split(Ng, tg)
     logs['data_norm'] = data.normalize('unif')   # unif: min, range  norm: mean, var
-    logs['logs'] = dict()
-    logs['logs']['pred_model'] = []
-    logs['logs']['phys_model'] = []
+    logs['pred_model'] = []
+    logs['phys_model'] = []
 
-    logs['logs']['test_loss_trans'] = []
-    logs['logs']['test_loss_u_t_rec']=[]
-    logs['logs']['test_loss_ctr_t_rec']=[]
-    logs['logs']['test_loss_trans_latent']=[]
-    logs['logs']['test_loss_pde_obs'] = []
-    logs['logs']['test_loss_pde_pred'] = []
+    logs['test_loss_trans']=[]
+    logs['test_loss_u_t_rec']=[]
+    logs['test_loss_ctr_t_rec']=[]
+    logs['test_loss_trans_latent']=[]
+    logs['test_loss_pde_obs'] = []
+    logs['test_loss_pde_pred'] = []
 
     # data param
     N0, nt, nx, ny = data.get_params()
@@ -85,5 +84,5 @@ if __name__=='__main__':
     print(f'obs: {logs["data_norm"]["obs"]}')
     print(f'param numbers of the model: {params_num}')
 
-    nse_model.process(train_loader, test_loader, logs['logs'])
+    nse_model.process(train_loader, test_loader, logs)
     torch.save([nse_model.pred_model.state_dict(), nse_model.phys_model.state_dict(), logs], logs_fname)
