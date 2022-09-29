@@ -61,6 +61,9 @@ if __name__=='__main__':
     logs['logs']['phys_model'] = []
 
     logs['logs']['test_loss_trans'] = []
+    logs['logs']['test_loss_u_t_rec']=[]
+    logs['logs']['test_loss_ctr_t_rec']=[]
+    logs['logs']['test_loss_trans_latent']=[]
     logs['logs']['test_loss_pde_obs'] = []
     logs['logs']['test_loss_pde_pred'] = []
 

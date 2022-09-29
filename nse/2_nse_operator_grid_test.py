@@ -10,7 +10,8 @@ if __name__=='__main__':
     pred_log, phys_log, model_log = torch.load(logs_state)
     args = model_log['args']
     args.epochs = 100
-    args.step_size = 50
+    args.step_size = 20
+    args.lr = 1e-4
 
     logs = dict()
     logs['args'] = args
@@ -28,11 +29,6 @@ if __name__=='__main__':
     logs['logs']['pred_model'] = []
     logs['logs']['phys_model'] = []
 
-    logs['logs']['train_loss_trans']=[]
-    logs['logs']['train_loss_u_t_rec']=[]
-    logs['logs']['train_loss_ctr_t_rec']=[]
-    logs['logs']['train_loss_trans_latent']=[]
-    logs['logs']['train_loss_pde'] = []
     logs['logs']['test_loss_trans']=[]
     logs['logs']['test_loss_u_t_rec']=[]
     logs['logs']['test_loss_ctr_t_rec']=[]

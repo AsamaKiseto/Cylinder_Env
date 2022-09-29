@@ -293,5 +293,8 @@ class PredLog():
 
     def save_log(self, logs):
         logs['test_loss_trans'].append(self.loss[0].avg)
+        logs['test_loss_u_t_rec'].append(self.loss[1].avg)
+        logs['test_loss_ctr_t_rec'].append(self.loss[2].avg)
+        logs['test_loss_trans_latent'].append(self.loss[3].avg)
         logs['test_loss_pde_obs'].append(self.loss[4].avg)
         logs['test_loss_pde_pred'].append(self.loss[5].avg)
