@@ -129,3 +129,9 @@ for i in label:
 
 
 plt.savefig(f'logs/coef_phase1_test_{label[0]}.jpg')
+
+
+from scripts.utils import *
+data_path = 'data/nse_data_reg'
+data = LoadData(data_path)
+data.normalize('unif')

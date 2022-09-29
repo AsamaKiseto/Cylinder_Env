@@ -40,8 +40,8 @@ class NSEModel_FNO:
         self.phys_model.train()
 
         t1 = default_timer()
-        train_log = PredLog(mode='train', length=self.params.batch_size)
-        test_log = PredLog(mode='test', length=self.params.batch_size)
+        train_log = PredLog(num = 6, length=self.params.batch_size)
+        test_log = PredLog(num = 6, length=self.params.batch_size)
 
         device = self.device
         for x_train, y_train in train_loader:
@@ -56,22 +56,22 @@ class NSEModel_FNO:
             opt_train = [out_train, Cd_train, Cl_train]
 
             # put data to generate 4 loss
-            loss1, loss2, loss3, loss4 = self.pred_loss(in_train, ctr_train, opt_train)
+            loss1, loss2, loss3, loss4, loss6 = self.pred_loss(in_train, ctr_train, opt_train)
             # physical loss
             mod = self.phys_model(in_train, ctr_train, out_train)
-            loss_pde = ((Lpde(out_train, in_train, self.dt) + mod) ** 2).mean()
+            loss5 = ((Lpde(out_train, in_train, self.dt) + mod) ** 2).mean()
     
             loss_pred = lambda1 * loss1 + lambda2 * loss2 + lambda3 * loss3 + lambda4 * loss4 #+ lambda5 * loss_pde
             loss_pred.backward()
-            loss_pde.backward()
+            loss5.backward()
             self.pred_optimizer.step()
             self.phys_optimizer.step()
 
-            train_log.update(loss1, loss2, loss3, loss4, loss_pde)
+            loss_list = [loss1, loss2, loss3, loss4, loss5, loss6]
+            train_log.update(loss_list)
         
         self.scheduler.step()
         t2 = default_timer()
-        train_log.save_log(logs)
         self.pred_model.eval()
         self.phys_model.eval()
 
@@ -82,16 +82,17 @@ class NSEModel_FNO:
                 in_test, ctr_test = x_test[:, :, :, :-1], x_test[:, 0, 0, -1]
                 out_test, Cd_test, Cl_test = y_test[:, :, :, :-2], y_test[:, 0, 0, -2], y_test[:, 0, 0, -1]
                 opt_test = [out_test, Cd_test, Cl_test]
-                loss1, loss2, loss3, loss4 = self.pred_loss(in_test, ctr_test, opt_test)
+                loss1, loss2, loss3, loss4, loss6 = self.pred_loss(in_test, ctr_test, opt_test)
                 mod = self.phys_model(in_test, ctr_test, out_test)
-                loss_pde = ((Lpde(out_test, in_test, self.dt) + mod) ** 2).mean()
-                test_log.update(loss1, loss2, loss3, loss4, loss_pde)
+                loss5 = ((Lpde(out_test, in_test, self.dt) + mod) ** 2).mean()
+                loss_list = [loss1, loss2, loss3, loss4, loss5, loss6]
+                test_log.update(loss_list)
             test_log.save_log(logs)
 
-        print('# {} {:1.2f} | (pred): {:1.2e}  (rec)state: {:1.2e}  ctr: {:1.2e} (latent): {:1.2e} (pde): {:1.2e} |'
-              .format(epoch, t2-t1, train_log.loss1.avg, train_log.loss2.avg, train_log.loss3.avg, train_log.loss4.avg, train_log.loss_pde.avg) + 
-              '(pred): {:1.2e}  (rec)state: {:1.2e}  ctr: {:1.2e} (latent): {:1.2e} (pde): {:1.2e}'
-              .format(test_log.loss1.avg, test_log.loss2.avg, test_log.loss3.avg, test_log.loss4.avg, test_log.loss_pde.avg))
+        print('# {} {:1.2f} | (pred): {:1.2e}  (rec) state: {:1.2e}  ctr: {:1.2e} (latent): {:1.2e} (pde) obs: {:1.2e} |'
+              .format(epoch, t2-t1, train_log.loss[0].avg, train_log.loss[1].avg, train_log.loss[2].avg, train_log.loss[3].avg, train_log.loss[4].avg) + 
+              '(pred): {:1.2e}  (rec) state: {:1.2e}  ctr: {:1.2e} (latent): {:1.2e} (pde) obs: {:1.2e} pred: {:1.2e}'
+              .format(test_log.loss[0].avg, test_log.loss[1].avg, test_log.loss[2].avg, test_log.loss[3].avg, test_log.loss[4].avg, test_log.loss[5].avg))
 
     def phys_train(self, phys_epoch, train_loader):
         loss_pde = AverageMeter()
@@ -165,11 +166,13 @@ class NSEModel_FNO:
         opt_pred = pred[:, :, :, :3]
         Cd_pred = torch.mean(pred[:, :, :, -2].reshape(pred.shape[0], -1), 1)
         Cl_pred = torch.mean(pred[:, :, :, -1].reshape(pred.shape[0], -1), 1)
+        mod_pred = self.phys_model(ipt, ctr, opt_pred)
         loss1 = rel_error(opt_pred, opt).mean() + rel_error(Cd_pred, Cd).mean() + rel_error(Cl_pred, Cl).mean()
         loss2 = rel_error(ipt_rec, ipt).mean()
         loss3 = rel_error(ctr_rec, ctr).mean()
         loss4 = rel_error(trans_out, opt_latent).mean()
-        return loss1, loss2, loss3, loss4
+        loss6 = ((Lpde(opt_pred, ipt, self.dt) + mod_pred) ** 2).mean()
+        return loss1, loss2, loss3, loss4, loss6
 
     def process(self, train_loader, test_loader, logs):
         for epoch in range(1, self.params.epochs+1):

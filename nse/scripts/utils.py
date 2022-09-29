@@ -155,6 +155,7 @@ class LoadData:
         self.nt = self.ctr.shape[-1]
         self.N0 = self.ctr.shape[0]
         self.Ndata = self.N0 * self.nt
+        self.norm = dict()
 
     def split(self, Ng, tg):
         self.Ng = Ng
@@ -166,29 +167,58 @@ class LoadData:
         self.get_params()
         return self.obs, self.Cd, self.Cl, self.ctr
 
-    def norm(self):
-        Cd_mean = self.Cd.mean()
-        Cd_var = torch.sqrt(((self.Cd-Cd_mean)**2).mean())
-        Cl_mean = self.Cl.mean()
-        Cl_var = torch.sqrt(((self.Cl-Cl_mean)**2).mean())
-        ctr_mean = self.ctr.mean()
-        ctr_var = torch.sqrt(((self.ctr-ctr_mean)**2).mean())
-        if self.mode=='grid':
-            obs_mean = self.obs.mean([0, 1, 2, 3])
-            _obs_mean = obs_mean.reshape(1, 1, 1, 1, -1).repeat(self.N0, self.nt+1, self.nx, self.ny, 1)
-            obs_var = torch.sqrt(((self.obs - _obs_mean)**2).mean([0, 1, 2, 3]))
-        elif self.mode=='vertex':
-            obs_mean = self.obs.mean([0, 1, 2])
-            _obs_mean = obs_mean.reshape(1, 1, 1, -1).repeat(self.N0, self.nt+1, self.nv, 1)
-            obs_var = torch.sqrt(((self.obs - _obs_mean)**2).mean([0, 1, 2]))
-        self.Cd = (self.Cd - Cd_mean)/Cd_var
-        self.Cl = (self.Cl - Cl_mean)/Cl_var
+    def normalize(self, method = 'norm', logs = None):
+        if method == 'norm':
+            Cd_mean = self.Cd.mean()
+            Cd_var = torch.sqrt(((self.Cd-Cd_mean)**2).mean())
+            Cl_mean = self.Cl.mean()
+            Cl_var = torch.sqrt(((self.Cl-Cl_mean)**2).mean())
+            ctr_mean = self.ctr.mean()
+            ctr_var = torch.sqrt(((self.ctr-ctr_mean)**2).mean())
+            if self.mode=='grid':
+                obs_mean = self.obs.mean([0, 1, 2, 3])
+                _obs_mean = obs_mean.reshape(1, 1, 1, 1, -1).repeat(self.N0, self.nt+1, self.nx, self.ny, 1)
+                obs_var = torch.sqrt(((self.obs - _obs_mean)**2).mean([0, 1, 2, 3]))
+            elif self.mode=='vertex':
+                obs_mean = self.obs.mean([0, 1, 2])
+                _obs_mean = obs_mean.reshape(1, 1, 1, -1).repeat(self.N0, self.nt+1, self.nv, 1)
+                obs_var = torch.sqrt(((self.obs - _obs_mean)**2).mean([0, 1, 2]))
+            self.Cd = (self.Cd - Cd_mean)/Cd_var
+            self.Cl = (self.Cl - Cl_mean)/Cl_var
 
-        self.norm = dict()
-        self.norm['Cd'] = [Cd_mean, Cd_var]
-        self.norm['Cl'] = [Cl_mean, Cl_var]
-        self.norm['ctr'] = [ctr_mean, ctr_var]
-        self.norm['obs'] = [obs_mean, obs_var]
+            self.norm['Cd'] = [Cd_mean, Cd_var]
+            self.norm['Cl'] = [Cl_mean, Cl_var]
+            self.norm['ctr'] = [ctr_mean, ctr_var]
+            self.norm['obs'] = [obs_mean, obs_var]
+
+        elif method == 'unif':
+            Cd_min, Cd_range = self.Cd.min(), self.Cd.max() - self.Cd.min()
+            Cl_min, Cl_range = self.Cl.min(), self.Cl.max() - self.Cl.min()
+            ctr_min, ctr_range = self.ctr.min(), self.ctr.max() - self.ctr.min()
+            obs_min, obs_range = self.obs.min(), self.obs.max() - self.obs.min()
+            self.Cd = (self.Cd - Cd_min) / Cd_range
+            self.Cl = (self.Cl - Cl_min) / Cl_range
+            self.obs = (self.obs - obs_min) / obs_range
+
+            self.norm['Cd'] = [Cd_min, Cd_range]
+            self.norm['Cl'] = [Cl_min, Cl_range]
+            self.norm['ctr'] = [ctr_min, ctr_range]
+            self.norm['obs'] = [obs_min, obs_range]
+
+        elif method == 'logs':
+            Cd_min, Cd_range = logs['data_norm']['Cd']
+            Cl_min, Cl_range = logs['data_norm']['Cl']
+            ctr_min, ctr_range = logs['data_norm']['ctr']
+            obs_min, obs_range = logs['data_norm']['obs']
+
+            self.Cd = self.Cd * Cd_range + Cd_min
+            self.Cl = self.Cl * Cl_range + Cl_min
+            self.obs = self.obs * obs_range + obs_min
+
+            self.norm['Cd'] = [Cd_min, Cd_range]
+            self.norm['Cl'] = [Cl_min, Cl_range]
+            self.norm['ctr'] = [ctr_min, ctr_range]
+            self.norm['obs'] = [obs_min, obs_range]
 
         return self.norm
 
@@ -253,34 +283,15 @@ class NSE_Dataset(Dataset):
         return x, y
 
 class PredLog():
-    def __init__(self, mode, length):
+    def __init__(self, num, length):
         self.length = length
-        self.mode = mode
-        self.loss1 = AverageMeter()
-        self.loss2 = AverageMeter()
-        self.loss3 = AverageMeter()
-        self.loss4 = AverageMeter()
-        self.loss_pde = AverageMeter()
+        self.loss = [AverageMeter()] * num
     
-    def update(self, loss1, loss2, loss3, loss4, loss_pde):
-        self.loss1.update(loss1.item(), self.length)
-        self.loss2.update(loss2.item(), self.length)
-        self.loss3.update(loss3.item(), self.length)
-        self.loss4.update(loss4.item(), self.length)
-        self.loss_pde.update(loss_pde.item(), self.length)
+    def update(self, loss_list):
+        for i in range(len(loss_list)):
+            self.loss[i].update(loss_list[i].item(), self.length)
 
     def save_log(self, logs):
-        if self.mode =='train':
-            logs['train_loss_trans'].append(self.loss1.avg)
-            logs['train_loss_u_t_rec'].append(self.loss2.avg)
-            logs['train_loss_ctr_t_rec'].append(self.loss3.avg)
-            logs['train_loss_trans_latent'].append(self.loss4.avg)
-            logs['train_loss_pde'].append(self.loss_pde.avg)
-        elif self.mode =='test':
-            logs['test_loss_trans'].append(self.loss1.avg)
-            logs['test_loss_u_t_rec'].append(self.loss2.avg)
-            logs['test_loss_ctr_t_rec'].append(self.loss3.avg)
-            logs['test_loss_trans_latent'].append(self.loss4.avg)
-            logs['test_loss_pde'].append(self.loss_pde.avg)
-
-
+        logs['test_loss_trans'].append(self.loss[0].avg)
+        logs['test_loss_pde_obs'].append(self.loss[4].avg)
+        logs['test_loss_pde_pred'].append(self.loss[5].avg)

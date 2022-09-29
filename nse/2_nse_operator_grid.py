@@ -14,7 +14,6 @@ def get_args(argv=None):
     parser.add_argument('-m', '--modes', default=16, type=int, help='the number of modes of Fourier layer')
     parser.add_argument('-w', '--width', default=32, type=int, help='the number of width of FNO layer')
     
-
     parser.add_argument('--phys_gap', default=2, type=int, help = 'Number of gap of Phys')
     parser.add_argument('--phys_epochs', default=1, type=int, help = 'Number of Phys Epochs')
     parser.add_argument('--phys_steps', default=2, type=int, help = 'Number of Phys Epochs')
@@ -58,21 +57,14 @@ if __name__=='__main__':
     obs, Cd, Cl, ctr = data.split(Ng, tg)
     obs_bf = obs[:, :-1]
     obs_af = obs[:, 1:]
-    logs['data_norm'] = data.norm()
+    logs['data_norm'] = data.normalize('unif')   # unif: min, range  norm: mean, var
     logs['logs'] = dict()
     logs['logs']['pred_model'] = []
     logs['logs']['phys_model'] = []
 
-    logs['logs']['train_loss_trans']=[]
-    logs['logs']['train_loss_u_t_rec']=[]
-    logs['logs']['train_loss_ctr_t_rec']=[]
-    logs['logs']['train_loss_trans_latent']=[]
-    logs['logs']['train_loss_pde'] = []
-    logs['logs']['test_loss_trans']=[]
-    logs['logs']['test_loss_u_t_rec']=[]
-    logs['logs']['test_loss_ctr_t_rec']=[]
-    logs['logs']['test_loss_trans_latent']=[]
-    logs['logs']['test_loss_pde'] = []
+    logs['logs']['test_loss_trans'] = []
+    logs['logs']['test_loss_pde_obs'] = []
+    logs['logs']['test_loss_pde_pred'] = []
 
     # data param
     N0, nt, nx, ny = data.get_params()
