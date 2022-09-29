@@ -55,8 +55,6 @@ if __name__=='__main__':
     Ng = args.Ng
     data = LoadData(data_path)
     obs, Cd, Cl, ctr = data.split(Ng, tg)
-    obs_bf = obs[:, :-1]
-    obs_af = obs[:, 1:]
     logs['data_norm'] = data.normalize('unif')   # unif: min, range  norm: mean, var
     logs['logs'] = dict()
     logs['logs']['pred_model'] = []
