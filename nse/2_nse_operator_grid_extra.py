@@ -53,5 +53,5 @@ if __name__=='__main__':
     print(f'obs: {logs["data_norm"]["obs"]}')
     print(f'param numbers of the model: {params_num}')
 
-    nse_model.process(train_loader, test_loader, logs)
+    nse_model.process_extra(train_loader, test_loader, logs)
     torch.save([nse_model.pred_model.state_dict(), nse_model.phys_model.state_dict(), logs], logs_fname)

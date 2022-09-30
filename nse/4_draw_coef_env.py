@@ -22,8 +22,8 @@ def get_args(argv=None):
     parser.add_argument('-lf', '--log_file', default='test', type=str, help='log file name')
     parser.add_argument('-nt', '--nt', default=10, type=int, help='nums of timestamps')
     parser.add_argument('-tg', '--tg', default=5, type=int, help='gap of timestamps')
-    parser.add_argument('-s', '--scale', default=0, type=float, help='random scale')
-    parser.add_argument('-f', '--f_base', default=0, type=float, help='base f')
+    parser.add_argument('-s', '--scale', default=0.5, type=float, help='random scale')
+    parser.add_argument('-f', '--f_base', default=0.142857, type=float, help='base f')
     parser.add_argument('-ts', '--t_start', default=5, type=int, help='data number')
 
     return parser.parse_args(argv)
@@ -135,16 +135,18 @@ class load_model():
         Cd_var = Cd_sps - self.Cd_nn
         Cl_var = Cl_sps - self.Cl_nn
         obs_var = obs_sps[1:] - self.obs_nn
-        self.Cd_var = (Cd_var.reshape(nt, -1)**2).sum(1)
-        self.Cl_var = (Cl_var.reshape(nt, -1)**2).sum(1)
-        self.obs_var = (obs_var.reshape(nt, -1)**2).sum(1)
+        self.Cd_var = (Cd_var.reshape(nt, -1)**2).mean(1)
+        self.Cl_var = (Cl_var.reshape(nt, -1)**2).mean(1)
+        self.obs_var = (obs_var.reshape(nt, -1)**2).mean(1)
 
     def plot(self, ax, t_nn, t_start, label=None):
-        ax[1].plot(t_nn[t_start:], self.obs_var[t_start:] + self.Cd_var[t_start:] + self.Cl_var[t_start:], label=f'{label}')
-        ax[2].plot(t_nn[t_start:], self.Lpde_obs[t_start:], label=f'{label}')
-        ax[3].plot(t_nn[t_start:], self.Lpde_nn[t_start:], label=f'{label}')
-        for i in range(3):
-            ax[i+1].legend()
+        ax[0].plot(t_nn[t_start:], self.obs_var[t_start:], label=f'{label}')
+        ax[1].plot(t_nn[t_start:], self.Cd_var[t_start:], label=f'{label}')
+        ax[2].plot(t_nn[t_start:], self.Cl_var[t_start:], label=f'{label}')
+        ax[3].plot(t_nn[t_start:], self.Lpde_obs[t_start:], label=f'{label}')
+        ax[4].plot(t_nn[t_start:], self.Lpde_nn[t_start:], label=f'{label}')
+        for i in range(5):
+            ax[i].legend()
     
     def save_logs(self, logs):
         logs['obs_nn'].append(self.obs_nn)
@@ -163,13 +165,12 @@ if __name__ == '__main__':
     # path
     logs_path = f'logs/phase1_env_logs_{args.log_file}'
 
-    ex_nums = ['ex0', 'ex1_3', 'ex4_3']
-    label = ['baseline', '2-step', '1-step']
-    ex_nums = ['ex0', 'ex1_3']
-    label = ['baseline', 'phys-included']
+    # ex_nums = ['ex0', 'ex1_3', 'ex4_3']
+    # label = ['baseline', '2-step', '1-step']
+    ex_nums = ['ex0', 'ex1_3', 'ex1_extra']
+    label = ['baseline', 'phys-tog', 'phys-dev']
+    label = ['baseline', 'phys-include', 'extra_train']
     
-    ex_nums = ['ex0']
-    label = ['baseline']
     # label = [ 'with_modify']
     n_model = len(ex_nums)
 
@@ -262,19 +263,28 @@ if __name__ == '__main__':
     logs['Cl'].append(Cl)
 
     # fig setting
-    fig, ax = plt.subplots(nrows=4, ncols=2, figsize=(15,12), dpi=1000)
+    fig_num = 5
+    fig, ax = plt.subplots(nrows=fig_num, ncols=2, figsize=(15,12), dpi=1000)
     ax = ax.flatten()
-    for i in range(4):
-        ax[i] = plt.subplot2grid((4, 2), (i, 0), colspan=2)
+    for i in range(fig_num):
+        ax[i] = plt.subplot2grid((fig_num, 2), (i, 0), colspan=2)
         ax[i].grid(True, lw=0.4, ls="--", c=".50")
         ax[i].set_xlim(0, nt * tg * dt)
+        ax[i].set_yscale('log')
         
-    ax[0].set_title("Error/Loss in Different Scales", fontsize=15)
-    ax[0].set_ylabel("One-step data loss", fontsize=15)
-    ax[1].set_ylabel("Cumul data loss", fontsize=15)
-    ax[2].set_ylabel("phys loss of obs", fontsize=15)
-    ax[3].set_ylabel("phys loss of pred", fontsize=15)
-    ax[3].set_xlabel("t", fontsize=15)
+    ax[0].set_title("error/loss in different scales", fontsize=15)
+    ax[0].set_ylabel("state error", fontsize=15)
+    ax[1].set_ylabel("Cd error", fontsize=15)
+    ax[2].set_ylabel("Cl error", fontsize=15)
+    ax[3].set_ylabel("phys loss of obs", fontsize=15)
+    ax[4].set_ylabel("phys loss of pred", fontsize=15)
+    ax[4].set_xlabel("t", fontsize=15)
+
+    ax[0].set_ylim(1e-4, 1)
+    ax[1].set_ylim(1e-4, 1)
+    ax[2].set_ylim(1e-4, 1)
+    ax[3].set_ylim(1e-3, 1e2)
+    ax[4].set_ylim(1e-3, 1e2)
     
     # mosel setting
     for i in range(n_model):
@@ -286,16 +296,16 @@ if __name__ == '__main__':
         Cd_nn, Cl_nn = np.zeros(nt), np.zeros(nt)
         
         # one step pred
-        out_nn, Cd_nn, Cl_nn = model.cul_1step(obs_sps, f_nn)
-        print(Cd_nn, Cd_sps)
-        print(Cl_nn, Cl_sps)
-        error_1step = ((out_nn - obs_sps[1:])**2).reshape(nt, -1).mean(1) + \
-                      ((Cd_nn - Cd_sps)**2).reshape(nt, -1).mean(1) + \
-                      ((Cl_nn - Cl_sps)**2).reshape(nt, -1).mean(1)
-        print(error_1step)
-        logs[ex_nums[i]]['error_1step'].append(error_1step)
-        ax[0].plot(t_nn[t_start:], error_1step[t_start:], label=f'{label[i]}')
-        ax[0].legend()
+        # out_nn, Cd_nn, Cl_nn = model.cul_1step(obs_sps, f_nn)
+        # # print(Cd_nn, Cd_sps)
+        # # print(Cl_nn, Cl_sps)
+        # error_1step = ((out_nn - obs_sps[1:])**2).reshape(nt, -1).mean(1) + \
+        #               ((Cd_nn - Cd_sps)**2).reshape(nt, -1).mean(1) + \
+        #               ((Cl_nn - Cl_sps)**2).reshape(nt, -1).mean(1)
+        # # print(error_1step)
+        # logs[ex_nums[i]]['error_1step'].append(error_1step)
+        # ax[0].plot(t_nn[t_start:], error_1step[t_start:], label=f'{label[i]}')
+        # ax[0].legend()
 
         # model step
         for k in range(t_start):
@@ -311,7 +321,7 @@ if __name__ == '__main__':
     ax[0].set_yscale('log')
     ax[0].set_ylim(1e-5, 1)
     ax[1].set_yscale('log')
-    ax[1].set_ylim(1e-5, 1)
+    ax[1].set_ylim(1e-4, 1e1)
     ax[2].set_yscale('log')
     ax[2].set_ylim(1e-3, 1e2)
     ax[3].set_yscale('log')

@@ -152,6 +152,61 @@ class NSEModel_FNO:
         self.phys_scheduler.step()
         t4 = default_timer()
         print('----phys training: # {} {:1.2f} (pde): {:1.2e} | '.format(phys_epoch, t4-t3, loss_pde.avg))
+
+    def extra_train(self, epoch, train_loader, test_loader, logs):
+        self.phys_model.train()
+
+        t1 = default_timer()
+        train_log = PredLog(length=self.params.batch_size)
+        test_log = PredLog(length=self.params.batch_size)
+
+        device = self.device
+        for x_train, y_train in train_loader:
+            x_train, y_train = x_train.to(device), y_train.to(device)
+            
+            self.phys_optimizer.zero_grad()
+
+            # split data read in train_loader
+            in_train, ctr_train = x_train[:, :, :, :-1], x_train[:, 0, 0, -1]
+            out_train, Cd_train, Cl_train = y_train[:, :, :, :-2], y_train[:, 0, 0, -2], y_train[:, 0, 0, -1]
+            opt_train = [out_train, Cd_train, Cl_train]
+
+            # put data to generate 4 loss
+            loss1, loss2, loss3, loss4, loss6 = self.pred_loss(in_train, ctr_train, opt_train)
+            # physical loss
+            mod = self.phys_model(in_train, ctr_train, out_train)
+            loss5 = ((Lpde(out_train, in_train, self.dt) + mod) ** 2).mean()
+
+            loss5.backward()
+            self.phys_optimizer.step()
+
+            loss_list = [loss1, loss2, loss3, loss4, loss5, loss6]
+            train_log.update(loss_list)
+        
+        self.pred_scheduler.step()
+        t2 = default_timer()
+
+        self.pred_model.eval()
+        self.phys_model.eval()
+
+        with torch.no_grad():
+            for x_test, y_test in test_loader:
+                x_test, y_test = x_test.to(device), y_test.to(device)
+                # split data read in test_loader
+                in_test, ctr_test = x_test[:, :, :, :-1], x_test[:, 0, 0, -1]
+                out_test, Cd_test, Cl_test = y_test[:, :, :, :-2], y_test[:, 0, 0, -2], y_test[:, 0, 0, -1]
+                opt_test = [out_test, Cd_test, Cl_test]
+                loss1, loss2, loss3, loss4, loss6 = self.pred_loss(in_test, ctr_test, opt_test)
+                mod = self.phys_model(in_test, ctr_test, out_test)
+                loss5 = ((Lpde(out_test, in_test, self.dt) + mod) ** 2).mean()
+                loss_list = [loss1, loss2, loss3, loss4, loss5, loss6]
+                test_log.update(loss_list)
+            test_log.save_log(logs)
+
+        print('# {} {:1.2f} | (pred): {:1.2e}  (rec) state: {:1.2e}  ctr: {:1.2e} (latent): {:1.2e} (pde) obs: {:1.2e} |'
+              .format(epoch, t2-t1, train_log.loss1.avg, train_log.loss2.avg, train_log.loss3.avg, train_log.loss4.avg, train_log.loss5.avg) + 
+              '(pred): {:1.2e}  (rec) state: {:1.2e}  ctr: {:1.2e} (latent): {:1.2e} (pde) obs: {:1.2e} pred: {:1.2e}'
+              .format(test_log.loss1.avg, test_log.loss2.avg, test_log.loss3.avg, test_log.loss4.avg, test_log.loss5.avg, test_log.loss6.avg))
     
     def load_state(self, pred_log, phys_log):
         self.pred_model.load_state_dict(pred_log)
@@ -189,6 +244,11 @@ class NSEModel_FNO:
                 
                 for param in list(self.phys_model.parameters()):
                     param.requires_grad = True
+            self.save_log(logs)
+    
+    def process_extra(self, train_loader, test_loader, logs):
+        for epoch in range(1, self.params.epochs+1):
+            self.extra_train(epoch, train_loader, test_loader, logs)
             self.save_log(logs)
 
     def simulate(self, data_loader):
