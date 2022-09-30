@@ -10,8 +10,8 @@ def get_args(argv=None):
     parser.add_argument('-dp', '--data_path', default='nse_data_reg_extra', type=str, help='data path name')
     parser.add_argument('-lf', '--logs_fname', default='test', type=str, help='logs file name')
     
-    parser.add_argument('--phys_gap', default=2, type=int, help = 'Number of gap of Phys')
-    parser.add_argument('--phys_epochs', default=2, type=int, help = 'Number of Phys Epochs')
+    parser.add_argument('--phys_gap', default=20, type=int, help = 'Number of gap of Phys')
+    parser.add_argument('--phys_epochs', default=10, type=int, help = 'Number of Phys Epochs')
     parser.add_argument('--phys_steps', default=2, type=int, help = 'Number of Phys Steps')
     parser.add_argument('--phys_scale', default=-1, type=float, help = 'Number of Phys Scale')
 
@@ -89,7 +89,7 @@ if __name__=='__main__':
 
     # extra train process
     for epoch in range(1, nse_model.params.epochs+1):
-        nse_model.data_train_extra(epoch, train_loader)
+        nse_model.data_train(epoch, train_loader)
         if epoch % nse_model.params.phys_gap == 0 and epoch != nse_model.params.epochs:
             # freeze phys_model trained in data training
             for param in list(nse_model.phys_model.parameters()):
