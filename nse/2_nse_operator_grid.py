@@ -16,8 +16,8 @@ def get_args(argv=None):
     
     parser.add_argument('--phys_gap', default=2, type=int, help = 'Number of gap of Phys')
     parser.add_argument('--phys_epochs', default=1, type=int, help = 'Number of Phys Epochs')
-    parser.add_argument('--phys_steps', default=2, type=int, help = 'Number of Phys Epochs')
-    parser.add_argument('--phys_scale', default=0.05, type=float, help = 'Number of Phys Epochs')
+    parser.add_argument('--phys_steps', default=2, type=int, help = 'Number of Phys Steps')
+    parser.add_argument('--phys_scale', default=0.05, type=float, help = 'Number of Phys Scale')
 
     parser.add_argument('--batch_size', default=64, type=int, help = 'batch size')
     parser.add_argument('--epochs', default=500, type=int, help = 'Number of Epochs')
@@ -33,7 +33,6 @@ def get_args(argv=None):
     parser.add_argument('-l2', '--lambda2', default=0.1, type=float, help='weight of losses2')
     parser.add_argument('-l3', '--lambda3', default=0.1, type=float, help='weight of losses3')
     parser.add_argument('-l4', '--lambda4', default=0.1, type=float, help='weight of losses4')
-    parser.add_argument('-l5', '--lambda5', default=1, type=float, help='weight of losses5')
     parser.add_argument('-fc', '--f_channels', default=1, type=int, help='channels of f encode')
     
     return parser.parse_args(argv)
@@ -74,7 +73,7 @@ if __name__=='__main__':
     train_loader, test_loader = data.trans2TrainingSet(args.batch_size)
 
     # model setting
-    nse_model = NSEModel_FNO(args, shape, data.dt)
+    nse_model = NSEModel_FNO(shape, data.dt, args)
     params_num = nse_model.count_params()
 
     print('N0: {}, nt: {}, nx: {}, ny: {}, device: {}'.format(N0, nt, nx, ny, nse_model.device))
@@ -84,5 +83,20 @@ if __name__=='__main__':
     print(f'obs: {logs["data_norm"]["obs"]}')
     print(f'param numbers of the model: {params_num}')
 
-    nse_model.process(train_loader, test_loader, logs)
+    # train process
+    for epoch in range(1, nse_model.params.epochs+1):
+        nse_model.data_train(epoch, train_loader)
+        if epoch % nse_model.params.phys_gap == 0 and epoch != nse_model.params.epochs:
+            # freeze phys_model trained in data training
+            for param in list(nse_model.phys_model.parameters()):
+                param.requires_grad = False
+
+            for phys_epoch in range(1, nse_model.params.phys_epochs+1):
+                nse_model.phys_train(phys_epoch, train_loader)
+            
+            for param in list(nse_model.phys_model.parameters()):
+                param.requires_grad = True
+        nse_model.save_log(logs)
+        nse_model.test(test_loader, logs)
+
     torch.save([nse_model.pred_model.state_dict(), nse_model.phys_model.state_dict(), logs], logs_fname)

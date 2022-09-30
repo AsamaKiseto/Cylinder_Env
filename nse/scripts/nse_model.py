@@ -6,8 +6,8 @@ import copy
 from scripts.models import *
 from scripts.utils import *
 
-class NSEModel_FNO:
-    def __init__(self, args, shape, dt):
+class NSEModel_FNO():
+    def __init__(self, shape, dt, args):
         self.params = args
         self.dt = dt
         self.device = torch.device('cuda:{}'.format(self.params.gpu) if torch.cuda.is_available() else 'cpu')
@@ -46,8 +46,7 @@ class NSEModel_FNO:
             x_train, y_train = x_train.to(self.device), y_train.to(self.device)
             
             self.pred_optimizer.zero_grad()
-            self.phys_optimizer.zero_grad()
-
+            
             # split data read in train_loader
             in_train, ctr_train = x_train[:, :, :, :-1], x_train[:, 0, 0, -1]
             out_train, Cd_train, Cl_train = y_train[:, :, :, :-2], y_train[:, 0, 0, -2], y_train[:, 0, 0, -1]
@@ -55,14 +54,16 @@ class NSEModel_FNO:
 
             # put data to generate 4 loss
             loss1, loss2, loss3, loss4, loss6 = self.pred_loss(in_train, ctr_train, opt_train)
-            # physical loss
-            mod = self.phys_model(in_train, ctr_train, out_train)
-            loss5 = ((Lpde(out_train, in_train, self.dt) + mod) ** 2).mean()
-    
+
             loss_pred = lambda1 * loss1 + lambda2 * loss2 + lambda3 * loss3 + lambda4 * loss4
             loss_pred.backward()
-            loss5.backward()
             self.pred_optimizer.step()
+
+            # physical loss
+            self.phys_optimizer.zero_grad()
+            mod = self.phys_model(in_train, ctr_train, out_train)
+            loss5 = ((Lpde(out_train, in_train, self.dt) + mod) ** 2).mean()
+            loss5.backward()
             self.phys_optimizer.step()
 
             loss_list = [loss1, loss2, loss3, loss4, loss5, loss6]
@@ -74,7 +75,39 @@ class NSEModel_FNO:
         print('# {} train: {:1.2f} | (pred): {:1.2e}  (rec) state: {:1.2e}  ctr: {:1.2e} (latent): {:1.2e} (pde) obs: {:1.2e} pred: {:1.2e}'
               .format(epoch, t2-t1, train_log.loss1.avg, train_log.loss2.avg, train_log.loss3.avg, train_log.loss4.avg, train_log.loss5.avg, train_log.loss6.avg))
 
-    def phys_train(self, phys_epoch, train_loader, gen_new = True):
+    def data_train_extra(self, epoch, train_loader):
+        self.phys_model.train()
+
+        t1 = default_timer()
+        train_log = PredLog(length=self.params.batch_size)
+        
+        for x_train, y_train in train_loader:
+            x_train, y_train = x_train.to(self.device), y_train.to(self.device)
+            
+            # split data read in train_loader
+            in_train, ctr_train = x_train[:, :, :, :-1], x_train[:, 0, 0, -1]
+            out_train, Cd_train, Cl_train = y_train[:, :, :, :-2], y_train[:, 0, 0, -2], y_train[:, 0, 0, -1]
+            opt_train = [out_train, Cd_train, Cl_train]
+
+            # put data to generate 4 loss
+            loss1, loss2, loss3, loss4, loss6 = self.pred_loss(in_train, ctr_train, opt_train)
+
+            # physical loss
+            self.phys_optimizer.zero_grad()
+            mod = self.phys_model(in_train, ctr_train, out_train)
+            loss5 = ((Lpde(out_train, in_train, self.dt) + mod) ** 2).mean()
+            loss5.backward()
+            self.phys_optimizer.step()
+
+            loss_list = [loss1, loss2, loss3, loss4, loss5, loss6]
+            train_log.update(loss_list)
+        
+        t2 = default_timer()
+
+        print('# {} train: {:1.2f} | (pred): {:1.2e}  (rec) state: {:1.2e}  ctr: {:1.2e} (latent): {:1.2e} (pde) obs: {:1.2e} pred: {:1.2e}'
+              .format(epoch, t2-t1, train_log.loss1.avg, train_log.loss2.avg, train_log.loss3.avg, train_log.loss4.avg, train_log.loss5.avg, train_log.loss6.avg))
+
+    def phys_train(self, phys_epoch, train_loader):
         loss_pde = AverageMeter()
         t3 = default_timer()
 
@@ -123,27 +156,6 @@ class NSEModel_FNO:
         
         print('--test | (pred): {:1.2e}  (rec) state: {:1.2e}  ctr: {:1.2e} (latent): {:1.2e} (pde) obs: {:1.2e} pred: {:1.2e}'
               .format(test_log.loss1.avg, test_log.loss2.avg, test_log.loss3.avg, test_log.loss4.avg, test_log.loss5.avg, test_log.loss6.avg))
-
-    def process(self, train_loader, test_loader, logs):
-        for epoch in range(1, self.params.epochs+1):
-            self.data_train(epoch, train_loader)
-            if epoch % self.params.phys_gap == 0 and epoch != self.params.epochs:
-                # freeze phys_model trained in data training
-                for param in list(self.phys_model.parameters()):
-                    param.requires_grad = False
-
-                for phys_epoch in range(1, self.params.phys_epochs+1):
-                    self.phys_train(phys_epoch, train_loader)
-                
-                for param in list(self.phys_model.parameters()):
-                    param.requires_grad = True
-            self.save_log(logs)
-            self.test(test_loader, logs)
-    
-    def process_extra(self, train_loader, test_loader, logs):
-        for epoch in range(1, self.params.epochs+1):
-            self.phys_train(epoch, train_loader, test_loader, logs)
-            self.save_log(logs)
 
     def simulate(self, data_loader):
         self.pred_model.eval()
@@ -210,7 +222,7 @@ class NSEModel_FNO:
             param.requires_grad = False
 
         # 3 steps to generate new data along gradient
-        if self.params.phys_scale != 0:
+        if self.params.phys_scale > 0:
             for _ in range(self.params.phys_steps):
                 ctr_new = ctr_new.requires_grad_(True)
                 in_new = in_new.requires_grad_(True)
