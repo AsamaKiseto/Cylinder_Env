@@ -20,7 +20,7 @@ def get_args(argv=None):
     return parser.parse_args(argv)
 
 # env init
-env = Cylinder_Rotation_Env(params={'dtr': 0.02, 'T': 1, 'rho_0': 1, 'mu' : 1/1000,
+env = Cylinder_Rotation_Env(params={'dtr': 0.01, 'T': 1, 'rho_0': 1, 'mu' : 1/1000,
                                     'traj_max_T': 20, 'dimx': 256, 'dimy': 64,
                                     'min_x' : 0,  'max_x' : 2.2, 
                                     'min_y' : 0,  'max_y' : 0.41, 
@@ -38,7 +38,7 @@ if __name__ == '__main__':
 
     # param setting
     dt = env.params['dtr'] * env.params['T']
-    nT = 200
+    nT = int (4 / dt)
     hf_nT = int(nT/2)
     nx = env.params['dimx']
     ny = env.params['dimy']
