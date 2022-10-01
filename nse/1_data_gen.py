@@ -45,10 +45,10 @@ if __name__ == '__main__':
     print(f'dt: {dt} | nt: {nT}')
 
     # data generate
-    Nf = args.Nf
+    Nf = args.Nf + 1
     fr = args.f_range
-    f1 = np.linspace(-fr, fr, Nf+1)
-    f2 = np.linspace(-fr, fr, Nf+1)
+    f1 = np.linspace(-fr, fr, Nf)
+    f2 = np.linspace(-fr, fr, Nf)
     print(f'f1: {f1}')
     print(f'f2: {f2}')
     N0 = Nf * Nf
