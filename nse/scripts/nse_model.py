@@ -66,8 +66,7 @@ class NSEModel_FNO():
             loss5.backward()
             self.phys_optimizer.step()
 
-            loss_list = [loss1, loss2, loss3, loss4, loss5, loss6]
-            train_log.update(loss_list)
+            train_log.update([loss1.item(), loss2.item(), loss3.item(), loss4.item(), loss5.item(), loss6.item()])
         
         self.pred_scheduler.step()
         t2 = default_timer()
@@ -99,8 +98,7 @@ class NSEModel_FNO():
             loss5.backward()
             self.phys_optimizer.step()
 
-            loss_list = [loss1, loss2, loss3, loss4, loss5, loss6]
-            train_log.update(loss_list)
+            train_log.update([loss1.item(), loss2.item(), loss3.item(), loss4.item(), loss5.item(), loss6.item()])
         
         t2 = default_timer()
 
@@ -150,8 +148,7 @@ class NSEModel_FNO():
                 loss1, loss2, loss3, loss4, loss6 = self.pred_loss(in_test, ctr_test, opt_test)
                 mod = self.phys_model(in_test, ctr_test, out_test)
                 loss5 = ((Lpde(out_test, in_test, self.dt) + mod) ** 2).mean()
-                loss_list = [loss1, loss2, loss3, loss4, loss5, loss6]
-                test_log.update(loss_list)
+                test_log.update([loss1.item(), loss2.item(), loss3.item(), loss4.item(), loss5.item(), loss6.item()])
             test_log.save_log(logs)
         
         print('--test | (pred): {:1.2e}  (rec) state: {:1.2e}  ctr: {:1.2e} (latent): {:1.2e} (pde) obs: {:1.2e} pred: {:1.2e}'

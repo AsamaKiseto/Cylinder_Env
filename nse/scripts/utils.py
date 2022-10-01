@@ -233,8 +233,6 @@ class LoadData:
             self.norm['Cl'] = [Cl_min, Cl_range]
             self.norm['ctr'] = [ctr_min, ctr_range]
             self.norm['obs'] = [obs_min, obs_range]
-        
-        
 
         return self.norm
 
@@ -311,7 +309,7 @@ class PredLog():
     
     def update(self, loss_list):
         for i in range(len(loss_list)):
-            exec(f'self.loss{i+1}.update(loss_list[{i}].item(), self.length)')
+            exec(f'self.loss{i+1}.update(loss_list[{i}], self.length)')
 
     def save_log(self, logs):
         logs['test_loss_trans'].append(self.loss1.avg)
