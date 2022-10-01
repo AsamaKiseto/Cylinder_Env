@@ -17,12 +17,10 @@ def get_args(argv=None):
     parser.add_argument('-fr', '--f_range', default=2, type=float)
     parser.add_argument('-Nf', '--Nf', default=8, type=int)
 
-    parser.add_argument('-s', '--scale', default=0, type=float)
-
     return parser.parse_args(argv)
 
 # env init
-env = Cylinder_Rotation_Env(params={'dtr': 0.01, 'T': 1, 'rho_0': 1, 'mu' : 1/1000,
+env = Cylinder_Rotation_Env(params={'dtr': 0.02, 'T': 1, 'rho_0': 1, 'mu' : 1/1000,
                                     'traj_max_T': 20, 'dimx': 256, 'dimy': 64,
                                     'min_x' : 0,  'max_x' : 2.2, 
                                     'min_y' : 0,  'max_y' : 0.41, 
@@ -40,7 +38,7 @@ if __name__ == '__main__':
 
     # param setting
     dt = env.params['dtr'] * env.params['T']
-    nT = 400
+    nT = 200
     hf_nT = int(nT/2)
     nx = env.params['dimx']
     ny = env.params['dimy']
@@ -61,7 +59,7 @@ if __name__ == '__main__':
 
     # env init step
     start = default_timer()
-    nT_init = 10
+    nT_init = int(4 / dt)
     for i in range(nT_init):
         env.step(0.00)
     end = default_timer()
@@ -82,12 +80,12 @@ if __name__ == '__main__':
             obs[Nf * k + l, 0] = env.reset(mode='grid')
         
             for i in range(hf_nT):
-                f[Nf * k + l, i] = f1[k] + args.scale * (np.random.rand() - 0.5)
+                f[Nf * k + l, i] = f1[k]
                 obs[Nf * k + l, i+1], C_D[Nf * k + l, i], C_L[Nf * k + l, i] = env.step(f[Nf * k + l, i])
                 # obs_v[Nf * k + l, i+1], C_D[Nf * k + l, i], C_L[Nf * k + l, i] = env.step(f1[k], mode='vertex')
             
             for i in range(hf_nT, nT):
-                f[Nf * k + l, i] = f2[l] + args.scale * (np.random.rand() - 0.5)
+                f[Nf * k + l, i] = f2[l]
                 obs[Nf * k + l, i+1], C_D[Nf * k + l, i], C_L[Nf * k + l, i] = env.step(f[Nf * k + l, i])
                 # obs_v[Nf * k + l, i+1], C_D[Nf * k + l, i], C_L[Nf * k + l, i] = env.step(f2[l], mode='vertex')
         
