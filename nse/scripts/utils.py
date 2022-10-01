@@ -254,9 +254,10 @@ class LoadData:
     
     def trans2TrainingSet(self, batch_size):
         NSE_data = NSE_Dataset(self, self.mode)
-        train_data, test_data = random_split(NSE_data, [int(0.8 * self.Ndata), int(0.2 * self.Ndata)])
-        train_loader = DataLoader(dataset=train_data, batch_size=batch_size, shuffle=True)
-        test_loader = DataLoader(dataset=test_data, batch_size=batch_size, shuffle=False)
+        tr_num = int(0.7 * self.Ndata)
+        train_data, test_data = random_split(NSE_data, [tr_num, self.Ndata - tr_num])
+        train_loader = DataLoader(dataset=train_data, batch_size=batch_size, shuffle=True, drop_last=True)
+        test_loader = DataLoader(dataset=test_data, batch_size=batch_size, shuffle=False, drop_last=True)
         return train_loader, test_loader
     
     def trans2CheckSet(self, batch_size):
