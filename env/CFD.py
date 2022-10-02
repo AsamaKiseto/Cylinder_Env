@@ -157,7 +157,7 @@ class MySolver:
         self.sol_n.vector()[:] = self.sol.vector()
 
         # params = self.params
-        # dt = params['dtr'] * params['T']
+        # dt = params['dt']
         # T  = params['T']
         # n_ts = int(-(T // -dt))
         # for i in range(n_ts):

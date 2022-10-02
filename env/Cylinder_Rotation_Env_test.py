@@ -2,7 +2,7 @@ from Cylinder_Rotation_Env import Cylinder_Rotation_Env
 import matplotlib.pyplot as plt
 from fenics import plot
 
-env = Cylinder_Rotation_Env(params={'dtr': 0.1, 'T': 1, 'rho_0': 1, 'mu' : 1/1000,
+env = Cylinder_Rotation_Env(params={'dt': 0.1, 'rho_0': 1, 'mu' : 1/1000,
                                     'traj_max_T': 20, 'dimx': 128, 'dimy': 64,
                                     'min_x' : 0,  'max_x' : 2.2, 
                                     'min_y' : 0,  'max_y' : 0.41, 

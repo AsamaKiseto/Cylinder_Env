@@ -41,8 +41,7 @@ class Cylinder_Rotation_Env(gym.Env):
         if params is not None:
             self.params = params
         else:
-            self.params = {'dtr': 0.1,
-                            'T': 1,
+            self.params = {'dt': 0.1,
                             'rho_0': 1,
                             'mu' : 1/1000,
                             'traj_max_T': 20,

@@ -19,7 +19,7 @@ def get_args(argv=None):
     return parser.parse_args(argv)
 
 # env init
-env = Cylinder_Rotation_Env(params={'dtr': 0.01, 'T': 1, 'rho_0': 1, 'mu' : 1/1000,
+env = Cylinder_Rotation_Env(params={'dt': 0.01, 'rho_0': 1, 'mu' : 1/1000,
                                     'traj_max_T': 20, 'dimx': 256, 'dimy': 64,
                                     'min_x' : 0,  'max_x' : 2.2, 
                                     'min_y' : 0,  'max_y' : 0.41, 
@@ -36,7 +36,7 @@ if __name__ == '__main__':
     print(env.params)
 
     # param setting
-    dt = env.params['dtr'] * env.params['T']
+    dt = env.params['dt']
     nT = int (4 / dt)
     hf_nT = int(nT/2)
     nx = env.params['dimx']
@@ -51,7 +51,7 @@ if __name__ == '__main__':
     print(f'f2: {f2}')
     N0 = Nf * Nf
     obs = np.zeros((N0, nT+1, nx, ny, 5))
-    print(f'state_data_size :{obs.shape}')
+    print(f'obs_data_size :{obs.shape}')
     f = np.zeros((N0, nT))
     C_D, C_L = np.zeros((N0, nT)), np.zeros((N0, nT))
 

@@ -12,7 +12,7 @@ class Cylinder_Rotation_Sim:
 
         min_x, max_x, min_y, max_y = params['min_x'], params['max_x'], params['min_y'], params['max_y']
         r, center = params['r'], params['center']
-        dt = params['dtr'] * params['T']
+        dt = params['dt']
         geometry = MyGeometry(min_x = min_x, max_x = max_x, min_y = min_y,max_y = max_y, r = r, center=center)
         function_space = MyFunctionSpace(geometry, )
         solver = MySolver(geometry, function_space, params=params)
