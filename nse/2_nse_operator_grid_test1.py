@@ -11,8 +11,8 @@ def get_args(argv=None):
     parser.add_argument('-lf', '--logs_fname', default='test', type=str, help='logs file name')
     
     parser.add_argument('-L', '--L', default=2, type=int, help='the number of layers')
-    parser.add_argument('-m', '--modes', default=16, type=int, help='the number of modes of Fourier layer')
-    parser.add_argument('-w', '--width', default=32, type=int, help='the number of width of FNO layer')
+    parser.add_argument('-m', '--modes', default=12, type=int, help='the number of modes of Fourier layer')
+    parser.add_argument('-w', '--width', default=20, type=int, help='the number of width of FNO layer')
     
     parser.add_argument('--phys_gap', default=2, type=int, help = 'Number of gap of Phys')
     parser.add_argument('--phys_epochs', default=1, type=int, help = 'Number of Phys Epochs')
@@ -97,6 +97,8 @@ if __name__=='__main__':
             for param in list(nse_model.phys_model.parameters()):
                 param.requires_grad = True
         # nse_model.save_log(logs)
+        logs['pred_model'].append(copy.deepcopy(nse_model.pred_model.state_dict()))
+        logs['phys_model'].append(copy.deepcopy(nse_model.phys_model.state_dict()))
         nse_model.test(test_loader, logs)
 
     torch.save([nse_model.pred_model.state_dict(), nse_model.phys_model.state_dict(), logs], logs_fname)
