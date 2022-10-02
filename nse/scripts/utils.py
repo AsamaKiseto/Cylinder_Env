@@ -225,9 +225,9 @@ class LoadData:
             ctr_min, ctr_range = logs['data_norm']['ctr']
             obs_min, obs_range = logs['data_norm']['obs']
 
-            self.Cd = self.Cd * Cd_range + Cd_min
-            self.Cl = self.Cl * Cl_range + Cl_min
-            self.obs = self.obs * obs_range + obs_min
+            self.Cd = (self.Cd - Cd_min) / Cd_range
+            self.Cl = (self.Cl - Cl_min) / Cl_range
+            self.obs = (self.obs - obs_min) / obs_range
 
             self.norm['Cd'] = [Cd_min, Cd_range]
             self.norm['Cl'] = [Cl_min, Cl_range]

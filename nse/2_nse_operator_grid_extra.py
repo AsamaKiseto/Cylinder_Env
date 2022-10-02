@@ -56,7 +56,7 @@ if __name__=='__main__':
     Ng = args.Ng
     data = LoadData(data_path)
     obs, Cd, Cl, ctr = data.split(Ng, tg)
-    logs['data_norm'] = data.normalize(method = 'logs_norm', logs = model_log)
+    logs['data_norm'] = data.normalize(method = 'logs_unif', logs = model_log)
     logs['pred_model'] = []
     logs['phys_model'] = []
 
@@ -95,12 +95,12 @@ if __name__=='__main__':
             for param in list(nse_model.phys_model.parameters()):
                 param.requires_grad = False
 
-            for phys_epoch in range(1, +1):
+            for phys_epoch in range(1, nse_model.params.phys_epochs+1):
                 nse_model.phys_train(phys_epoch, train_loader)
             
             for param in list(nse_model.phys_model.parameters()):
                 param.requires_grad = True
         nse_model.save_log(logs)
         nse_model.test(test_loader, logs)
-
+    
     torch.save([nse_model.pred_model.state_dict(), nse_model.phys_model.state_dict(), logs], logs_fname)
