@@ -90,14 +90,10 @@ if __name__=='__main__':
             # freeze phys_model trained in data training
             for param in list(nse_model.phys_model.parameters()):
                 param.requires_grad = False
-
             for phys_epoch in range(1, nse_model.params.phys_epochs+1):
-                nse_model.phys_train(phys_epoch, train_loader)
-            
+                nse_model.phys_train(phys_epoch, train_loader)          
             for param in list(nse_model.phys_model.parameters()):
                 param.requires_grad = True
-        # logs['pred_model'].append(copy.deepcopy(nse_model.pred_model.state_dict()))
-        # logs['phys_model'].append(copy.deepcopy(nse_model.phys_model.state_dict()))
         if epoch % 5 == 0:
             nse_model.save_log(logs)
             nse_model.test(test_loader, logs)
