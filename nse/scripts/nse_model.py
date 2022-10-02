@@ -46,6 +46,7 @@ class NSEModel_FNO():
             x_train, y_train = x_train.to(self.device), y_train.to(self.device)
             
             self.pred_optimizer.zero_grad()
+            self.phys_optimizer.zero_grad()
             
             # split data read in train_loader
             in_train, ctr_train = x_train[:, :, :, :-1], x_train[:, 0, 0, -1]
@@ -54,21 +55,20 @@ class NSEModel_FNO():
 
             # put data to generate 4 loss
             loss1, loss2, loss3, loss4, loss6 = self.pred_loss(in_train, ctr_train, opt_train)
-
             loss_pred = lambda1 * loss1 + lambda2 * loss2 + lambda3 * loss3 + lambda4 * loss4
-            loss_pred.backward()
-            self.pred_optimizer.step()
-
-            # physical loss
-            self.phys_optimizer.zero_grad()
             mod = self.phys_model(in_train, ctr_train, out_train)
             loss5 = ((Lpde(out_train, in_train, self.dt) + mod) ** 2).mean()
+
+            loss_pred.backward()
             loss5.backward()
+
+            self.pred_optimizer.step()
             self.phys_optimizer.step()
 
             train_log.update([loss1.item(), loss2.item(), loss3.item(), loss4.item(), loss5.item(), loss6.item()])
         
         self.pred_scheduler.step()
+        self.phys_scheduler.step()
         t2 = default_timer()
 
         print('# {} train: {:1.2f} | (pred): {:1.2e}  (rec) state: {:1.2e}  ctr: {:1.2e} (latent): {:1.2e} (pde) obs: {:1.2e} pred: {:1.2e}'
