@@ -4,6 +4,7 @@ import operator
 import numpy as np
 import os, sys
 from functools import reduce
+from torch.utils.data.distributed import DistributedSampler
 from torch.utils.data import Dataset, DataLoader
 from torch.utils.data.dataset import random_split
 
@@ -255,7 +256,16 @@ class LoadData:
         tr_num = int(0.7 * self.Ndata)
         train_data, test_data = random_split(NSE_data, [tr_num, self.Ndata - tr_num])
         train_loader = DataLoader(dataset=train_data, batch_size=batch_size, shuffle=True, drop_last=True)
-        test_loader = DataLoader(dataset=test_data, batch_size=batch_size, shuffle=False, drop_last=True)
+        test_loader = DataLoader(dataset=test_data, batch_size=batch_size, shuffle=True, drop_last=True)
+        return train_loader, test_loader
+
+    def trans2DistributedSet(self, batch_size):
+        NSE_data = NSE_Dataset(self, self.mode)
+        tr_num = int(0.7 * self.Ndata)
+        train_data, test_data = random_split(NSE_data, [tr_num, self.Ndata - tr_num])
+        train_sampler, test_sampler = DistributedSampler(train_data), DistributedSampler(test_data)
+        train_loader = DataLoader(dataset=train_data, sampler=train_sampler, batch_size=batch_size, shuffle=True, drop_last=True)
+        test_loader = DataLoader(dataset=test_data, sampler=test_sampler, batch_size=batch_size, shuffle=True, drop_last=True)
         return train_loader, test_loader
     
     def trans2CheckSet(self, batch_size):
