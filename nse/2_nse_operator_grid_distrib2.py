@@ -50,12 +50,12 @@ if __name__=='__main__':
     args = get_args()
     print(args)
 
-    # 每个进程根据自己的local_rank设置应该使用的GPU
-    torch.cuda.set_device(args.local_rank)
-    device = torch.device('cuda', args.local_rank)
+    # # 每个进程根据自己的local_rank设置应该使用的GPU
+    # torch.cuda.set_device(args.local_rank)
+    # device = torch.device('cuda', args.local_rank)
 
-    # init distribution env，help contact
-    torch.distributed.init_process_group(backend='nccl')
+    # # init distribution env，help contact
+    # torch.distributed.init_process_group(backend='nccl')
 
     # logs
     logs = dict()
@@ -88,7 +88,7 @@ if __name__=='__main__':
     train_loader, test_loader = data.trans2DistributedSet(args.batch_size)
 
     # model setting
-    nse_model = NSEModel_FNO(shape, data.dt, args, device)
+    nse_model = NSEModel_FNO(shape, data.dt, args)
     params_num = nse_model.count_params()
 
     print('N0: {}, nt: {}, nx: {}, ny: {}, device: {}'.format(N0, nt, nx, ny, nse_model.device))
