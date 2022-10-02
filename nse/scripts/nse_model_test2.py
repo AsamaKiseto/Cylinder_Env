@@ -10,7 +10,6 @@ class NSEModel_FNO():
     def __init__(self, shape, dt, args):
         self.params = args
         self.dt = dt
-        self.device = torch.device('cuda:{}'.format(self.params.gpu) if torch.cuda.is_available() else 'cpu')
 
         model_params = dict()
         model_params['modes'] = self.params.modes

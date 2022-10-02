@@ -21,8 +21,8 @@ class NSEModel_FNO():
         
         self.pred_model = FNO_ensemble(model_params).to(device)
         self.phys_model = state_mo(model_params).to(device)
-        self.pred_model = torch.nn.parallel.DistributedDataParallel(self.pred_model, device_ids=[args.local_rank], output_device=args.local_rank, find_unused_parameters=True)
-        self.phys_model = torch.nn.parallel.DistributedDataParallel(self.phys_model, device_ids=[args.local_rank], output_device=args.local_rank, find_unused_parameters=True)
+        self.pred_model = torch.nn.parallel.DistributedDataParallel(self.pred_model)
+        self.phys_model = torch.nn.parallel.DistributedDataParallel(self.phys_model)
         # self.pred_model = torch.nn.parallel.DataParallel(self.pred_model)
         # self.phys_model = torch.nn.parallel.DataParallel(self.phys_model)
         self.pred_optimizer = torch.optim.Adam(self.pred_model.parameters(), lr=args.lr, weight_decay=args.wd)
@@ -47,7 +47,7 @@ class NSEModel_FNO():
         train_log = PredLog(length=self.params.batch_size)
         
         for x_train, y_train in train_loader:
-            x_train, y_train = x_train.to(self.device), y_train.to(self.device)
+            x_train, y_train = x_train.cuda(), y_train.cuda()
             
             self.pred_optimizer.zero_grad()
             self.phys_optimizer.zero_grad()
@@ -85,7 +85,7 @@ class NSEModel_FNO():
         train_log = PredLog(length=self.params.batch_size)
         
         for x_train, y_train in train_loader:
-            x_train, y_train = x_train.to(self.device), y_train.to(self.device)
+            x_train, y_train = x_train.cuda(), y_train.cuda()
             
             # split data read in train_loader
             in_train, ctr_train = x_train[:, :, :, :-1], x_train[:, 0, 0, -1]
@@ -114,7 +114,7 @@ class NSEModel_FNO():
         t3 = default_timer()
 
         for x_train, _ in train_loader:
-            x_train = x_train.to(self.device)
+            x_train = x_train.cuda()
 
             # split data read in train_loader
             in_new, ctr_new = x_train[:, :, :, :-1], x_train[:, 0, 0, -1]
@@ -144,7 +144,7 @@ class NSEModel_FNO():
         test_log = PredLog(length=self.params.batch_size)
         with torch.no_grad():
             for x_test, y_test in test_loader:
-                x_test, y_test = x_test.to(self.device), y_test.to(self.device)
+                x_test, y_test = x_test.cuda(), y_test.cuda()
                 # split data read in test_loader
                 in_test, ctr_test = x_test[:, :, :, :-1], x_test[:, 0, 0, -1]
                 out_test, Cd_test, Cl_test = y_test[:, :, :, :-2], y_test[:, 0, 0, -2], y_test[:, 0, 0, -1]
@@ -166,7 +166,7 @@ class NSEModel_FNO():
 
         with torch.no_grad():
             for x_test, y_test in data_loader:
-                x_test, y_test = x_test.to(self.device), y_test.to(self.device)
+                x_test, y_test = x_test.cuda(), y_test.cuda()
                 # split data read in test_loader
                 in_test, ctr_test = x_test[:, :, :, :-1], x_test[:, 0, 0, -1]
                 out_test, Cd_test, Cl_test = y_test[:, :, :, :-2], y_test[:, 0, 0, -2], y_test[:, 0, 0, -1]
