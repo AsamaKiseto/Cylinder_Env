@@ -85,7 +85,7 @@ if __name__=='__main__':
     shape = [nx, ny]
 
     # loader
-    train_loader, test_loader = data.trans2DistributedSet(args.batch_size)
+    train_loader, test_loader = data.trans2TrainingSet(args.batch_size)
 
     # model setting
     nse_model = NSEModel_FNO(shape, data.dt, args)
