@@ -13,14 +13,13 @@ import argparse
 
 def get_args(argv=None):
     parser = argparse.ArgumentParser(description='Put your hyperparameters')
-    parser.add_argument('-dn', '--data_name', default="test", type=str)
     parser.add_argument('-fr', '--f_range', default=2, type=float)
     parser.add_argument('-Nf', '--Nf', default=8, type=int)
 
     return parser.parse_args(argv)
 
 # env init
-env = Cylinder_Rotation_Env(params={'dtr': 0.02, 'T': 1, 'rho_0': 1, 'mu' : 1/1000,
+env = Cylinder_Rotation_Env(params={'dtr': 0.01, 'T': 1, 'rho_0': 1, 'mu' : 1/1000,
                                     'traj_max_T': 20, 'dimx': 256, 'dimy': 64,
                                     'min_x' : 0,  'max_x' : 2.2, 
                                     'min_y' : 0,  'max_y' : 0.41, 
@@ -45,10 +44,9 @@ if __name__ == '__main__':
     print(f'dt: {dt} | nt: {nT}')
 
     # data generate
-    Nf = args.Nf + 1
-    fr = args.f_range
-    f1 = np.linspace(-fr, fr, Nf)
-    f2 = np.linspace(-fr, fr, Nf)
+    Nf = 5
+    f1 = np.linspace(1, 2, Nf)
+    f2 = np.linspace(1, 2, Nf)
     print(f'f1: {f1}')
     print(f'f2: {f2}')
     N0 = Nf * Nf
@@ -108,6 +106,6 @@ if __name__ == '__main__':
     # save data
     # torch.save(data, './data/nse_data_N0_{}_nT_{}_f1_{}_f2_{}'.format(N0, nT, args.f1, args.f2))
     # torch.save(data_v, './data/nse_data_irr')
-    torch.save(data, f'./data/nse_data_reg_fr_{args.f_range}_dt_{dt}')
+    torch.save(data, f'./data/nse_data_reg_extra')
     # torch.save(data, f'./data/test_data/nse_data_reg_scale_{args.scale}_{args.data_name}')
     # torch.save(data, './data/nse_data_test1')
