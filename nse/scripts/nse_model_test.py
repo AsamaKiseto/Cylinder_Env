@@ -10,7 +10,7 @@ class NSEModel_FNO():
     def __init__(self, shape, dt, args, device):
         self.params = args
         self.dt = dt
-        self.device = torch.device('cuda:{}'.format(self.params.gpu) if torch.cuda.is_available() else 'cpu')
+        # self.device = torch.device('cuda:{}'.format(self.params.gpu) if torch.cuda.is_available() else 'cpu')
 
         model_params = dict()
         model_params['modes'] = self.params.modes
@@ -23,6 +23,8 @@ class NSEModel_FNO():
         self.phys_model = state_mo(model_params).to(device)
         self.pred_model = torch.nn.parallel.DistributedDataParallel(self.pred_model, device_ids=[args.local_rank], output_device=args.local_rank, find_unused_parameters=True)
         self.phys_model = torch.nn.parallel.DistributedDataParallel(self.phys_model, device_ids=[args.local_rank], output_device=args.local_rank, find_unused_parameters=True)
+        # self.pred_model = torch.nn.parallel.DataParallel(self.pred_model)
+        # self.phys_model = torch.nn.parallel.DataParallel(self.phys_model)
         self.pred_optimizer = torch.optim.Adam(self.pred_model.parameters(), lr=args.lr, weight_decay=args.wd)
         self.phys_optimizer = torch.optim.Adam(self.phys_model.parameters(), lr=args.lr * 5, weight_decay=args.wd)
         self.pred_scheduler = torch.optim.lr_scheduler.StepLR(self.pred_optimizer, step_size=args.step_size, gamma=args.gamma)
@@ -193,8 +195,8 @@ class NSEModel_FNO():
         self.phys_model.load_state_dict(phys_log)
     
     def save_log(self, logs):
-        logs['pred_model'].append(copy.deepcopy(self.pred_model.module.cpu().state_dict()))
-        logs['phys_model'].append(copy.deepcopy(self.phys_model.module.cpu().state_dict()))
+        logs['pred_model'].append(copy.deepcopy(self.pred_model.module.state_dict()))
+        logs['phys_model'].append(copy.deepcopy(self.phys_model.module.state_dict()))
 
     def pred_loss(self, ipt, ctr, opt):
         opt, Cd, Cl = opt
