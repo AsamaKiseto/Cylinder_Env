@@ -7,7 +7,7 @@ from scripts.models import *
 from scripts.utils import *
 
 class NSEModel_FNO():
-    def __init__(self, shape, dt, args, device):
+    def __init__(self, shape, dt, args):
         self.params = args
         self.dt = dt
         # self.device = torch.device('cuda:{}'.format(self.params.gpu) if torch.cuda.is_available() else 'cpu')
@@ -19,8 +19,8 @@ class NSEModel_FNO():
         model_params['shape'] = shape
         model_params['f_channels'] = self.params.f_channels
         
-        self.pred_model = FNO_ensemble(model_params).to(device)
-        self.phys_model = state_mo(model_params).to(device)
+        self.pred_model = FNO_ensemble(model_params).cuda()
+        self.phys_model = state_mo(model_params).cuda()
         self.pred_model = torch.nn.parallel.DistributedDataParallel(self.pred_model)
         self.phys_model = torch.nn.parallel.DistributedDataParallel(self.phys_model)
         # self.pred_model = torch.nn.parallel.DataParallel(self.pred_model)
