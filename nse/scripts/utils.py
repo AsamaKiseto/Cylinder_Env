@@ -168,7 +168,7 @@ class LoadData:
         self.get_params()
         return self.obs, self.Cd, self.Cl, self.ctr
 
-    def normalize(self, method = 'norm', logs = None):
+    def normalize(self, method = 'unif', logs = None):
         if method == 'norm':
             Cd_mean = self.Cd.mean()
             Cd_var = torch.sqrt(((self.Cd-Cd_mean)**2).mean())
