@@ -193,6 +193,10 @@ class NSEModel_FNO():
     def save_log(self, logs):
         logs['pred_model'].append(copy.deepcopy(self.pred_model.state_dict()))
         logs['phys_model'].append(copy.deepcopy(self.phys_model.state_dict()))
+    
+    def save_log_cpu(self, logs):
+        logs['pred_model'].append(copy.deepcopy(self.pred_model.cpu().state_dict()))
+        logs['phys_model'].append(copy.deepcopy(self.phys_model.cpu().state_dict()))
 
     def pred_loss(self, ipt, ctr, opt):
         opt, Cd, Cl = opt

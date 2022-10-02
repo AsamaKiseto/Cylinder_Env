@@ -96,9 +96,9 @@ if __name__=='__main__':
             
             for param in list(nse_model.phys_model.parameters()):
                 param.requires_grad = True
-        nse_model.save_log_cpu(logs)
-        # logs['pred_model'].append(copy.deepcopy(nse_model.pred_model.cpu().state_dict()))
-        # logs['phys_model'].append(copy.deepcopy(nse_model.phys_model.cpu().state_dict()))
+        logs['pred_model'].append(copy.deepcopy(nse_model.pred_model.cpu().state_dict()))
+        logs['phys_model'].append(copy.deepcopy(nse_model.phys_model.cpu().state_dict()))
+        # nse_model.save_log(logs)
         nse_model.test(test_loader, logs)
 
     torch.save([nse_model.pred_model.state_dict(), nse_model.phys_model.state_dict(), logs], logs_fname)
