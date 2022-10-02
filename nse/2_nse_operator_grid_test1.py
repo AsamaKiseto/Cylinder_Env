@@ -7,7 +7,7 @@ from scripts.nse_model import *
 def get_args(argv=None):
     parser = argparse.ArgumentParser(description = 'Put your hyperparameters')
 
-    parser.add_argument('-dp', '--data_path', default='nse_data_reg', type=str, help='data path name')
+    parser.add_argument('-dp', '--data_path', default='nse_data_reg_1.0', type=str, help='data path name')
     parser.add_argument('-lf', '--logs_fname', default='test', type=str, help='logs file name')
     
     parser.add_argument('-L', '--L', default=2, type=int, help='the number of layers')
