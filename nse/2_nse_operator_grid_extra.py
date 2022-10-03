@@ -11,7 +11,7 @@ def get_args(argv=None):
     parser.add_argument('-lf', '--logs_fname', default='test', type=str, help='logs file name')
     
     parser.add_argument('--phys_gap', default=20, type=int, help = 'Number of gap of Phys')
-    parser.add_argument('--phys_epochs', default=10, type=int, help = 'Number of Phys Epochs')
+    parser.add_argument('--phys_epochs', default=5, type=int, help = 'Number of Phys Epochs')
     parser.add_argument('--phys_steps', default=2, type=int, help = 'Number of Phys Steps')
     parser.add_argument('--phys_scale', default=0.05, type=float, help = 'Number of Phys Scale')
 
@@ -37,14 +37,12 @@ if __name__=='__main__':
 
     args.phys_gap = ipt_args.phys_gap
     args.phys_epochs = ipt_args.phys_epochs
-    args.phys_scale = ipt_args.phys_scale
+    # args.phys_scale = ipt_args.phys_scale
 
     args.batch_size = ipt_args.batch_size
     args.epochs = ipt_args.epochs
     args.step_size = ipt_args.step_size
     args.lr = ipt_args.lr
-
-    args.phys_scale = ipt_args.phys_scale
     
     # log setting
     logs = dict()
