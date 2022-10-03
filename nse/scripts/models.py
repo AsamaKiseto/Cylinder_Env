@@ -82,7 +82,7 @@ class FNO_layer_trans(nn.Module):
         """
         self.last = last
 
-        self.bn = nn.BatchNorm2d(width+extra_channels)
+        self.bn = nn.BatchNorm2d(width)
         self.conv = SpectralConv2d(width+extra_channels, width, modes1, modes2)
         self.w = nn.Conv2d(width+extra_channels, width, 1)
         # self.bn = torch.nn.BatchNorm2d(width)
