@@ -7,7 +7,7 @@ from scripts.nse_model import *
 def get_args(argv=None):
     parser = argparse.ArgumentParser(description = 'Put your hyperparameters')
 
-    parser.add_argument('-dp', '--data_path', default='nse_data_reg_extra', type=str, help='data path name')
+    parser.add_argument('-dp', '--data_path', default='dt_0.01', type=str, help='data path name')
     parser.add_argument('-lf', '--logs_fname', default='test', type=str, help='logs file name')
     
     parser.add_argument('--phys_gap', default=20, type=int, help = 'Number of gap of Phys')
@@ -49,7 +49,7 @@ if __name__=='__main__':
     logs['args'] = args
 
     # load data
-    data_path = 'data/' + args.data_path
+    data_path = 'data/nse_data_reg_extra_' + args.data_path
     tg = args.tg     # sample evrey 5 timestamps
     Ng = args.Ng
     data = LoadData(data_path)
