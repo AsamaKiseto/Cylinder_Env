@@ -14,9 +14,11 @@ import argparse
 def get_args(argv=None):
     parser = argparse.ArgumentParser(description='Put your hyperparameters')
     parser.add_argument('-dn', '--data_name', default="test", type=str)
-    parser.add_argument('-fr', '--f_range', default=2, type=float)
+    parser.add_argument('-fb', '--f_base', default=0, type=float)
+    parser.add_argument('-s', '--scale', default=0, type=float)
     parser.add_argument('-dt', '--dt', default=0.01, type=float)
-    parser.add_argument('-Nf', '--Nf', default=8, type=int)
+    parser.add_argument('-tg', '--tg', default=5, type=int)
+    parser.add_argument('-N0', '--N0', default=10, type=int)
 
     return parser.parse_args(argv)
 
@@ -39,22 +41,19 @@ print(env.params)
 # param setting
 dt = env.params['dt']
 nT = int (4 / dt)
-hf_nT = int(nT / 2)
+hf_nT = int(nT/2)
 nx = env.params['dimx']
 ny = env.params['dimy']
 print(f'dt: {dt} | nt: {nT}')
 
 # data generate
-Nf = args.Nf + 1
-fr = args.f_range
-f1 = np.linspace(-fr, fr, Nf)
-f2 = np.linspace(-fr, fr, Nf)
-print(f'f1: {f1}')
-print(f'f2: {f2}')
-N0 = Nf * Nf
+N0 = args.N0
+tg = args.tg
+nt = int(nT / tg)
+
 obs = np.zeros((N0, nT+1, nx, ny, 5))
 print(f'state_data_size :{obs.shape}')
-f = np.zeros((N0, nT))
+ctr = np.zeros((N0, nT))
 C_D, C_L = np.zeros((N0, nT)), np.zeros((N0, nT))
 
 # env init step
@@ -71,27 +70,24 @@ env.set_init()
 # mesh_num = obs_temp.shape[0]
 # obs_v = np.zeros((N0, nT+1, mesh_num, 5))
 
-for k in range(Nf):
-    for l in range(Nf):
-        print(f'start # {Nf * k + l + 1}')
-        start = default_timer()
+for k in range(N0):
+    ctr_temp = args.scale * (np.random.rand(nt) - 0.5) + args.f_base
+    ctr_temp = ctr_temp.reshape(nt, 1).repeat(tg, 1).reshape(-1)
+    ctr[k] = ctr_temp
 
-        # obs_v[Nf * k + l, 0] = env.reset(mode='vertex')
-        obs[Nf * k + l, 0] = env.reset(mode='grid')
-    
-        for i in range(hf_nT):
-            f[Nf * k + l, i] = f1[k]
-            obs[Nf * k + l, i+1], C_D[Nf * k + l, i], C_L[Nf * k + l, i] = env.step(f[Nf * k + l, i])
-            # obs_v[Nf * k + l, i+1], C_D[Nf * k + l, i], C_L[Nf * k + l, i] = env.step(f1[k], mode='vertex')
-        
-        for i in range(hf_nT, nT):
-            f[Nf * k + l, i] = f2[l]
-            obs[Nf * k + l, i+1], C_D[Nf * k + l, i], C_L[Nf * k + l, i] = env.step(f[Nf * k + l, i])
-            # obs_v[Nf * k + l, i+1], C_D[Nf * k + l, i], C_L[Nf * k + l, i] = env.step(f2[l], mode='vertex')
-    
-        end = default_timer()
+    print(f'start # {k}')
+    start = default_timer()
 
-        print(f'end # {Nf * k + l + 1} | time: {end-start}')
+    # obs_v[Nf * k + l, 0] = env.reset(mode='vertex')
+    obs[k, 0] = env.reset(mode='grid')
+
+    for i in range(nT):
+        obs[k, i+1], C_D[k, i], C_L[k, i] = env.step(ctr_temp[i])
+        # obs_v[Nf * k + l, i+1], C_D[Nf * k + l, i], C_L[Nf * k + l, i] = env.step(f1[k], mode='vertex')
+
+    end = default_timer()
+
+    print(f'end # {k} | time: {end-start}')
     # print(f'ang_vel: {ang_v}')
     # print(f'reward :{reward[k]}')
 
@@ -100,7 +96,7 @@ obs_tensor = torch.Tensor(obs)
 # obs_v_tensor = torch.Tensor(obs_v)
 C_D_tensor = torch.Tensor(C_D)
 C_L_tensor = torch.Tensor(C_L)
-ctr_tensor = torch.Tensor(f)
+ctr_tensor = torch.Tensor(ctr)
 
 data = [obs_tensor, C_D_tensor, C_L_tensor, ctr_tensor]
 # data_v = [obs_v_tensor, C_D_tensor, C_L_tensor, f_tensor]
@@ -108,6 +104,6 @@ data = [obs_tensor, C_D_tensor, C_L_tensor, ctr_tensor]
 # save data
 # torch.save(data, './data/nse_data_N0_{}_nT_{}_f1_{}_f2_{}'.format(N0, nT, args.f1, args.f2))
 # torch.save(data_v, './data/nse_data_irr')
-torch.save(data, f'./data/nse_data_reg_dt_{dt}_fr_{args.f_range}')
-# torch.save(data, f'./data/test_data/nse_data_reg_scale_{args.scale}_{args.data_name}')
+# torch.save(data, './data/nse_data_reg_extra')
+torch.save(data, f'./data/test_data/nse_data_reg_dt_{dt}_fb_{args.f_base}_scale_{args.scale}')
 # torch.save(data, './data/nse_data_test1')

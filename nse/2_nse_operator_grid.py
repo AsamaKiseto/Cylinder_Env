@@ -7,7 +7,7 @@ from scripts.nse_model import *
 def get_args(argv=None):
     parser = argparse.ArgumentParser(description = 'Put your hyperparameters')
 
-    parser.add_argument('-dp', '--data_path', default='nse_data_reg_1.0', type=str, help='data path name')
+    parser.add_argument('-dp', '--data_path', default='dt_0.01_fr_1.0', type=str, help='data path name')
     parser.add_argument('-lf', '--logs_fname', default='test', type=str, help='logs file name')
     
     parser.add_argument('-L', '--L', default=2, type=int, help='the number of layers')
@@ -31,8 +31,8 @@ def get_args(argv=None):
     parser.add_argument('-Ng', '--Ng', default=1, type=int, help = 'N gap')
     parser.add_argument('-l1', '--lambda1', default=1, type=float, help='weight of losses1')
     parser.add_argument('-l2', '--lambda2', default=0.1, type=float, help='weight of losses2')
-    parser.add_argument('-l3', '--lambda3', default=0.1, type=float, help='weight of losses3')
-    parser.add_argument('-l4', '--lambda4', default=0.1, type=float, help='weight of losses4')
+    parser.add_argument('-l3', '--lambda3', default=0.05, type=float, help='weight of losses3')
+    parser.add_argument('-l4', '--lambda4', default=0.5, type=float, help='weight of losses4')
     parser.add_argument('-fc', '--f_channels', default=1, type=int, help='channels of f encode')
     
     return parser.parse_args(argv)
@@ -49,7 +49,7 @@ if __name__=='__main__':
     logs_fname = 'logs/phase1_' + args.logs_fname + '_grid_pi'
 
     # load data
-    data_path = 'data/' + args.data_path
+    data_path = 'data/nse_data_reg_' + args.data_path
     tg = args.tg     # sample evrey 5 timestamps
     Ng = args.Ng
     data = LoadData(data_path)
