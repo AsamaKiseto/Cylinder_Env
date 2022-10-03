@@ -70,6 +70,7 @@ class FNO_layer(nn.Module):
         x = x1 + x2
         if not self.last:
             x = F.gelu(x)
+            x = self.bn(x)
             
         return x
 
@@ -95,6 +96,7 @@ class FNO_layer_trans(nn.Module):
         x = x1 + x2
         if not self.last:
             x = F.gelu(x)
+            x = self.bn(x)
             
         return x
 

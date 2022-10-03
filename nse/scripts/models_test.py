@@ -28,6 +28,7 @@ class SpectralConv2d(nn.Module):
     # Complex multiplication
     def compl_mul2d(self, input, weights):
         # (batch, in_channel, x, y), (in_channel, out_channel, x, y) -> (batch, out_channel, x, y)
+        print(f'inpit: {input.shape}')
         return torch.einsum("bixt,ioxt->boxt", input, weights)
 
     def forward(self, x):
