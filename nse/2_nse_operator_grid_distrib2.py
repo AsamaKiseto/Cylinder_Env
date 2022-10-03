@@ -91,7 +91,7 @@ if __name__=='__main__':
     nse_model = NSEModel_FNO(shape, data.dt, args)
     params_num = nse_model.count_params()
 
-    print('N0: {}, nt: {}, nx: {}, ny: {}, device: {}'.format(N0, nt, nx, ny, nse_model.device))
+    print('N0: {}, nt: {}, nx: {}, ny: {}'.format(N0, nt, nx, ny))
     print(f'Cd: {logs["data_norm"]["Cd"]}')
     print(f'Cl: {logs["data_norm"]["Cl"]}')
     print(f'ctr: {logs["data_norm"]["ctr"]}')
