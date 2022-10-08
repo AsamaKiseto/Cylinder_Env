@@ -14,6 +14,7 @@ t_nn = (np.arange(nt) + 1) * 0.01 * tg
 t = (np.arange(nt * tg) + 1) * 0.01 
 
 ex_nums = ['data_based', 'baseline', 'pe_20', 'pe_30', 'pe_40', 'pe_50', 'weght1', 'weght2']
+ex_nums = ['data_based', 'baseline']
 # label = ['data-based', 'phys-included']
 n_model = len(ex_nums)
 
@@ -40,7 +41,7 @@ if __name__ == '__main__':
     # data_path = 'data/nse_data_reg'
     print('load data')
     data = LoadData(data_path)
-    data.split(1, 5)
+    data.split(1, tg)
     N0, nt, nx, ny = data.get_params()
     print('load data finished')
 
@@ -64,7 +65,8 @@ if __name__ == '__main__':
         error_cul, Lpde_pred_cul = model.process(obs, Cd, Cl, ctr)
         # print(f'Lpde_nn: {Lpde_pred_cul[-1]}')
         
-        print(f'error_1step: {error_1step[-1]}')
+        print(f'error_1step: {error_1step[0]}')
+        print(f'error_cul: {error_cul[0]}')
         # print(f'Lpde_obs: {Lpde_obs[-1]}')
         # print(f'Lpde_pred: {Lpde_pred[-1]}')
 

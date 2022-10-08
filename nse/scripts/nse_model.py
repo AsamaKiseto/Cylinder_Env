@@ -167,15 +167,10 @@ class NSEModel_FNO():
                 in_test, ctr_test = x_test[:, :, :, :-1], x_test[:, 0, 0, -1]
                 out_test, Cd_test, Cl_test = y_test[:, :, :, :-2], y_test[:, 0, 0, -2], y_test[:, 0, 0, -1]
                 opt_test = [out_test, Cd_test, Cl_test]
-                loss_pred, loss_rec1, loss_rec2, loss_lat = self.pred_loss(in_test, ctr_test, opt_test)
+                loss_pred, loss_rec1, loss_rec2, loss_lat, loss_pde_pred = self.pred_loss(in_test, ctr_test, opt_test)
                 
                 mod_test = self.phys_model(in_test, ctr_test, out_test)
                 loss_pde_obs = ((Lpde(out_test, in_test, self.dt) + mod_test) ** 2).mean()
-
-                pred, _, _, _ = self.pred_model(in_test, ctr_test)
-                out_pred = pred[:, :, :, :3]
-                mod_pred = self.phys_model(in_test, ctr_test, out_pred)
-                loss_pde_pred = ((Lpde(out_pred, in_test, self.dt) + mod_pred) ** 2).mean()
 
                 loss1.update(loss_pred.item(), self.params.batch_size)
                 loss2.update(loss_rec1.item(), self.params.batch_size)
@@ -296,9 +291,9 @@ class LoadModel():
                 Lpde_obs[:, k] = ((Lpde(obs[:, k+1], obs[:, k], self.dt) + mod_obs) ** 2).reshape(N0, -1).mean()
                 mod_pred = self.phys_model(obs[:, k], ctr[:, k], pred)
                 Lpde_pred[:, k] = ((Lpde(pred, obs[:, k], self.dt) + mod_pred) ** 2).reshape(N0, -1).mean()
-                print(f'cul_Lpde: {Lpde_pred[:, k]} \n obs_Lpde: {Lpde_obs[:, k]}')
+                print(f'# {k} : pred_Lpde: {Lpde_pred[:, k].mean()} \n obs_Lpde: {Lpde_obs[:, k].mean()}')
         
-        error_1step = ((out_nn - obs[1:]) ** 2).reshape(N0, nt, -1).mean(2) + ((Cd_nn - Cd) ** 2).reshape(N0, nt, -1).mean(2) + ((Cl_nn - Cl) ** 2).reshape(N0, nt, -1).mean(2)
+        error_1step = ((out_nn - obs[:, 1:]) ** 2).reshape(N0, nt, -1).mean(2) + ((Cd_nn - Cd) ** 2).reshape(N0, nt, -1).mean(2) + ((Cl_nn - Cl) ** 2).reshape(N0, nt, -1).mean(2)
         return error_1step, Lpde_obs, Lpde_pred
 
     def process(self, obs, Cd, Cl, ctr):
@@ -309,16 +304,15 @@ class LoadModel():
             for k in range(nt):
                 pred, _, _, _ = self.pred_model(self.in_nn, ctr[:, k].reshape(N0))
                 pred = pred[..., :3]
-                out_nn[:, k] = pred.data
-                mod_pred = self.phys_model(self.in_nn, ctr[:, k].reshape(N0), pred).data
+                out_nn[:, k] = pred
+                mod_pred = self.phys_model(self.in_nn, ctr[:, k].reshape(N0), pred)
                 # print(pred.shape, mod_pred.shape, self.in_nn.shape)
-                Lpde_pred[:, k] = ((Lpde(pred, self.in_nn, self.dt) + mod_pred) ** 2).reshape(N0, -1).mean(1).data
-                Cd_nn[:, k] = torch.mean(pred[:, :, :, -2].reshape(N0, -1), 1).data
-                Cl_nn[:, k] = torch.mean(pred[:, :, :, -1].reshape(N0, -1), 1).data
+                Lpde_pred[:, k] = ((Lpde(pred, self.in_nn, self.dt) + mod_pred) ** 2).reshape(N0, -1).mean(1)
+                Cd_nn[:, k] = torch.mean(pred[:, :, :, -2].reshape(N0, -1), 1)
+                Cl_nn[:, k] = torch.mean(pred[:, :, :, -1].reshape(N0, -1), 1)
                 # print(Cd_nn[:, k], Cd[:, k])
                 # print(Cl_nn[:, k], Cl[:, k])
-                print(((pred - obs[:, k+1])**2).reshape(N0, -1).mean(1))
-                print(f'cul_Lpde: {Lpde_pred[:, k]}')
+                print(f'# {k} : cul_Lpde: {Lpde_pred[:, k].mean()} \n obs_error: {((pred - obs[:, k+1])**2).reshape(N0, -1).mean()}')
                 self.in_nn = pred
 
         # Cd_mean, Cd_var = self.data_norm['Cd']
@@ -326,7 +320,7 @@ class LoadModel():
         # Cd_nn = Cd_nn * Cd_var.item() + Cd_mean.item()
         # Cl_nn = Cl_nn * Cl_var.item() + Cl_mean.item()
 
-        error_cul = ((out_nn - obs[1:]) ** 2).reshape(N0, nt, -1).mean(2) + ((Cd_nn - Cd) ** 2).reshape(N0, nt, -1).mean(2) + ((Cl_nn - Cl) ** 2).reshape(N0, nt, -1).mean(2)
+        error_cul = ((out_nn - obs[:, 1:]) ** 2).reshape(N0, nt, -1).mean(2) + ((Cd_nn - Cd) ** 2).reshape(N0, nt, -1).mean(2) + ((Cl_nn - Cl) ** 2).reshape(N0, nt, -1).mean(2)
 
         return error_cul, Lpde_pred
         # return Cd_nn, Cl_nn, Lpde_pred
