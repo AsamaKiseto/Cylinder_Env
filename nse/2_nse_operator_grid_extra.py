@@ -54,7 +54,7 @@ if __name__=='__main__':
     Ng = args.Ng
     data = LoadData(data_path)
     obs, Cd, Cl, ctr = data.split(Ng, tg)
-    logs['data_norm'] = data.normalize(method = 'logs_unif', logs = model_log)
+    logs['data_norm'] = data.normalize(method = 'logs_unif', logs = model_log['data_norm'])
     logs['pred_model'] = []
     logs['phys_model'] = []
 

@@ -207,10 +207,10 @@ class LoadData:
             self.norm['obs'] = [obs_min, obs_range]
 
         elif method == 'logs_norm':
-            Cd_mean, Cd_var = logs['data_norm']['Cd']
-            Cl_mean, Cl_var = logs['data_norm']['Cl']
-            ctr_mean, ctr_var = logs['data_norm']['ctr']
-            obs_mean, obs_var = logs['data_norm']['obs']
+            Cd_mean, Cd_var = logs['Cd']
+            Cl_mean, Cl_var = logs['Cl']
+            ctr_mean, ctr_var = logs['ctr']
+            obs_mean, obs_var = logs['obs']
 
             self.Cd = (self.Cd - Cd_mean)/Cd_var
             self.Cl = (self.Cl - Cl_mean)/Cl_var
@@ -221,21 +221,27 @@ class LoadData:
             self.norm['obs'] = [obs_mean, obs_var]
 
         elif method == 'logs_unif':
-            Cd_min, Cd_range = logs['data_norm']['Cd']
-            Cl_min, Cl_range = logs['data_norm']['Cl']
-            ctr_min, ctr_range = logs['data_norm']['ctr']
-            obs_min, obs_range = logs['data_norm']['obs']
+            Cd_min, Cd_range = logs['Cd']
+            Cl_min, Cl_range = logs['Cl']
+            ctr_min, ctr_range = logs['ctr']
+            obs_min, obs_range = logs['obs']
 
             self.Cd = (self.Cd - Cd_min) / Cd_range
             self.Cl = (self.Cl - Cl_min) / Cl_range
             self.obs = (self.obs - obs_min) / obs_range
 
-            self.norm['Cd'] = [Cd_min, Cd_range]
-            self.norm['Cl'] = [Cl_min, Cl_range]
-            self.norm['ctr'] = [ctr_min, ctr_range]
-            self.norm['obs'] = [obs_min, obs_range]
+            self.norm = logs
 
         return self.norm
+    
+    def unnormalize(self):
+        Cd_min, Cd_range = self.norm['Cd']
+        Cl_min, Cl_range = self.norm['Cl']
+        obs_min, obs_range = self.norm['obs']
+
+        self.Cd = self.Cd * Cd_range + Cd_min
+        self.Cl = self.Cl * Cl_range + Cl_min
+        self.obs = self.obs * obs_range + obs_min
 
     def get_data(self):
         return self.obs, self.Cd, self.Cl, self.ctr
@@ -250,6 +256,12 @@ class LoadData:
         elif self.mode=='vertex':
             # print(f'N0: {self.N0}, nt: {self.nt}, nv: {self.nv}')
             return self.N0, self.nt, self.nv
+    
+    def toGPU(self):
+        self.obs = self.obs.cuda()
+        self.Cd = self.Cd.cuda()
+        self.Cl = self.Cl.cuda()
+        self.ctr = self.ctr.cuda()
     
     def trans2TrainingSet(self, batch_size):
         NSE_data = NSE_Dataset(self, self.mode)

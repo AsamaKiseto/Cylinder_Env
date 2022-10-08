@@ -277,52 +277,59 @@ class LoadModel():
         self.phys_model.load_state_dict(state_dict_phys)
         self.phys_model.eval()
     
+    def toGPU(self):
+        self.pred_model = self.pred_model.cuda()
+        self.phys_model = self.phys_model.cuda()
+    
     def cal_1step(self, obs, Cd, Cl, ctr):
-        nt, nx, ny = obs.shape[0] - 1, obs.shape[1], obs.shape[2]
-        out_nn = torch.zeros(nt, nx, ny, 3)
-        Cd_nn, Cl_nn, Lpde_obs, Lpde_pred = torch.zeros(nt), torch.zeros(nt), torch.zeros(nt), torch.zeros(nt)
-        for k in range(nt):
-            pred, _, _, _ = self.pred_model(obs[k].unsqueeze(0), ctr[k].reshape(1))
-            pred = pred[:, :, :, :3]
-            out_nn[k] = pred.squeeze()
-            Cd_nn[k] = torch.mean(pred[:, :, :, -2])
-            Cl_nn[k] = torch.mean(pred[:, :, :, -1])
-            mod_obs = self.phys_model(obs[k].unsqueeze(0), ctr[k].reshape(1), obs[k+1].unsqueeze(0))
-            Lpde_obs[k] = ((Lpde(obs[k+1].unsqueeze(0), obs[k].unsqueeze(0), self.dt) + mod_obs) ** 2).mean()
-            mod_pred = self.phys_model(obs[k].unsqueeze(0), ctr[k].reshape(1), pred)
-            Lpde_pred[k] = ((Lpde(pred, obs[k].unsqueeze(0), self.dt) + mod_pred) ** 2).mean()
+        N0, nt, nx, ny = obs.shape[0], obs.shape[1] - 1, obs.shape[2], obs.shape[3]
+        out_nn = torch.zeros(N0, nt, nx, ny, 3)
+        Cd_nn, Cl_nn, Lpde_obs, Lpde_pred = torch.zeros(N0, nt), torch.zeros(N0, nt), torch.zeros(N0, nt), torch.zeros(N0, nt)
+        with torch.no_grad():
+            for k in range(nt):
+                pred, _, _, _ = self.pred_model(obs[:, k], ctr[:, k])
+                pred = pred[..., :3]
+                out_nn[:, k] = pred.squeeze()
+                Cd_nn[:, k] = torch.mean(pred[:, :, :, -2].reshape(N0, -1), 1)
+                Cl_nn[:, k] = torch.mean(pred[:, :, :, -1].reshape(N0, -1), 1)
+                mod_obs = self.phys_model(obs[:, k], ctr[:, k], obs[:, k+1])
+                Lpde_obs[:, k] = ((Lpde(obs[:, k+1], obs[:, k], self.dt) + mod_obs) ** 2).reshape(N0, -1).mean()
+                mod_pred = self.phys_model(obs[:, k], ctr[:, k], pred)
+                Lpde_pred[:, k] = ((Lpde(pred, obs[:, k], self.dt) + mod_pred) ** 2).reshape(N0, -1).mean()
+                print(f'cul_Lpde: {Lpde_pred[:, k]} \n obs_Lpde: {Lpde_obs[:, k]}')
         
-        Cd_mean, Cd_var = self.data_norm['Cd']
-        Cl_mean, Cl_var = self.data_norm['Cl']
-        Cd_nn = Cd_nn * Cd_var.item() + Cd_mean.item()
-        Cl_nn = Cl_nn * Cl_var.item() + Cl_mean.item()
-        error_1step = ((out_nn - obs[1:]) ** 2).reshape(nt, -1).mean(1) + ((Cd_nn - Cd) ** 2).reshape(nt, -1).mean(1) + ((Cl_nn - Cl) ** 2).reshape(nt, -1).mean(1)
-
+        error_1step = ((out_nn - obs[1:]) ** 2).reshape(N0, nt, -1).mean(2) + ((Cd_nn - Cd) ** 2).reshape(N0, nt, -1).mean(2) + ((Cl_nn - Cl) ** 2).reshape(N0, nt, -1).mean(2)
         return error_1step, Lpde_obs, Lpde_pred
 
-    def process(self, obs, Cd, Cl, ctr, t_start):
-        nt, nx, ny = obs.shape[0] - 1, obs.shape[1], obs.shape[2]
-        out_nn = torch.zeros(nt, nx, ny, 3)
-        Cd_nn, Cl_nn, Lpde_pred = torch.zeros(nt), torch.zeros(nt), torch.zeros(nt)
-        for k in range(t_start, nt):
-            pred, _, _, _ = self.pred_model(self.in_nn, ctr[k].reshape(1))
-            pred = pred[..., :3]
-            out_nn[k] = pred.squeeze()
-            mod_pred = self.phys_model(self.in_nn, ctr[k].reshape(1), pred)
-            self.in_nn = pred
-            Lpde_pred[k] = ((Lpde(pred, self.in_nn, self.dt) + mod_pred) ** 2).mean()
-            Cd_nn[k] = torch.mean(pred[:, :, :, -2])
-            Cl_nn[k] = torch.mean(pred[:, :, :, -1])
+    def process(self, obs, Cd, Cl, ctr):
+        N0, nt, nx, ny = obs.shape[0], obs.shape[1] - 1, obs.shape[2], obs.shape[3]
+        out_nn = torch.zeros(N0, nt, nx, ny, 3)
+        Cd_nn, Cl_nn, Lpde_pred = torch.zeros(N0, nt), torch.zeros(N0, nt), torch.zeros(N0, nt)
+        with torch.no_grad():
+            for k in range(nt):
+                pred, _, _, _ = self.pred_model(self.in_nn, ctr[:, k].reshape(N0))
+                pred = pred[..., :3]
+                out_nn[:, k] = pred.data
+                mod_pred = self.phys_model(self.in_nn, ctr[:, k].reshape(N0), pred).data
+                # print(pred.shape, mod_pred.shape, self.in_nn.shape)
+                Lpde_pred[:, k] = ((Lpde(pred, self.in_nn, self.dt) + mod_pred) ** 2).reshape(N0, -1).mean(1).data
+                Cd_nn[:, k] = torch.mean(pred[:, :, :, -2].reshape(N0, -1), 1).data
+                Cl_nn[:, k] = torch.mean(pred[:, :, :, -1].reshape(N0, -1), 1).data
+                # print(Cd_nn[:, k], Cd[:, k])
+                # print(Cl_nn[:, k], Cl[:, k])
+                print(((pred - obs[:, k+1])**2).reshape(N0, -1).mean(1))
+                print(f'cul_Lpde: {Lpde_pred[:, k]}')
+                self.in_nn = pred
 
-        Cd_mean, Cd_var = self.data_norm['Cd']
-        Cl_mean, Cl_var = self.data_norm['Cl']
-        Cd_nn = Cd_nn * Cd_var.item() + Cd_mean.item()
-        Cl_nn = Cl_nn * Cl_var.item() + Cl_mean.item()
+        # Cd_mean, Cd_var = self.data_norm['Cd']
+        # Cl_mean, Cl_var = self.data_norm['Cl']
+        # Cd_nn = Cd_nn * Cd_var.item() + Cd_mean.item()
+        # Cl_nn = Cl_nn * Cl_var.item() + Cl_mean.item()
 
-        out_nn[:t_start], Cd_nn[:t_start], Cl_nn[:t_start] = obs[1:1+t_start], Cd[:t_start], Cl[:t_start]
-        error_cul = ((out_nn - obs[1:]) ** 2).reshape(nt, -1).mean(1) + ((Cd_nn - Cd) ** 2).reshape(nt, -1).mean(1) + ((Cl_nn - Cl) ** 2).reshape(nt, -1).mean(1)
+        error_cul = ((out_nn - obs[1:]) ** 2).reshape(N0, nt, -1).mean(2) + ((Cd_nn - Cd) ** 2).reshape(N0, nt, -1).mean(2) + ((Cl_nn - Cl) ** 2).reshape(N0, nt, -1).mean(2)
 
         return error_cul, Lpde_pred
+        # return Cd_nn, Cl_nn, Lpde_pred
     
     def set_init(self, state_nn):
         self.in_nn = state_nn
