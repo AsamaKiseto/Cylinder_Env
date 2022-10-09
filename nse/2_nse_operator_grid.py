@@ -19,7 +19,7 @@ def get_args(argv=None):
     parser.add_argument('--phys_steps', default=2, type=int, help = 'Number of Phys Steps')
     parser.add_argument('--phys_scale', default=0.05, type=float, help = 'Number of Phys Scale')
 
-    parser.add_argument('--batch_size', default=64, type=int, help = 'batch size')
+    parser.add_argument('--batch_size', default=32, type=int, help = 'batch size')
     parser.add_argument('--epochs', default=500, type=int, help = 'Number of Epochs')
     parser.add_argument('--lr', default=1e-3, type=float, help='learning rate')
     parser.add_argument('--wd', default=1e-4, type=float, help='weight decay')
