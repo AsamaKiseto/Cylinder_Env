@@ -68,9 +68,9 @@ class FNO_layer(nn.Module):
         x1 = self.conv(x)
         x2 = self.w(x)
         x = x1 + x2
+        x = self.bn(x)
         if not self.last:
             x = F.gelu(x)
-            # x = self.bn(x)
             
         return x
 
@@ -94,9 +94,9 @@ class FNO_layer_trans(nn.Module):
         x1 = self.conv(x)
         x2 = self.w(x)
         x = x1 + x2
+        x = self.bn(x)
         if not self.last:
             x = F.gelu(x)
-            # x = self.bn(x)
             
         return x
 
