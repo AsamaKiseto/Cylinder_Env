@@ -293,7 +293,7 @@ class LoadModel():
                 Lpde_pred[:, k] = ((Lpde(pred, obs[:, k], self.dt) + mod_pred) ** 2).reshape(N0, -1).mean()
                 print(f'# {k} : pred_Lpde: {Lpde_pred[:, k].mean()} \n obs_Lpde: {Lpde_obs[:, k].mean()}')
         
-        error_1step = ((out_nn - obs[:, 1:]) ** 2).reshape(N0, nt, -1).mean(2) + ((Cd_nn - Cd) ** 2).reshape(N0, nt, -1).mean(2) + ((Cl_nn - Cl) ** 2).reshape(N0, nt, -1).mean(2)
+        error_1step = ((out_nn - obs[:, 1:]) ** 2).reshape(N0, nt, -1).mean(2) #+ ((Cd_nn - Cd) ** 2).reshape(N0, nt, -1).mean(2) + ((Cl_nn - Cl) ** 2).reshape(N0, nt, -1).mean(2)
         return error_1step, Lpde_obs, Lpde_pred
 
     def process(self, obs, Cd, Cl, ctr):
@@ -320,7 +320,7 @@ class LoadModel():
         # Cd_nn = Cd_nn * Cd_var.item() + Cd_mean.item()
         # Cl_nn = Cl_nn * Cl_var.item() + Cl_mean.item()
 
-        error_cul = ((out_nn - obs[:, 1:]) ** 2).reshape(N0, nt, -1).mean(2) + ((Cd_nn - Cd) ** 2).reshape(N0, nt, -1).mean(2) + ((Cl_nn - Cl) ** 2).reshape(N0, nt, -1).mean(2)
+        error_cul = ((out_nn - obs[:, 1:]) ** 2).reshape(N0, nt, -1).mean(2) #+ ((Cd_nn - Cd) ** 2).reshape(N0, nt, -1).mean(2) + ((Cl_nn - Cl) ** 2).reshape(N0, nt, -1).mean(2)
 
         return error_cul, Lpde_pred
         # return Cd_nn, Cl_nn, Lpde_pred

@@ -3,11 +3,11 @@ from scripts.utils import *
 from scripts.nse_model import *
 
 # fig setting
-fig, ax = plt.subplots(nrows=1, ncols=3, figsize=(15,12), dpi=500)
+fig, ax = plt.subplots(nrows=3, ncols=1, figsize=(15,12), dpi=500)
 ax = ax.flatten()
 # plt.figure(figsize=(15, 12))
 for i in range(3):
-    ax[i] = plt.subplot2grid((1, 3), (0, i))
+    ax[i] = plt.subplot2grid((3, 1), (i, 0))
     ax[i].grid(True, lw=0.4, ls="--", c=".50")
     ax[i].set_yscale('log')
     # ax[i].set_ylabel(f'loss{i+1}', fontsize=15)
@@ -25,7 +25,8 @@ ax[2].set_xlabel("epochs", fontsize=10)
 if __name__ == '__main__':
     print('start load data')
 
-    data = LoadData('data/nse_data_reg_dt_0.01_fr_1.0')
+    # data = LoadData('data/nse_data_reg_dt_0.01_fr_1.0')
+    data = LoadData('data/test_data/nse_data_reg_dt_0.01_fb_0.0_scale_0.1')
     ex_nums = ['data_based', 'baseline']
     label = ['data_based', 'baseline']
 
@@ -37,10 +38,11 @@ if __name__ == '__main__':
     data.split(args.Ng, args.tg)
     data.normalize()
     data_loader = data.trans2CheckSet(args.batch_size)
-    _, data_loader = data.trans2TrainingSet(args.batch_size)
+    # _, data_loader = data.trans2TrainingSet(args.batch_size)
     N0, nt, nx, ny = data.get_params()
     shape = [nx, ny]
     
+    log = []
     for k in range(len(ex_nums)):
         print(ex_nums[k], label[k])
 
@@ -59,6 +61,7 @@ if __name__ == '__main__':
             t2 = default_timer()
             print(f'# {i+1} : {t2 - t1} | {loss[0, i].mean()} | {loss[1, i].mean()} | {loss[2, i].mean()}')
         print('end simulation')
+        log.append(loss)
         
         for i in range(3):
             ax[i].plot(loss[i], label=label[k])

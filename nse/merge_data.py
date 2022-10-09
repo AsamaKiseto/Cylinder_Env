@@ -5,7 +5,7 @@ name = ["nse_data_reg_dt_0.01_fb_0.0", "nse_data_reg_dt_0.01_fb_1.0", "nse_data_
 
 for j in range(len(name)):
     for i in range(10):
-        exec(f'data{i}_path = name[j] + "_scale_{scale[i]}"')
+        exec(f'data{i}_path = name[{j}] + "_scale_{scale[i]}"')
         exec(f'print(data{i}_path)')
 
     def split_data(data_path):

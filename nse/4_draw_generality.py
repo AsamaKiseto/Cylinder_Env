@@ -4,16 +4,8 @@
 import argparse
 from scripts.draw_utils import *
 
-def get_args(argv=None):
-    parser = argparse.ArgumentParser(description='Put your hyperparameters')
-    parser.add_argument('-tl', '--t_length', default=40, type=int, help='length of t for accumulate errors')
-    return parser.parse_args(argv)
-
 if __name__ == '__main__':
-    # argparser
-    args = get_args()
-    tl = args.t_length
-
+    
     nt = 80
     tg = 5
     t_nn = (np.arange(nt) + 1) * 0.01 * tg

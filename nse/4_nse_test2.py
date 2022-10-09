@@ -13,7 +13,7 @@ nt = 80
 t_nn = (np.arange(nt) + 1) * 0.01 * tg
 t = (np.arange(nt * tg) + 1) * 0.01 
 
-# ex_nums = ['data_based', 'baseline', 'pe_20', 'pe_30', 'pe_40', 'pe_50', 'weght1', 'weght2']
+ex_nums = ['data_based', 'baseline', 'pe_20', 'pe_30', 'pe_40', 'pe_50', 'weght1', 'weght2']
 ex_nums = ['data_based', 'baseline']
 scale = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
 # label = ['data-based', 'phys-included']
@@ -22,7 +22,7 @@ n_model = len(ex_nums)
 def calMean(data_list):
     ans = []
     for data in data_list:
-        data = data.reshape(10, 10, -1).mean(1)
+        data = data.reshape(10, 10, -1).mean(0)
         ans.append(data)
     return ans
         
@@ -66,7 +66,7 @@ if __name__ == '__main__':
 
         data.unnormalize()
         log_data = [error_1step, Lpde_obs, Lpde_pred, error_cul, Lpde_pred_cul]
-        torch.save(log_data, 'logs/phase1_test_' + ex_nums[k])
+        torch.save(log_data, 'logs/phase1_test' + ex_nums[k])
 
     for k in range(n_model):
         # fig setting
@@ -98,5 +98,5 @@ if __name__ == '__main__':
         for i in range(4):
             ax[i].legend()
 
-        plt.savefig(f'logs/pics/coef_phase1_{ex_nums[k]}.jpg')
+        plt.savefig(f'logs/pics/coef_phase1_{ex_nums[k]}_2.jpg')
         

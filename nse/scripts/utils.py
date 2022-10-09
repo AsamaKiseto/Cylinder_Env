@@ -228,7 +228,7 @@ class LoadData:
 
             self.Cd = (self.Cd - Cd_min) / Cd_range
             self.Cl = (self.Cl - Cl_min) / Cl_range
-            self.obs = (self.obs - obs_min) / obs_range
+            # self.obs = (self.obs - obs_min) / obs_range
 
             self.norm = logs
 
@@ -282,9 +282,7 @@ class LoadData:
     
     def trans2CheckSet(self, batch_size):
         NSE_data = NSE_Dataset(self, self.mode)
-        check_num = int(0.1 * self.Ndata)
-        check_data, _ = random_split(NSE_data, [check_num, self.Ndata - check_num])
-        data_loader = DataLoader(dataset=check_data, batch_size=batch_size, shuffle=True)
+        data_loader = DataLoader(dataset=NSE_data, batch_size=batch_size, shuffle=True, drop_last=True)
         return data_loader
 
 class NSE_Dataset(Dataset):
