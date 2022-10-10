@@ -186,8 +186,9 @@ class NSEModel_FNO():
         self.phys_model.load_state_dict(phys_log)
     
     def save_log(self, logs):
-        logs['pred_model'].append(copy.deepcopy(self.pred_model.state_dict()))
-        logs['phys_model'].append(copy.deepcopy(self.phys_model.state_dict()))
+        with torch.no_grad():
+            logs['pred_model'].append(copy.deepcopy(self.pred_model.state_dict()))
+            logs['phys_model'].append(copy.deepcopy(self.phys_model.state_dict()))
 
     def pred_loss(self, ipt, ctr, opt):
         opt, Cd, Cl = opt
