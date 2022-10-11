@@ -302,3 +302,11 @@ class PredLog():
         logs['test_loss_trans_latent'].append(self.loss4.avg)
         logs['test_loss_pde_obs'].append(self.loss5.avg)
         logs['test_loss_pde_pred'].append(self.loss6.avg)
+
+
+def calMean(data_list):
+    ans = []
+    for data in data_list:
+        data = data.reshape(10, 10, -1).mean(0)
+        ans.append(data)
+    return ans

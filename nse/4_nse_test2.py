@@ -24,7 +24,6 @@ def calMean(data_list):
         data = data.reshape(10, 10, -1).mean(0)
         ans.append(data)
     return ans
-        
 
 if __name__ == '__main__':
     # load test data
@@ -88,7 +87,7 @@ if __name__ == '__main__':
         data_list = torch.load(log_path)
         error_1step, Lpde_obs, Lpde_pred, error_cul, Lpde_pred_cul = calMean(data_list)
         
-        for i in range(10):
+        for i in range(0, 4, 9):
             ax[0].plot(t_nn, error_1step[i], label=scale[i])
             ax[1].plot(t_nn, error_cul[i], label=scale[i])
             ax[2].plot(t_nn, Lpde_obs[i], label=scale[i])
@@ -97,5 +96,5 @@ if __name__ == '__main__':
         for i in range(4):
             ax[i].legend()
 
-        plt.savefig(f'logs/pics/coef_phase1_{ex_nums[k]}_2.jpg')
+        plt.savefig(f'logs/pics/coef_phase1_{ex_nums[k]}.jpg')
         

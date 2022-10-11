@@ -9,9 +9,6 @@ from scripts.draw_utils import *
 
 dt = 0.01
 tg = 5
-nt = 80
-t_nn = (np.arange(nt) + 1) * 0.01 * tg
-t = (np.arange(nt * tg) + 1) * 0.01 
 
 # ex_nums = ['data_based', 'baseline', 'pe_20', 'pe_30', 'pe_40', 'pe_50', 'weght1', 'weght2']
 ex_nums = ['data_based', 'baseline', 'data_based_bn', 'baseline_bn']
@@ -26,11 +23,9 @@ def calMean(data_list):
         ans.append(data)
     return ans
         
-
 if __name__ == '__main__':
     # load test data
     data_path = 'data/test_data/nse_data_reg_dt_0.01_fb_0.0'
-    # data_path = 'data/nse_data_reg_dt_0.01_fr_1.0'
 
     # data_path = 'data/nse_data_reg'
     print('load data')
@@ -41,6 +36,8 @@ if __name__ == '__main__':
 
     print(N0, nt, nx, ny)
     shape = [nx, ny]
+    t_nn = (np.arange(nt) + 1) * 0.01 * tg
+    t = (np.arange(nt * tg) + 1) * 0.01 
 
     for k in range(n_model):
         operator_path = 'logs/phase1_' + ex_nums[k] + '_grid_pi'
@@ -85,11 +82,11 @@ if __name__ == '__main__':
         ax[3].set_ylabel("phys loss of pred", fontsize=15)
         ax[3].set_xlabel("t", fontsize=15)
         
-        log_path = 'logs/phase1_test_' + ex_nums[k]
+        log_path = 'logs/data/phase1_test_' + ex_nums[k]
         data_list = torch.load(log_path)
         error_1step, Lpde_obs, Lpde_pred, error_cul, Lpde_pred_cul = calMean(data_list)
         
-        for i in range(10):
+        for i in range(0, 4, 9):
             ax[0].plot(t_nn, error_1step[i], label=scale[i])
             ax[1].plot(t_nn, error_cul[i], label=scale[i])
             ax[2].plot(t_nn, Lpde_obs[i], label=scale[i])

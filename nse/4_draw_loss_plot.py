@@ -1,4 +1,5 @@
-from scripts.draw_utils import *
+# from scripts.draw_utils import *
+import matplotlib.pyplot as plt 
 from scripts.utils import *
 from scripts.nse_model import *
 
@@ -14,15 +15,12 @@ for i in range(3):
     ax[i].grid(True, lw=0.4, ls="--", c=".50")
     ax[i].set_yscale('log')
     # ax[i].set_ylabel(f'loss{i+1}', fontsize=15)
-    # ax[i].set_ylim(1e-4, 1)
+    ax[i].set_ylim(1e-4, 1)
 
-ax[0].set_title("prediction", fontsize=10)
-ax[1].set_title("phys loss of obs", fontsize=10)
-ax[2].set_title("phys loss of pred", fontsize=10)
-
-ax[0].set_ylabel("loss", fontsize=10)
-ax[0].set_xlabel("epochs", fontsize=10)
-ax[1].set_xlabel("epochs", fontsize=10)
+ax[0].set_title("loss plot", fontsize=10)
+ax[0].set_ylabel("pred loss", fontsize=10)
+ax[1].set_ylabel("phys loss of obs", fontsize=10)
+ax[2].set_ylabel("phys loss of pred", fontsize=10)
 ax[2].set_xlabel("epochs", fontsize=10)
 
 if __name__ == '__main__':
@@ -66,7 +64,6 @@ if __name__ == '__main__':
         
         for i in range(3):
             ax[i].plot(loss[i], label=label[k])
-            ax[i].set_xlabel('epochs', fontsize=10)
             ax[i].legend()
         
         torch.save(loss, 'logs/data/'+ex_nums[k])
