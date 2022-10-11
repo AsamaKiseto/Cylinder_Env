@@ -27,9 +27,9 @@ ax[2].set_xlabel("epochs", fontsize=10)
 
 if __name__ == '__main__':
     print('start load data')
-
     data = LoadData('data/nse_data_reg_dt_0.01_fr_1.0')
     # data = LoadData('data/test_data/nse_data_reg_dt_0.01_fb_0.0_scale_0.1')
+    print('finish load date')
 
     N = len(ex_nums)
     print(ex_nums)
@@ -37,8 +37,8 @@ if __name__ == '__main__':
     args, data_norm = logs_base['args'], logs_base['data_norm']
 
     data.split(args.Ng, args.tg)
-    data.normalize()
-    data_loader = data.trans2CheckSet(args.batch_size)
+    data.normalize('logs_unif', data_norm)
+    data_loader = data.trans2CheckSet(0.2, args.batch_size)
     # _, data_loader = data.trans2TrainingSet(args.batch_size)
     N0, nt, nx, ny = data.get_params()
     shape = [nx, ny]
@@ -68,5 +68,7 @@ if __name__ == '__main__':
             ax[i].plot(loss[i], label=label[k])
             ax[i].set_xlabel('epochs', fontsize=10)
             ax[i].legend()
+        
+        torch.save(loss, 'logs/data/'+ex_nums[k])
 
     plt.savefig('logs/loss_plot.jpg')

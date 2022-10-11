@@ -14,7 +14,8 @@ import argparse
 def get_args(argv=None):
     parser = argparse.ArgumentParser(description='Put your hyperparameters')
     parser.add_argument('-dn', '--data_name', default="test", type=str)
-    parser.add_argument('-fr', '--f_range', default=2, type=float)
+    parser.add_argument('-fr', '--f_range', default=1, type=float)
+    parser.add_argument('-fb', '--f_base', default=0, type=float)
     parser.add_argument('-dt', '--dt', default=0.01, type=float)
     parser.add_argument('-Nf', '--Nf', default=8, type=int)
 
@@ -47,8 +48,9 @@ print(f'dt: {dt} | nt: {nT}')
 # data generate
 Nf = args.Nf + 1
 fr = args.f_range
-f1 = np.linspace(-fr, fr, Nf)
-f2 = np.linspace(-fr, fr, Nf)
+fb = args.f_base
+f1 = np.linspace(-fr + fb, fr + fb, Nf)
+f2 = np.linspace(-fr + fb, fr + fb, Nf)
 print(f'f1: {f1}')
 print(f'f2: {f2}')
 N0 = Nf * Nf
@@ -108,6 +110,6 @@ data = [obs_tensor, C_D_tensor, C_L_tensor, ctr_tensor]
 # save data
 # torch.save(data, './data/nse_data_N0_{}_nT_{}_f1_{}_f2_{}'.format(N0, nT, args.f1, args.f2))
 # torch.save(data_v, './data/nse_data_irr')
-torch.save(data, f'./data/nse_data_reg_dt_{dt}_fr_{args.f_range}')
+torch.save(data, f'./data/nse_data_reg_dt_{dt}_fb_{args.f_base}_fr_{args.f_range}')
 # torch.save(data, f'./data/test_data/nse_data_reg_scale_{args.scale}_{args.data_name}')
 # torch.save(data, './data/nse_data_test1')

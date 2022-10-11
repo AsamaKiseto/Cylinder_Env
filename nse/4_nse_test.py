@@ -66,7 +66,7 @@ if __name__ == '__main__':
 
         data.unnormalize()
         log_data = [error_1step, Lpde_obs, Lpde_pred, error_cul, Lpde_pred_cul]
-        torch.save(log_data, 'logs/phase1_test_' + ex_nums[k])
+        torch.save(log_data, 'logs/data/phase1_test_' + ex_nums[k])
 
     for k in range(n_model):
         # fig setting

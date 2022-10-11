@@ -13,8 +13,7 @@ nt = 80
 t_nn = (np.arange(nt) + 1) * 0.01 * tg
 t = (np.arange(nt * tg) + 1) * 0.01 
 
-ex_nums = ['data_based', 'baseline', 'pe_20', 'pe_30', 'pe_40', 'pe_50', 'weght1', 'weght2']
-ex_nums = ['data_based', 'baseline']
+ex_nums = ['ps_0.01', 'ps_0.03', 'ps_0.08', 'ps_0.1']
 scale = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
 # label = ['data-based', 'phys-included']
 n_model = len(ex_nums)

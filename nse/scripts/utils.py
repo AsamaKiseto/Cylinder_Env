@@ -232,6 +232,13 @@ class LoadData:
         train_loader = DataLoader(dataset=train_data, batch_size=batch_size, shuffle=True, drop_last=True)
         test_loader = DataLoader(dataset=test_data, batch_size=batch_size, shuffle=True, drop_last=True)
         return train_loader, test_loader
+    
+    def trans2CheckSet(self, rate, batch_size):
+        NSE_data = NSE_Dataset(self, self.mode)
+        tr_num = int(rate * self.Ndata)
+        check_data, _ = random_split(NSE_data, [tr_num, self.Ndata - tr_num])
+        data_loader = DataLoader(dataset=check_data, batch_size=batch_size, shuffle=True, drop_last=True)
+        return data_loader
 
     def trans2DistributedSet(self, batch_size):
         NSE_data = NSE_Dataset(self, self.mode)
@@ -241,11 +248,6 @@ class LoadData:
         train_loader = DataLoader(dataset=train_data, sampler=train_sampler, batch_size=batch_size)
         test_loader = DataLoader(dataset=test_data, sampler=test_sampler, batch_size=batch_size)
         return train_loader, test_loader
-    
-    def trans2CheckSet(self, batch_size):
-        NSE_data = NSE_Dataset(self, self.mode)
-        data_loader = DataLoader(dataset=NSE_data, batch_size=batch_size, shuffle=True, drop_last=True)
-        return data_loader
 
 class NSE_Dataset(Dataset):
     def __init__(self, data, mode='grid'):
