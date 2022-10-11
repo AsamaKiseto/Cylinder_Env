@@ -203,7 +203,7 @@ class LoadData:
 
         self.Cd = self.Cd * Cd_range + Cd_min
         self.Cl = self.Cl * Cl_range + Cl_min
-        self.obs = self.obs * obs_range + obs_min
+        # self.obs = self.obs * obs_range + obs_min
 
     def get_data(self):
         return self.obs, self.Cd, self.Cl, self.ctr

@@ -2,6 +2,9 @@ from scripts.draw_utils import *
 from scripts.utils import *
 from scripts.nse_model import *
 
+ex_nums = ['data_based', 'baseline', 'data_based_bn', 'baseline_bn']
+label = ['data_based', 'baseline', 'data_based_bn', 'baseline_bn']
+
 # fig setting
 fig, ax = plt.subplots(nrows=3, ncols=1, figsize=(15,12), dpi=500)
 ax = ax.flatten()
@@ -25,10 +28,8 @@ ax[2].set_xlabel("epochs", fontsize=10)
 if __name__ == '__main__':
     print('start load data')
 
-    # data = LoadData('data/nse_data_reg_dt_0.01_fr_1.0')
-    data = LoadData('data/test_data/nse_data_reg_dt_0.01_fb_0.0_scale_0.1')
-    ex_nums = ['data_based', 'baseline']
-    label = ['data_based', 'baseline']
+    data = LoadData('data/nse_data_reg_dt_0.01_fr_1.0')
+    # data = LoadData('data/test_data/nse_data_reg_dt_0.01_fb_0.0_scale_0.1')
 
     N = len(ex_nums)
     print(ex_nums)
