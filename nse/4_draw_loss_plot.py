@@ -38,7 +38,7 @@ if __name__ == '__main__':
 
     data.split(args.Ng, args.tg)
     data.normalize('logs_unif', data_norm)
-    data_loader = data.trans2CheckSet(0.2, args.batch_size)
+    data_loader = data.trans2CheckSet(0.1, args.batch_size)
     # _, data_loader = data.trans2TrainingSet(args.batch_size)
     N0, nt, nx, ny = data.get_params()
     shape = [nx, ny]

@@ -14,6 +14,7 @@ import argparse
 def get_args(argv=None):
     parser = argparse.ArgumentParser(description='Put your hyperparameters')
     parser.add_argument('-dn', '--data_name', default="test", type=str)
+    parser.add_argument('-Tr', '--Tr', default=4, type=float)
     parser.add_argument('-fr', '--f_range', default=1, type=float)
     parser.add_argument('-fb', '--f_base', default=0, type=float)
     parser.add_argument('-dt', '--dt', default=0.01, type=float)
@@ -39,7 +40,8 @@ print(env.params)
 
 # param setting
 dt = env.params['dt']
-nT = int (4 / dt)
+Tr = args.Tr
+nT = int (Tr / dt)
 hf_nT = int(nT / 2)
 nx = env.params['dimx']
 ny = env.params['dimy']
