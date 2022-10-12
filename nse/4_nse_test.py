@@ -39,14 +39,19 @@ if __name__ == '__main__':
     t_nn = (np.arange(nt) + 1) * 0.01 * tg
     t = (np.arange(nt * tg) + 1) * 0.01 
 
+    data.normalize()
+    obs, Cd, Cl, ctr = data.get_data()
+    in_nn = obs[:, 0]
+
     for k in range(n_model):
         operator_path = 'logs/phase1_' + ex_nums[k] + '_grid_pi'
         model = LoadModel(operator_path, shape)
-        data.normalize('logs_unif', model.data_norm)
-        print(model.data_norm)
-        obs, Cd, Cl, ctr = data.get_data()
-        in_nn = obs[:, 0]
+        # data.normalize('logs_unif', model.data_norm)
+        # data.normalize()
+        # print(model.data_norm)
+        # obs, Cd, Cl, ctr = data.get_data()
         
+        # in_nn = obs[:, 0]
         model.set_init(in_nn)
 
         error_1step, Lpde_obs, Lpde_pred, error_Cd_1step, error_Cl_1step = model.cal_1step(obs, Cd, Cl, ctr)
@@ -58,7 +63,7 @@ if __name__ == '__main__':
         # print(f'Lpde_obs: {Lpde_obs[-1]}')
         # print(f'Lpde_pred: {Lpde_pred[-1]}')
 
-        data.unnormalize()
+        # data.unnormalize()
         log_data = [error_1step, Lpde_obs, Lpde_pred, error_cul, Lpde_pred_cul, error_Cd_1step, error_Cl_1step, error_Cd_cul, error_Cl_cul]
         torch.save(log_data, 'logs/data/phase1_test_' + ex_nums[k])
 
@@ -92,7 +97,7 @@ if __name__ == '__main__':
         for i in range(4):
             ax[i].legend()
 
-        plt.savefig(f'logs/pics/coef_phase1_{ex_nums[k]}.jpg')
+        plt.savefig(f'logs/pics/phase1_{ex_nums[k]}.jpg')
     
     for k in range(n_model):
         # fig setting
@@ -124,5 +129,5 @@ if __name__ == '__main__':
         for i in range(4):
             ax[i].legend()
 
-        plt.savefig(f'logs/pics/coef_phase1_coef_{ex_nums[k]}.jpg')
+        plt.savefig(f'logs/pics/phase1_coef_{ex_nums[k]}.jpg')
         
