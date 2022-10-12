@@ -10,11 +10,11 @@ from scripts.draw_utils import *
 dt = 0.01
 tg = 5
 
-# ex_nums = ['data_based', 'baseline', 'pe_20', 'pe_30', 'pe_40', 'pe_50', 'weght1', 'weght2']
-ex_nums = ['data_based', 'baseline', 'ps_0.01', 'ps_0.03', 'ps_0.08', 'ps_0.1']
+# ex_nums = ['data_based', 'baseline', 'ps_0.01', 'ps_0.03', 'ps_0.08', 'ps_0.1']
+ex_nums = ['pe_20', 'pe_30', 'pe_40', 'pe_50']
+ex_nums = ['pe_30']
 # ex_nums = ['ps_0.01', 'ps_0.03', 'baseline', 'ps_0.08', 'ps_0.1']
 scale = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
-# label = ['data-based', 'phys-included']
 n_model = len(ex_nums)
 
 def calMean(data_list):
@@ -114,10 +114,10 @@ if __name__ == '__main__':
             ax[i].set_ylim(1e-3, 1e1)
             
         ax[0].set_title("Error/Loss in Different Scales", fontsize=15)
-        ax[0].set_ylabel(r"One-step C_D loss", fontsize=10)
-        ax[1].set_ylabel(r"One-step C_L loss", fontsize=10)
-        ax[2].set_ylabel(r"Cul C_D loss", fontsize=10)
-        ax[3].set_ylabel(r"Cul C_L loss", fontsize=10)
+        ax[0].set_ylabel(r"One-step $C_D$ loss", fontsize=10)
+        ax[1].set_ylabel(r"One-step $C_L$ loss", fontsize=10)
+        ax[2].set_ylabel(r"Cul $C_D$ loss", fontsize=10)
+        ax[3].set_ylabel(r"Cul $C_L$ loss", fontsize=10)
         ax[3].set_xlabel("t", fontsize=10)
         
         log_path = 'logs/data/phase1_test_' + ex_nums[k] + test_data_name

@@ -2,20 +2,18 @@ import numpy as np
 import matplotlib.pyplot as plt 
 import torch
 
-from scripts.nse_model_test import *
+from scripts.models import *
+from scripts.nse_model import *
 from scripts.utils import *
 from scripts.draw_utils import *
 
 dt = 0.01
 tg = 5
-nt = 80
-t_nn = (np.arange(nt) + 1) * 0.01 * tg
-t = (np.arange(nt * tg) + 1) * 0.01 
 
-ex_nums = ['ps_0.01', 'ps_0.03', 'ps_0.08', 'ps_0.1']
-ex_nums = ['data_based_bn', 'baseline_bn']
+# ex_nums = ['data_based', 'baseline', 'ps_0.01', 'ps_0.03', 'ps_0.08', 'ps_0.1']
+ex_nums = ['pe_20', 'pe_30']
+# ex_nums = ['ps_0.01', 'ps_0.03', 'baseline', 'ps_0.08', 'ps_0.1']
 scale = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
-# label = ['data-based', 'phys-included']
 n_model = len(ex_nums)
 
 def calMean(data_list):
@@ -24,10 +22,11 @@ def calMean(data_list):
         data = data.reshape(10, 10, -1).mean(1)
         ans.append(data)
     return ans
-
+        
 if __name__ == '__main__':
     # load test data
-    data_path = 'data/test_data/nse_data_reg_dt_0.01_fb_0.0'
+    test_data_name = '_fb_1.0'
+    data_path = 'data/test_data/nse_data_reg_dt_0.01' + test_data_name
 
     # data_path = 'data/nse_data_reg_dt_0.01_fr_1.0'
     print('load data')
@@ -67,7 +66,7 @@ if __name__ == '__main__':
 
         # data.unnormalize()
         log_data = [error_1step, Lpde_obs, Lpde_pred, error_cul, Lpde_pred_cul, error_Cd_1step, error_Cl_1step, error_Cd_cul, error_Cl_cul]
-        torch.save(log_data, 'logs/data/phase1_test_' + ex_nums[k])
+        torch.save(log_data, 'logs/data/phase1_test_' + ex_nums[k] + test_data_name)
 
     for k in range(n_model):
         # fig setting
@@ -78,6 +77,7 @@ if __name__ == '__main__':
             ax[i].grid(True, lw=0.4, ls="--", c=".50")
             ax[i].set_xlim(0, nt * tg * dt)
             ax[i].set_yscale('log')
+            ax[i].set_ylim(1e-3, 1e1)
             
         ax[0].set_title("Error/Loss in Different Scales", fontsize=15)
         ax[0].set_ylabel("One-step data loss", fontsize=15)
@@ -86,9 +86,9 @@ if __name__ == '__main__':
         ax[3].set_ylabel("phys loss of pred", fontsize=15)
         ax[3].set_xlabel("t", fontsize=15)
         
-        log_path = 'logs/data/phase1_test_' + ex_nums[k]
+        log_path = 'logs/data/phase1_test_' + ex_nums[k] + test_data_name
         data_list = torch.load(log_path)
-        error_1step, Lpde_obs, Lpde_pred, error_cul, Lpde_pred_cul, _, _, _, _ = calMean(data_list)
+        error_1step, Lpde_obs, Lpde_pred, error_cul, _, _, _, _, _ = calMean(data_list)
         
         for i in [0, 4, 9]:
             ax[0].plot(t_nn, error_1step[i], label=scale[i])
@@ -99,7 +99,7 @@ if __name__ == '__main__':
         for i in range(4):
             ax[i].legend()
 
-        plt.savefig(f'logs/pics/phase1_{ex_nums[k]}.jpg')
+        plt.savefig(f'logs/pics/phase1_{ex_nums[k]}' + test_data_name + '.jpg')
     
     for k in range(n_model):
         # fig setting
@@ -110,15 +110,16 @@ if __name__ == '__main__':
             ax[i].grid(True, lw=0.4, ls="--", c=".50")
             ax[i].set_xlim(0, nt * tg * dt)
             ax[i].set_yscale('log')
+            ax[i].set_ylim(1e-3, 1e1)
             
         ax[0].set_title("Error/Loss in Different Scales", fontsize=15)
-        ax[0].set_ylabel("One-step Cd loss", fontsize=15)
-        ax[1].set_ylabel("One-step Cl loss", fontsize=15)
-        ax[2].set_ylabel("Cul Cd loss", fontsize=15)
-        ax[3].set_ylabel("Cul Cl loss", fontsize=15)
-        ax[3].set_xlabel("t", fontsize=15)
+        ax[0].set_ylabel(r"One-step $C_D$ loss", fontsize=10)
+        ax[1].set_ylabel(r"One-step $C_L$ loss", fontsize=10)
+        ax[2].set_ylabel(r"Cul $C_D$ loss", fontsize=10)
+        ax[3].set_ylabel(r"Cul $C_L$ loss", fontsize=10)
+        ax[3].set_xlabel("t", fontsize=10)
         
-        log_path = 'logs/data/phase1_test_' + ex_nums[k]
+        log_path = 'logs/data/phase1_test_' + ex_nums[k] + test_data_name
         data_list = torch.load(log_path)
         _, _, _, _, _, error_Cd_1step, error_Cl_1step, error_Cd_cul, error_Cl_cul = calMean(data_list)
         
@@ -131,5 +132,4 @@ if __name__ == '__main__':
         for i in range(4):
             ax[i].legend()
 
-        plt.savefig(f'logs/pics/phase1_coef_{ex_nums[k]}.jpg')
-        
+        plt.savefig(f'logs/pics/phase1_coef_{ex_nums[k]}' + test_data_name + '.jpg')
