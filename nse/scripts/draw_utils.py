@@ -41,7 +41,7 @@ def test_plot(log_list, t_nn, scale_k, fig_name = 'test'):
         ax[i].grid(True, lw=0.4, ls="--", c=".50")
         # ax[i].set_xlim(0, t_nn[-1])
         ax[i].set_yscale('log')
-        ax[i].set_ylim()
+        ax[i].set_ylim(1e-4, 1)
         
     ax[0].set_title("Error/Loss in Different Scales", fontsize=15)
     ax[0].set_ylabel("One-step data loss", fontsize=15)
