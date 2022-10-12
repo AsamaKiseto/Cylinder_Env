@@ -342,5 +342,3 @@ class LoadModel():
     
     def set_init(self, state_nn):
         self.in_nn = state_nn
-
-    

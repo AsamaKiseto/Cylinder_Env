@@ -21,16 +21,15 @@ n_model = len(ex_nums)
 def calMean(data_list):
     ans = []
     for data in data_list:
-        data = data.reshape(10, 10, -1).mean(0)
+        data = data.reshape(10, 10, -1).mean(1)
         ans.append(data)
     return ans
 
 if __name__ == '__main__':
     # load test data
     data_path = 'data/test_data/nse_data_reg_dt_0.01_fb_0.0'
-    # data_path = 'data/nse_data_reg_dt_0.01_fr_1.0'
 
-    # data_path = 'data/nse_data_reg'
+    # data_path = 'data/nse_data_reg_dt_0.01_fr_1.0'
     print('load data')
     data = LoadData(data_path)
     data.split(1, tg)
@@ -39,22 +38,26 @@ if __name__ == '__main__':
 
     print(N0, nt, nx, ny)
     shape = [nx, ny]
+    t_nn = (np.arange(nt) + 1) * 0.01 * tg
+    t = (np.arange(nt * tg) + 1) * 0.01 
+
+    data.normalize()
+    obs, Cd, Cl, ctr = data.get_data()
+    in_nn = obs[:, 0]
 
     for k in range(n_model):
         operator_path = 'logs/phase1_' + ex_nums[k] + '_grid_pi'
         model = LoadModel(operator_path, shape)
-        data.normalize('logs_unif', model.data_norm)
-        print(model.data_norm)
-        obs, Cd, Cl, ctr = data.get_data()
-        in_nn = obs[:, 0]
+        # data.normalize('logs_unif', model.data_norm)
+        # data.normalize()
+        # print(model.data_norm)
+        # obs, Cd, Cl, ctr = data.get_data()
         
-        error_1step, Lpde_obs, Lpde_pred = torch.zeros(N0, nt), torch.zeros(N0, nt), torch.zeros(N0, nt) 
-        error_cul, Lpde_pred_cul = torch.zeros(N0, nt), torch.zeros(N0, nt)
-        
+        # in_nn = obs[:, 0]
         model.set_init(in_nn)
 
-        error_1step, Lpde_obs, Lpde_pred = model.cal_1step(obs, Cd, Cl, ctr)
-        error_cul, Lpde_pred_cul = model.process(obs, Cd, Cl, ctr)
+        error_1step, Lpde_obs, Lpde_pred, error_Cd_1step, error_Cl_1step = model.cal_1step(obs, Cd, Cl, ctr)
+        error_cul, Lpde_pred_cul, error_Cd_cul, error_Cl_cul = model.process(obs, Cd, Cl, ctr)
         # print(f'Lpde_nn: {Lpde_pred_cul[-1]}')
         
         print(f'error_1step: {error_1step[0]}')
@@ -62,13 +65,13 @@ if __name__ == '__main__':
         # print(f'Lpde_obs: {Lpde_obs[-1]}')
         # print(f'Lpde_pred: {Lpde_pred[-1]}')
 
-        data.unnormalize()
-        log_data = [error_1step, Lpde_obs, Lpde_pred, error_cul, Lpde_pred_cul]
-        torch.save(log_data, 'logs/phase1_test' + ex_nums[k])
+        # data.unnormalize()
+        log_data = [error_1step, Lpde_obs, Lpde_pred, error_cul, Lpde_pred_cul, error_Cd_1step, error_Cl_1step, error_Cd_cul, error_Cl_cul]
+        torch.save(log_data, 'logs/data/phase1_test_' + ex_nums[k])
 
     for k in range(n_model):
         # fig setting
-        fig, ax = plt.subplots(nrows=4, ncols=2, figsize=(15,12), dpi=1000)
+        fig, ax = plt.subplots(nrows=4, ncols=2, figsize=(15,12), dpi=500)
         ax = ax.flatten()
         for i in range(4):
             ax[i] = plt.subplot2grid((4, 2), (i, 0), colspan=2)
@@ -83,9 +86,9 @@ if __name__ == '__main__':
         ax[3].set_ylabel("phys loss of pred", fontsize=15)
         ax[3].set_xlabel("t", fontsize=15)
         
-        log_path = 'logs/phase1_test_' + ex_nums[k]
+        log_path = 'logs/data/phase1_test_' + ex_nums[k]
         data_list = torch.load(log_path)
-        error_1step, Lpde_obs, Lpde_pred, error_cul, Lpde_pred_cul = calMean(data_list)
+        error_1step, Lpde_obs, Lpde_pred, error_cul, Lpde_pred_cul, _, _, _, _ = calMean(data_list)
         
         for i in [0, 4, 9]:
             ax[0].plot(t_nn, error_1step[i], label=scale[i])
@@ -96,5 +99,37 @@ if __name__ == '__main__':
         for i in range(4):
             ax[i].legend()
 
-        plt.savefig(f'logs/pics/coef_phase1_{ex_nums[k]}.jpg')
+        plt.savefig(f'logs/pics/phase1_{ex_nums[k]}.jpg')
+    
+    for k in range(n_model):
+        # fig setting
+        fig, ax = plt.subplots(nrows=4, ncols=2, figsize=(15,12), dpi=500)
+        ax = ax.flatten()
+        for i in range(4):
+            ax[i] = plt.subplot2grid((4, 2), (i, 0), colspan=2)
+            ax[i].grid(True, lw=0.4, ls="--", c=".50")
+            ax[i].set_xlim(0, nt * tg * dt)
+            ax[i].set_yscale('log')
+            
+        ax[0].set_title("Error/Loss in Different Scales", fontsize=15)
+        ax[0].set_ylabel("One-step Cd loss", fontsize=15)
+        ax[1].set_ylabel("One-step Cl loss", fontsize=15)
+        ax[2].set_ylabel("Cul Cd loss", fontsize=15)
+        ax[3].set_ylabel("Cul Cl loss", fontsize=15)
+        ax[3].set_xlabel("t", fontsize=15)
+        
+        log_path = 'logs/data/phase1_test_' + ex_nums[k]
+        data_list = torch.load(log_path)
+        _, _, _, _, _, error_Cd_1step, error_Cl_1step, error_Cd_cul, error_Cl_cul = calMean(data_list)
+        
+        for i in [0, 4, 9]:
+            ax[0].plot(t_nn, error_Cd_1step[i], label=scale[i])
+            ax[1].plot(t_nn, error_Cl_1step[i], label=scale[i])
+            ax[2].plot(t_nn, error_Cd_cul[i], label=scale[i])
+            ax[3].plot(t_nn, error_Cl_cul[i], label=scale[i])
+
+        for i in range(4):
+            ax[i].legend()
+
+        plt.savefig(f'logs/pics/phase1_coef_{ex_nums[k]}.jpg')
         
