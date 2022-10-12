@@ -1,4 +1,3 @@
-import numpy as np
 from scripts.utils import *
 import matplotlib.pyplot as plt 
 import torch

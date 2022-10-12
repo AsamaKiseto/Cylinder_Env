@@ -1,10 +1,10 @@
 # from scripts.draw_utils import *
 import matplotlib.pyplot as plt 
 from scripts.utils import *
-from scripts.nse_model import *
+from scripts.nse_model_test import *
 
-ex_nums = ['data_based', 'baseline']
-label = ['data_based', 'baseline']
+ex_nums = ['data_based_bn', 'baseline_bn']
+label = ['data_based_bn', 'baseline_bn']
 
 # fig setting
 fig, ax = plt.subplots(nrows=3, ncols=1, figsize=(15,12), dpi=500)
@@ -66,4 +66,4 @@ if __name__ == '__main__':
         
         torch.save(loss, 'logs/data/loss_log_'+ex_nums[k])
 
-    plt.savefig('logs/loss_plot.jpg')
+    plt.savefig('logs/loss_plot_bn.jpg')

@@ -2,8 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt 
 import torch
 
-from scripts.models import *
-from scripts.nse_model import *
+from scripts.nse_model_test import *
 from scripts.utils import *
 from scripts.draw_utils import *
 
@@ -14,6 +13,7 @@ t_nn = (np.arange(nt) + 1) * 0.01 * tg
 t = (np.arange(nt * tg) + 1) * 0.01 
 
 ex_nums = ['ps_0.01', 'ps_0.03', 'ps_0.08', 'ps_0.1']
+ex_nums = ['data_based_bn', 'baseline_bn']
 scale = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
 # label = ['data-based', 'phys-included']
 n_model = len(ex_nums)
@@ -87,7 +87,7 @@ if __name__ == '__main__':
         data_list = torch.load(log_path)
         error_1step, Lpde_obs, Lpde_pred, error_cul, Lpde_pred_cul = calMean(data_list)
         
-        for i in range(0, 4, 9):
+        for i in [0, 4, 9]:
             ax[0].plot(t_nn, error_1step[i], label=scale[i])
             ax[1].plot(t_nn, error_cul[i], label=scale[i])
             ax[2].plot(t_nn, Lpde_obs[i], label=scale[i])

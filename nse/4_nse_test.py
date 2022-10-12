@@ -11,7 +11,7 @@ dt = 0.01
 tg = 5
 
 # ex_nums = ['data_based', 'baseline', 'pe_20', 'pe_30', 'pe_40', 'pe_50', 'weght1', 'weght2']
-ex_nums = ['data_based', 'baseline', 'data_based_bn', 'baseline_bn']
+ex_nums = ['data_based', 'baseline']
 scale = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
 # label = ['data-based', 'phys-included']
 n_model = len(ex_nums)
@@ -86,7 +86,7 @@ if __name__ == '__main__':
         data_list = torch.load(log_path)
         error_1step, Lpde_obs, Lpde_pred, error_cul, Lpde_pred_cul = calMean(data_list)
         
-        for i in range(0, 4, 9):
+        for i in [0, 4, 9]:
             ax[0].plot(t_nn, error_1step[i], label=scale[i])
             ax[1].plot(t_nn, error_cul[i], label=scale[i])
             ax[2].plot(t_nn, Lpde_obs[i], label=scale[i])

@@ -25,7 +25,7 @@ def loss_log(data, file_name, test_rate = 0.1):
     print('end simulation')
 
     data.unnormalize()
-    torch.save(loss, 'logs/data/' + file_name)
+    torch.save(loss, 'logs/data/loss_log_' + file_name)
 
 def test_log(data, file_name, ex_name):
     N0, nt, nx, ny = data.get_params()
