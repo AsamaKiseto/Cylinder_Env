@@ -295,14 +295,15 @@ class LoadModel():
                 Lpde_obs[:, k] = ((Lpde(obs[:, k+1], obs[:, k], self.dt) + mod_obs) ** 2).reshape(N0, -1).mean()
                 mod_pred = self.phys_model(obs[:, k], ctr[:, k], pred)
                 Lpde_pred[:, k] = ((Lpde(pred, obs[:, k], self.dt) + mod_pred) ** 2).reshape(N0, -1).mean()
-                error_1step[:, k] = rel_error(out_nn[:, k], obs[:, k+1]) #+ rel_error(Cd_nn[:, k], Cd[:, k]) + rel_error(Cl_nn[:, k], Cl[:, k])
-                error_Cd[:, k] = rel_error(Cd_nn[:, k], Cd[:, k])
-                error_Cl[:, k] = rel_error(Cl_nn[:, k], Cl[:, k])
+                error_1step[:, k] = rel_error(out_nn[:, k], obs[:, k+1]) 
+                error_Cd[:, k] = ((Cd_nn[:, k] - Cd[:, k]) ** 2).reshape(N0, -1).mean(1)
+                error_Cl[:, k] = ((Cl_nn[:, k] - Cl[:, k]) ** 2).reshape(N0, -1).mean(1)
                 t2 = default_timer()
                 # print(f'Cd_nn: {Cd_nn[:, k]}')
                 # print(f'Cd: {Cd[:, k]}')
-                print(f'# {k} | {t2 - t1:1.2f}: error_Cd: {error_Cd[:, k].mean():1.4f} | error_Cl: {error_Cl[:, k].mean():1.4f} | error_state: {error_1step[:, k].mean():1.4f}\
-                       | pred_Lpde: {Lpde_pred[:, k].mean():1.4f} | obs_Lpde: {Lpde_obs[:, k].mean():1.4f}')
+                if k % 5 == 0:
+                    print(f'# {k} | {t2 - t1:1.2f}: error_Cd: {error_Cd[:, k].mean():1.4f} | error_Cl: {error_Cl[:, k].mean():1.4f} | error_state: {error_1step[:, k].mean():1.4f}\
+                        | pred_Lpde: {Lpde_pred[:, k].mean():1.4f} | obs_Lpde: {Lpde_obs[:, k].mean():1.4f}')
 
         # error_1step = rel_error(out_nn, obs[:, 1:]) ((out_nn - obs[:, 1:]) ** 2).reshape(N0, nt, -1).mean(2) \
         #               + ((Cd_nn - Cd) ** 2).reshape(N0, nt, -1).mean(2) + ((Cl_nn - Cl) ** 2).reshape(N0, nt, -1).mean(2)
@@ -328,12 +329,13 @@ class LoadModel():
                 # print(Cd_nn[:, k], Cd[:, k])
                 # print(Cl_nn[:, k], Cl[:, k])
                 self.in_nn = pred
-                error_cul[:, k] = rel_error(out_nn[:, k], obs[:, k+1]) #+ rel_error(Cd_nn[:, k], Cd[:, k]) + rel_error(Cl_nn[:, k], Cl[:, k])
-                error_Cd[:, k] = rel_error(Cd_nn[:, k], Cd[:, k])
-                error_Cl[:, k] = rel_error(Cl_nn[:, k], Cl[:, k])
+                error_cul[:, k] = rel_error(out_nn[:, k], obs[:, k+1]) 
+                error_Cd[:, k] = ((Cd_nn[:, k] - Cd[:, k]) ** 2).reshape(N0, -1).mean(1)
+                error_Cl[:, k] = ((Cl_nn[:, k] - Cl[:, k]) ** 2).reshape(N0, -1).mean(1)
                 t2 = default_timer()
-                print(f'# {k} | {t2 - t1:1.2f}: error_Cd: {error_Cd[:, k].mean():1.4f} | error_Cl: {error_Cl[:, k].mean():1.4f} | \
-                        error_state: {error_cul[:, k].mean():1.4f}| cul_Lpde: {Lpde_pred[:, k].mean():1.4f}')
+                if k % 5 == 0:
+                    print(f'# {k} | {t2 - t1:1.2f}: error_Cd: {error_Cd[:, k].mean():1.4f} | error_Cl: {error_Cl[:, k].mean():1.4f} | \
+                            error_state: {error_cul[:, k].mean():1.4f}| cul_Lpde: {Lpde_pred[:, k].mean():1.4f}')
 
         # error_cul = ((out_nn - obs[:, 1:]) ** 2).reshape(N0, nt, -1).mean(2) #+ ((Cd_nn - Cd) ** 2).reshape(N0, nt, -1).mean(2) \
         #             + ((Cl_nn - Cl) ** 2).reshape(N0, nt, -1).mean(2)
