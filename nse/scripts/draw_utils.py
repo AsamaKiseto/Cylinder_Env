@@ -22,7 +22,7 @@ def loss_plot(log_list, fig_name = 'test'):
     ax[2].set_xlabel("epochs", fontsize=10)
 
     for k in range(len(log_list)):
-        loss = torch.load('logs/data/' + log_list[k])
+        loss = torch.load('logs/data/loss_log_' + log_list[k])
         for i in range(3):
             ax[i].plot(loss[i], label=log_list[k])
             ax[i].legend()

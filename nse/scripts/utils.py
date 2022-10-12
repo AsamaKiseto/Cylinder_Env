@@ -199,7 +199,7 @@ class LoadData:
     def unnormalize(self):
         Cd_min, Cd_range = self.norm['Cd']
         Cl_min, Cl_range = self.norm['Cl']
-        obs_min, obs_range = self.norm['obs']
+        # obs_min, obs_range = self.norm['obs']
 
         self.Cd = self.Cd * Cd_range + Cd_min
         self.Cl = self.Cl * Cl_range + Cl_min

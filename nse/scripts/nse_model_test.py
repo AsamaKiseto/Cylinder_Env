@@ -280,8 +280,10 @@ class LoadModel():
         N0, nt, nx, ny = obs.shape[0], obs.shape[1] - 1, obs.shape[2], obs.shape[3]
         out_nn = torch.zeros(N0, nt, nx, ny, 3)
         Cd_nn, Cl_nn, Lpde_obs, Lpde_pred = torch.zeros(N0, nt), torch.zeros(N0, nt), torch.zeros(N0, nt), torch.zeros(N0, nt)
+        error_1step, error_Cd, error_Cl = torch.zeros(N0, nt), torch.zeros(N0, nt), torch.zeros(N0, nt)
         with torch.no_grad():
             for k in range(nt):
+                t1 = default_timer()
                 pred, _, _, _ = self.pred_model(obs[:, k], ctr[:, k])
                 pred = pred[..., :3]
                 out_nn[:, k] = pred.squeeze()
@@ -291,17 +293,26 @@ class LoadModel():
                 Lpde_obs[:, k] = ((Lpde(obs[:, k+1], obs[:, k], self.dt) + mod_obs) ** 2).reshape(N0, -1).mean()
                 mod_pred = self.phys_model(obs[:, k], ctr[:, k], pred)
                 Lpde_pred[:, k] = ((Lpde(pred, obs[:, k], self.dt) + mod_pred) ** 2).reshape(N0, -1).mean()
-                print(f'# {k} : pred_Lpde: {Lpde_pred[:, k].mean()} \n obs_Lpde: {Lpde_obs[:, k].mean()}')
-        
-        error_1step = ((out_nn - obs[:, 1:]) ** 2).reshape(N0, nt, -1).mean(2) #+ ((Cd_nn - Cd) ** 2).reshape(N0, nt, -1).mean(2) + ((Cl_nn - Cl) ** 2).reshape(N0, nt, -1).mean(2)
+                error_1step[:, k] = rel_error(out_nn[:, k], obs[:, k+1]) #+ rel_error(Cd_nn[:, k], Cd[:, k]) + rel_error(Cl_nn[:, k], Cl[:, k])
+                error_Cd[:, k] = rel_error(Cd_nn[:, k], Cd[:, k])
+                error_Cl[:, k] = rel_error(Cl_nn[:, k], Cl[:, k])
+                t2 = default_timer()
+                print(f'# {k} | {t2 - t1}: error_Cd: {error_Cd[:, k].mean()} | error_Cl: {error_Cl[:, k].mean()} | error_state: {error_1step[:, k].mean()}')
+                print(f'# {k} | {t2 - t1}: pred_Lpde: {Lpde_pred[:, k].mean()} | obs_Lpde: {Lpde_obs[:, k].mean()}')
+
+        # error_1step = rel_error(out_nn, obs[:, 1:]) ((out_nn - obs[:, 1:]) ** 2).reshape(N0, nt, -1).mean(2) \
+        #               + ((Cd_nn - Cd) ** 2).reshape(N0, nt, -1).mean(2) + ((Cl_nn - Cl) ** 2).reshape(N0, nt, -1).mean(2)
         return error_1step, Lpde_obs, Lpde_pred
+        # return error_1step, error_Cd, error_Cl
 
     def process(self, obs, Cd, Cl, ctr):
         N0, nt, nx, ny = obs.shape[0], obs.shape[1] - 1, obs.shape[2], obs.shape[3]
         out_nn = torch.zeros(N0, nt, nx, ny, 3)
         Cd_nn, Cl_nn, Lpde_pred = torch.zeros(N0, nt), torch.zeros(N0, nt), torch.zeros(N0, nt)
+        error_cul, error_Cd, error_Cl = torch.zeros(N0, nt), torch.zeros(N0, nt), torch.zeros(N0, nt)
         with torch.no_grad():
             for k in range(nt):
+                t1 = default_timer()
                 pred, _, _, _ = self.pred_model(self.in_nn, ctr[:, k].reshape(N0))
                 pred = pred[..., :3]
                 out_nn[:, k] = pred
@@ -312,16 +323,16 @@ class LoadModel():
                 Cl_nn[:, k] = torch.mean(pred[:, :, :, -1].reshape(N0, -1), 1)
                 # print(Cd_nn[:, k], Cd[:, k])
                 # print(Cl_nn[:, k], Cl[:, k])
-                print(f'# {k} : cul_Lpde: {Lpde_pred[:, k].mean()} \n obs_error: {((pred - obs[:, k+1])**2).reshape(N0, -1).mean()}')
                 self.in_nn = pred
+                error_cul[:, k] = rel_error(out_nn[:, k], obs[:, k+1]) #+ rel_error(Cd_nn[:, k], Cd[:, k]) + rel_error(Cl_nn[:, k], Cl[:, k])
+                error_Cd[:, k] = rel_error(Cd_nn[:, k], Cd[:, k])
+                error_Cl[:, k] = rel_error(Cl_nn[:, k], Cl[:, k])
+                t2 = default_timer()
+                print(f'# {k} | {t2 - t1}: error_Cd: {error_Cd[:, k].mean()} | error_Cl: {error_Cl[:, k].mean()} | error_state: {error_cul[:, k].mean()}')
+                print(f'# {k} | {t2 - t1}: cul_Lpde: {Lpde_pred[:, k].mean()}')
 
-        # Cd_mean, Cd_var = self.data_norm['Cd']
-        # Cl_mean, Cl_var = self.data_norm['Cl']
-        # Cd_nn = Cd_nn * Cd_var.item() + Cd_mean.item()
-        # Cl_nn = Cl_nn * Cl_var.item() + Cl_mean.item()
-
-        error_cul = ((out_nn - obs[:, 1:]) ** 2).reshape(N0, nt, -1).mean(2) #+ ((Cd_nn - Cd) ** 2).reshape(N0, nt, -1).mean(2) + ((Cl_nn - Cl) ** 2).reshape(N0, nt, -1).mean(2)
-
+        # error_cul = ((out_nn - obs[:, 1:]) ** 2).reshape(N0, nt, -1).mean(2) #+ ((Cd_nn - Cd) ** 2).reshape(N0, nt, -1).mean(2) \
+        #             + ((Cl_nn - Cl) ** 2).reshape(N0, nt, -1).mean(2)
         return error_cul, Lpde_pred
         # return Cd_nn, Cl_nn, Lpde_pred
     
