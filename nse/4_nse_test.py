@@ -10,7 +10,7 @@ tg = 5
 
 # ex_nums = ['data_based', 'baseline', 'ps_0.01', 'ps_0.03', 'ps_0.08', 'ps_0.1']
 # ex_nums = ['ps_0.01', 'ps_0.03', 'ps_0.08', 'pe_20', 'pe_30', 'pe_40', 'pe_50']
-ex_nums = ['pe_40', 'pe_50']
+ex_nums = ['data_based', 'ps_0.1']
 # ex_nums = ['pe_30']
 # ex_nums = ['ps_0.01', 'ps_0.03', 'baseline', 'ps_0.08', 'ps_0.1']
 scale = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]

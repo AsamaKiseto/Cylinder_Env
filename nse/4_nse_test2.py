@@ -7,7 +7,7 @@ from scripts.nse_model_test import *
 dt = 0.01
 tg = 5
 
-ex_nums = ['data_based', 'baseline', 'ps_0.01', 'ps_0.03', 'ps_0.08', 'ps_0.1']
+ex_nums = ['data_based', 'ps_0.1']
 # ex_nums = ['pe_20', 'pe_30']
 # ex_nums = ['ps_0.01', 'ps_0.03', 'baseline', 'ps_0.08', 'ps_0.1']
 scale = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
@@ -22,7 +22,7 @@ def calMean(data_list):
         
 if __name__ == '__main__':
     # load test data
-    test_data_name = '_fb_1.0'
+    test_data_name = '_fb_0.0'
     data_path = 'data/test_data/nse_data_reg_dt_0.01' + test_data_name
 
     # data_path = 'data/nse_data_reg_dt_0.01_fr_1.0'

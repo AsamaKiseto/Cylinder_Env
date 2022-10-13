@@ -41,8 +41,8 @@ def test_plot(t_nn, log_list, scale_k, ex_name = 'fb_0.0', fig_name = 'test'):
         ax[i] = plt.subplot2grid((fig_num, 1), (i, 0))
         ax[i].grid(True, lw=0.4, ls="--", c=".50")
         # ax[i].set_xlim(0, t_nn[-1])
-        ax[i].set_yscale('log')
-        ax[i].set_ylim(1e-4, 1)
+        # ax[i].set_yscale('log')
+        # ax[i].set_ylim(1e-4, 1)
         
     ax[0].set_title("Error/Loss in Different Scales", fontsize=20)
     ax[0].set_ylabel("One-step data error", fontsize=20)
@@ -79,8 +79,8 @@ def test_plot(t_nn, log_list, scale_k, ex_name = 'fb_0.0', fig_name = 'test'):
         ax[i] = plt.subplot2grid((fig_num, 1), (i, 0))
         ax[i].grid(True, lw=0.4, ls="--", c=".50")
         # ax[i].set_xlim(0, t_nn[-1])
-        ax[i].set_yscale('log')
-        ax[i].set_ylim(1e-4, 1)
+        # ax[i].set_yscale('log')
+        ax[i].set_ylim(0, 0.5)
         
     ax[0].set_title("Error/Loss in Different Scales", fontsize=20)
     ax[0].set_ylabel(r'Cul $C_D$ error', fontsize=20)
@@ -136,22 +136,22 @@ def test_plot(t_nn, log_list, scale_k, ex_name = 'fb_0.0', fig_name = 'test'):
     plt.savefig(f'logs/pics/phase1_coef_1step_{fig_name}_{ex_name}.jpg')
     
     # Lpde fig setting
-    fig_num = 3
+    fig_num = 2
     fig, ax = plt.subplots(nrows=fig_num, ncols=1, figsize=(15,12), dpi=200)
     ax = ax.flatten()
     for i in range(fig_num):
         ax[i] = plt.subplot2grid((fig_num, 1), (i, 0))
         ax[i].grid(True, lw=0.4, ls="--", c=".50")
         # ax[i].set_xlim(0, t_nn[-1])
-        ax[i].set_yscale('log')
-        ax[i].set_ylim(1e-4, 1)
+        # ax[i].set_yscale('log')
+        # ax[i].set_ylim(1e-4, 1)
         
-    ax[2].set_ylim(1e-2, 1e2)
+    # ax[2].set_ylim(1e-2, 1e2)
         
     ax[0].set_title("Error/Loss in Different Scales", fontsize=20)
     ax[0].set_ylabel("PDE loss of obs", fontsize=20)
     ax[1].set_ylabel("PDE loss of pred", fontsize=20)
-    ax[2].set_ylabel("Cul PDE loss of pred", fontsize=20)
+    # ax[2].set_ylabel("Cul PDE loss of pred", fontsize=20)
     # ax[3].set_ylabel("phys loss of pred", fontsize=20)
     ax[fig_num - 1].set_xlabel("t", fontsize=20)
 
@@ -163,7 +163,7 @@ def test_plot(t_nn, log_list, scale_k, ex_name = 'fb_0.0', fig_name = 'test'):
         for j in range(len(scale_k)):
             ax[0].plot(t_nn, Lpde_obs[scale_k[j]], label = f'{log_list[k]}, scale={scale[scale_k[j]]}')
             ax[1].plot(t_nn, Lpde_pred[scale_k[j]], label = f'{log_list[k]}, scale={scale[scale_k[j]]}')
-            ax[2].plot(t_nn, Lpde_pred_cul[scale_k[j]], label = f'{log_list[k]}, scale={scale[scale_k[j]]}')
+            # ax[2].plot(t_nn, Lpde_pred_cul[scale_k[j]], label = f'{log_list[k]}, scale={scale[scale_k[j]]}')
             # ax[3].plot(t_nn, Lpde_pred[scale_k[j]], label = f'{log_list[k]}, scale={scale[scale_k[j]]}')
             
             # ax[0].fill_between(t_nn, error_1step_v[0][scale_k[j]], error_1step_v[1][scale_k[j]], alpha=0.2)
