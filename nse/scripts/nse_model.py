@@ -126,6 +126,7 @@ class NSEModel_FNO():
             pred, _, _, _ = self.pred_model(in_train, ctr_train)
             out_pred = pred[:, :, :, :3]
             mod = self.phys_model(in_train, ctr_train, out_pred)
+            # 多训练几次？  
             loss = ((Lpde(out_pred, in_train, self.dt) + mod) ** 2).mean()
             loss.backward()
             self.pred_optimizer.step()
