@@ -316,5 +316,5 @@ def calVar(data_list):
     for data in data_list:
         data_min = data.reshape(10, 10, -1).min(1)
         data_max = data.reshape(10, 10, -1).max(1)
-        ans.append([data_min, data_max])
+        ans.append([data_min.values, data_max.values])
     return ans
