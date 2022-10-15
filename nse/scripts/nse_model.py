@@ -308,6 +308,7 @@ class LoadModel():
 
     def process(self, obs, Cd, Cl, ctr):
         N0, nt, nx, ny = obs.shape[0], obs.shape[1] - 1, obs.shape[2], obs.shape[3]
+        print(f'N0: {N0}, nt: {nt}, nx: {nx}, ny: {ny}')
         out_nn, Lpde_pred = torch.zeros(N0, nt, nx, ny, 3), torch.zeros(N0, nt, nx, ny, 2)
         Cd_nn, Cl_nn = torch.zeros(N0, nt), torch.zeros(N0, nt)
         error_cul, error_Cd, error_Cl = torch.zeros(N0, nt), torch.zeros(N0, nt), torch.zeros(N0, nt)

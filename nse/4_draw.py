@@ -10,7 +10,11 @@ scale = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
 scale_k = [0, 9]
 
 print('begin plot')
+# log_list = ['data_based', 'ps_0.01', 'ps_0.03', 'baseline', 'ps_0.1', 'ps_0.2', 'ps_0.3']
+# log_list = ['data_based', 'baseline', 'ps_0.1', 'ps_0.2', 'ps_0.3']
 log_list = ['data_based', 'baseline', 'ps_0.1']
+
+# test_plot1(t_nn, log_list, scale_k, ex_name='fb_0.0', fig_name='base')
 test_plot(t_nn, log_list, scale_k, ex_name='fb_0.0', fig_name='base')
 test_plot(t_nn, log_list, scale_k, ex_name='fb_2.0', fig_name='base')
 
