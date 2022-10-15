@@ -25,7 +25,7 @@ def loss_log(data, file_name, test_rate = 0.1):
     print('end simulation')
 
     data.unnormalize()
-    torch.save(loss, 'logs/data/loss_log_' + file_name)
+    torch.save(loss, 'logs/data/losslog/loss_log_' + file_name)
 
 def test_log(data, file_name, ex_name):
     N0, nt, nx, ny = data.get_params()
@@ -35,21 +35,19 @@ def test_log(data, file_name, ex_name):
     data.normalize('logs_unif', model.data_norm)
     obs, Cd, Cl, ctr = data.get_data()
     in_nn = obs[:, 0]
-
-    error_1step, Lpde_obs, Lpde_pred = torch.zeros(N0, nt), torch.zeros(N0, nt), torch.zeros(N0, nt) 
-    error_cul, Lpde_pred_cul = torch.zeros(N0, nt), torch.zeros(N0, nt)
     
     model.set_init(in_nn)
 
-    error_1step, Lpde_obs, Lpde_pred = model.cal_1step(obs, Cd, Cl, ctr)
-    error_cul, Lpde_pred_cul = model.process(obs, Cd, Cl, ctr)
+    out_1step, Lpde_obs, Lpde_pred, error_Cd_1step, error_Cl_1step = model.cal_1step(obs, Cd, Cl, ctr)
+    out_cul, Lpde_pred_cul, error_Cd_cul, error_Cl_cul = model.process(obs, Cd, Cl, ctr)
+    
+    error_1step = ((out_1step - obs[:, 1:]) ** 2).reshape(N0, nt, -1).mean(2)
+    error_cul = ((out_cul - obs[:, 1:]) ** 2).reshape(N0, nt, -1).mean(2)
     # print(f'Lpde_nn: {Lpde_pred_cul[-1]}')
     
-    # print(f'error_1step: {error_1step[0]}')
-    # print(f'error_cul: {error_cul[0]}')
-    # print(f'Lpde_obs: {Lpde_obs[-1]}')
-    # print(f'Lpde_pred: {Lpde_pred[-1]}')
-
     data.unnormalize()
-    log_data = [error_1step, Lpde_obs, Lpde_pred, error_cul, Lpde_pred_cul]
-    torch.save(log_data, 'logs/data/phase1_test_' + file_name + '_' + ex_name)
+    log_data = [out_1step, out_cul, Lpde_obs, Lpde_pred, Lpde_pred_cul]
+    log_error = [error_1step, error_cul, error_Cd_1step, error_Cl_1step, error_Cd_cul, error_Cl_cul]
+    
+    torch.save(log_data, f'logs/data/output/phase1_test_{file_name}_{ex_name}')
+    torch.save(log_error, f'logs/data/error/phase1_test_{file_name}_{ex_name}')

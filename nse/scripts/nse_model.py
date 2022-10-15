@@ -281,8 +281,8 @@ class LoadModel():
     
     def cal_1step(self, obs, Cd, Cl, ctr):
         N0, nt, nx, ny = obs.shape[0], obs.shape[1] - 1, obs.shape[2], obs.shape[3]
-        out_nn = torch.zeros(N0, nt, nx, ny, 3)
-        Cd_nn, Cl_nn, Lpde_obs, Lpde_pred = torch.zeros(N0, nt), torch.zeros(N0, nt), torch.zeros(N0, nt), torch.zeros(N0, nt)
+        out_nn, Lpde_obs, Lpde_pred = torch.zeros(N0, nt, nx, ny, 3), torch.zeros(N0, nt, nx, ny, 2), torch.zeros(N0, nt, nx, ny, 2)
+        Cd_nn, Cl_nn = torch.zeros(N0, nt), torch.zeros(N0, nt)
         error_1step, error_Cd, error_Cl = torch.zeros(N0, nt), torch.zeros(N0, nt), torch.zeros(N0, nt)
         with torch.no_grad():
             for k in range(nt):
@@ -293,28 +293,23 @@ class LoadModel():
                 pred = pred[..., :3]
                 out_nn[:, k] = pred.squeeze()
                 mod_obs = self.phys_model(obs[:, k], ctr[:, k], obs[:, k+1])
-                Lpde_obs[:, k] = ((Lpde(obs[:, k+1], obs[:, k], self.dt) + mod_obs) ** 2).reshape(N0, -1).mean()
+                Lpde_obs[:, k] = ((Lpde(obs[:, k+1], obs[:, k], self.dt) + mod_obs) ** 2)
                 mod_pred = self.phys_model(obs[:, k], ctr[:, k], pred)
-                Lpde_pred[:, k] = ((Lpde(pred, obs[:, k], self.dt) + mod_pred) ** 2).reshape(N0, -1).mean()
+                Lpde_pred[:, k] = ((Lpde(pred, obs[:, k], self.dt) + mod_pred) ** 2)
                 error_1step[:, k] = rel_error(out_nn[:, k], obs[:, k+1]) 
-                error_Cd[:, k] = ((Cd_nn[:, k] - Cd[:, k]) ** 2).reshape(N0, -1).mean(1)
-                error_Cl[:, k] = ((Cl_nn[:, k] - Cl[:, k]) ** 2).reshape(N0, -1).mean(1)
+                error_Cd[:, k] = ((Cd_nn[:, k] - Cd[:, k]) ** 2)
+                error_Cl[:, k] = ((Cl_nn[:, k] - Cl[:, k]) ** 2)
                 t2 = default_timer()
-                # print(f'Cd_nn: {Cd_nn[:, k]}')
-                # print(f'Cd: {Cd[:, k]}')
                 if k % 5 == 0:
                     print(f'# {k} | {t2 - t1:1.2f}: error_Cd: {error_Cd[:, k].mean():1.4f} | error_Cl: {error_Cl[:, k].mean():1.4f} | error_state: {error_1step[:, k].mean():1.4f}\
                         | pred_Lpde: {Lpde_pred[:, k].mean():1.4f} | obs_Lpde: {Lpde_obs[:, k].mean():1.4f}')
 
-        # error_1step = rel_error(out_nn, obs[:, 1:]) ((out_nn - obs[:, 1:]) ** 2).reshape(N0, nt, -1).mean(2) \
-        #               + ((Cd_nn - Cd) ** 2).reshape(N0, nt, -1).mean(2) + ((Cl_nn - Cl) ** 2).reshape(N0, nt, -1).mean(2)
-        return error_1step, Lpde_obs, Lpde_pred, error_Cd, error_Cl
-        # return error_1step, error_Cd, error_Cl
+        return out_nn, Lpde_obs, Lpde_pred, error_Cd, error_Cl
 
     def process(self, obs, Cd, Cl, ctr):
         N0, nt, nx, ny = obs.shape[0], obs.shape[1] - 1, obs.shape[2], obs.shape[3]
-        out_nn = torch.zeros(N0, nt, nx, ny, 3)
-        Cd_nn, Cl_nn, Lpde_pred = torch.zeros(N0, nt), torch.zeros(N0, nt), torch.zeros(N0, nt)
+        out_nn, Lpde_pred = torch.zeros(N0, nt, nx, ny, 3), torch.zeros(N0, nt, nx, ny, 2)
+        Cd_nn, Cl_nn = torch.zeros(N0, nt), torch.zeros(N0, nt)
         error_cul, error_Cd, error_Cl = torch.zeros(N0, nt), torch.zeros(N0, nt), torch.zeros(N0, nt)
         with torch.no_grad():
             for k in range(nt):
@@ -326,13 +321,11 @@ class LoadModel():
                 out_nn[:, k] = pred
                 mod_pred = self.phys_model(self.in_nn, ctr[:, k].reshape(N0), pred)
                 # print(pred.shape, mod_pred.shape, self.in_nn.shape)
-                Lpde_pred[:, k] = ((Lpde(pred, self.in_nn, self.dt) + mod_pred) ** 2).reshape(N0, -1).mean(1)
-                # print(Cd_nn[:, k], Cd[:, k])
-                # print(Cl_nn[:, k], Cl[:, k])
+                Lpde_pred[:, k] = ((Lpde(pred, self.in_nn, self.dt) + mod_pred) ** 2)
                 self.in_nn = pred
                 error_cul[:, k] = rel_error(out_nn[:, k], obs[:, k+1]) 
-                error_Cd[:, k] = ((Cd_nn[:, k] - Cd[:, k]) ** 2).reshape(N0, -1).mean(1)
-                error_Cl[:, k] = ((Cl_nn[:, k] - Cl[:, k]) ** 2).reshape(N0, -1).mean(1)
+                error_Cd[:, k] = ((Cd_nn[:, k] - Cd[:, k]) ** 2)
+                error_Cl[:, k] = ((Cl_nn[:, k] - Cl[:, k]) ** 2)
                 t2 = default_timer()
                 if k % 5 == 0:
                     print(f'# {k} | {t2 - t1:1.2f}: error_Cd: {error_Cd[:, k].mean():1.4f} | error_Cl: {error_Cl[:, k].mean():1.4f} | \
@@ -340,7 +333,7 @@ class LoadModel():
 
         # error_cul = ((out_nn - obs[:, 1:]) ** 2).reshape(N0, nt, -1).mean(2) #+ ((Cd_nn - Cd) ** 2).reshape(N0, nt, -1).mean(2) \
         #             + ((Cl_nn - Cl) ** 2).reshape(N0, nt, -1).mean(2)
-        return error_cul, Lpde_pred, error_Cd, error_Cl
+        return out_nn, Lpde_pred, error_Cd, error_Cl
         # return Cd_nn, Cl_nn, Lpde_pred
     
     def set_init(self, state_nn):

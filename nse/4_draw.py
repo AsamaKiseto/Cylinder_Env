@@ -10,19 +10,19 @@ scale = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
 scale_k = [0, 9]
 
 print('begin plot')
-log_list = ['ps_0.1']
+log_list = ['data_based', 'baseline', 'ps_0.1']
 test_plot(t_nn, log_list, scale_k, ex_name='fb_0.0', fig_name='base')
-test_plot(t_nn, log_list, scale_k, ex_name='fb_1.0', fig_name='base')
+test_plot(t_nn, log_list, scale_k, ex_name='fb_2.0', fig_name='base')
 
-print('begin plot')
-log_list = ['ps_0.01', 'baseline', 'ps_0.1']
-test_plot(t_nn, log_list, scale_k, ex_name='fb_0.0', fig_name='f_ps')
-test_plot(t_nn, log_list, scale_k, ex_name='fb_1.0', fig_name='f_ps')
+# print('begin plot')
+# log_list = ['ps_0.01', 'baseline', 'ps_0.1']
+# test_plot(t_nn, log_list, scale_k, ex_name='fb_0.0', fig_name='f_ps')
+# test_plot(t_nn, log_list, scale_k, ex_name='fb_1.0', fig_name='f_ps')
 
-print('begin plot')
-log_list = ['baseline', 'pe_20', 'pe_30', 'pe_40', 'pe_50']
-test_plot(t_nn, log_list, scale_k, ex_name='fb_0.0', fig_name='f_pe')
-test_plot(t_nn, log_list, scale_k, ex_name='fb_1.0', fig_name='f_pe')
+# print('begin plot')
+# log_list = ['baseline', 'pe_20', 'pe_30', 'pe_40', 'pe_50']
+# test_plot(t_nn, log_list, scale_k, ex_name='fb_0.0', fig_name='f_pe')
+# test_plot(t_nn, log_list, scale_k, ex_name='fb_1.0', fig_name='f_pe')
 
 # test_data_name = 'fr_1.0'
 # data_path = 'data/nse_data_reg_dt_0.01_' + test_data_name

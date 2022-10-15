@@ -2,23 +2,24 @@ import numpy as np
 import matplotlib.pyplot as plt 
 import torch
 
-from scripts.nse_model import *
-from scripts.utils import *
+from scripts.nse_model_test import *
 
 dt = 0.01
 tg = 5
 
+
 ex_nums = ['baseline', 'ps_0.01', 'ps_0.03', 'ps_0.08', 'pe_20', 'pe_30', 'pe_40', 'pe_50']
-# ex_nums = ['data_based', 'ps_0.1']
-# ex_nums = ['pe_30']
+# ex_nums = ['pe_20', 'pe_30']
 # ex_nums = ['ps_0.01', 'ps_0.03', 'baseline', 'ps_0.08', 'ps_0.1']
 scale = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
 n_model = len(ex_nums)
 
 def calMean(data_list):
     ans = []
+    
     for data in data_list:
-        data = data.reshape(10, 10, -1).mean(1)
+        length = data.shape[0]
+        data = data.reshape(10, int(length/10), -1).mean(1)
         ans.append(data)
     return ans
         
@@ -65,7 +66,7 @@ if __name__ == '__main__':
 
         # data.unnormalize()
         log_data = [error_1step, Lpde_obs, Lpde_pred, error_cul, Lpde_pred_cul, error_Cd_1step, error_Cl_1step, error_Cd_cul, error_Cl_cul]
-        torch.save(log_data, 'logs/data/phase1_test_' + ex_nums[k] + test_data_name)
+        torch.save(log_data, 'logs/data/phase1_test_max_' + ex_nums[k] + test_data_name)
 
     # for k in range(n_model):
     #     # fig setting
