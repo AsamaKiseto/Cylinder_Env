@@ -148,8 +148,8 @@ class NSEModel_FNO():
 
             self.phys_model.eval()
 
-            in_train = in_new + torch.rand(in_new.shape) * self.params.phys_scale
-            ctr_train = ctr_new + torch.rand(ctr_new.shape) * self.params.phys_scale
+            in_train = in_new + torch.rand(in_new.shape).cuda() * self.params.phys_scale
+            ctr_train = ctr_new + torch.rand(ctr_new.shape).cuda() * self.params.phys_scale
             
             self.pred_model.train()
             self.pred_optimizer.zero_grad()
