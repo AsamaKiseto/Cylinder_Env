@@ -2,13 +2,14 @@ import torch
 import argparse
 
 from scripts.utils import *
-from scripts.nse_model_test import *
+from scripts.nse_model import *
 
 def get_args(argv=None):
     parser = argparse.ArgumentParser(description = 'Put your hyperparameters')
 
     parser.add_argument('-dp', '--data_path', default='dt_0.01_fr_1.0', type=str, help='data path name')
     parser.add_argument('-lf', '--logs_fname', default='test', type=str, help='logs file name')
+    parser.add_argument('-dr', '--date_rate', default=0.7, type=float, help='logs file name')
     
     parser.add_argument('-L', '--L', default=2, type=int, help='the number of layers')
     parser.add_argument('-m', '--modes', default=16, type=int, help='the number of modes of Fourier layer')
@@ -70,7 +71,7 @@ if __name__=='__main__':
     shape = [nx, ny]
 
     # loader
-    train_loader, test_loader = data.trans2TrainingSet(args.batch_size)
+    train_loader, test_loader = data.trans2TrainingSet(args.batch_size, args.date_rate)
 
     # model setting
     nse_model = NSEModel_FNO(shape, data.dt, args)
@@ -91,7 +92,7 @@ if __name__=='__main__':
             for param in list(nse_model.phys_model.parameters()):
                 param.requires_grad = False
             for phys_epoch in range(1, nse_model.params.phys_epochs+1):
-                nse_model.phys_train(phys_epoch, train_loader)          
+                nse_model.phys_train_random(phys_epoch, train_loader)          
             for param in list(nse_model.phys_model.parameters()):
                 param.requires_grad = True
         if epoch % 5 == 0:

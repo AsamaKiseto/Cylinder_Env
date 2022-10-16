@@ -135,6 +135,37 @@ class NSEModel_FNO():
         self.phys_scheduler.step()
         t4 = default_timer()
         print('----phys training: # {} {:1.2f} (pde) pred: {:1.2e} | '.format(phys_epoch, t4-t3, loss_pde.avg))
+        
+    def phys_train_random(self, phys_epoch, train_loader):
+        loss_pde = AverageMeter()
+        t3 = default_timer()
+
+        for x_train, _ in train_loader:
+            x_train = x_train.to(self.device)
+
+            # split data read in train_loader
+            in_new, ctr_new = x_train[:, :, :, :-1], x_train[:, 0, 0, -1]
+
+            self.phys_model.eval()
+
+            in_train = in_new + torch.rand(in_new.shape) * self.params.phys_scale
+            ctr_train = ctr_new + torch.rand(ctr_new.shape) * self.params.phys_scale
+            
+            self.pred_model.train()
+            self.pred_optimizer.zero_grad()
+
+            pred, _, _, _ = self.pred_model(in_train, ctr_train)
+            out_pred = pred[:, :, :, :3]
+            mod = self.phys_model(in_train, ctr_train, out_pred)
+            # 多训练几次？  
+            loss = ((Lpde(out_pred, in_train, self.dt) + mod) ** 2).mean()
+            loss.backward()
+            self.pred_optimizer.step()
+            loss_pde.update(loss.item(), self.params.batch_size)
+        
+        self.phys_scheduler.step()
+        t4 = default_timer()
+        print('----phys training: # {} {:1.2f} (pde) pred: {:1.2e} | '.format(phys_epoch, t4-t3, loss_pde.avg))
     
     def test(self, test_loader, logs):
         self.pred_model.eval()
