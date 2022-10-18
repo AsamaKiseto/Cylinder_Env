@@ -131,7 +131,7 @@ def test_plot(t_nn, log_list, scale_k, ex_name = 'fb_0.0', fig_name = 'test'):
             
     # plt.savefig(f'logs/pics/error/phase1_coef_1step_{fig_name}_{ex_name}.jpg')
     
-def test_plot1(t_nn, log_list, scale_k, ex_name = 'fb_0.0', fig_name = 'test'):
+def test_plot1(t_nn, log_list, scale_k, ts_list, ex_name = 'fb_0.0', fig_name = 'test'):
     scale = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
     
     # fig setting
@@ -150,20 +150,34 @@ def test_plot1(t_nn, log_list, scale_k, ex_name = 'fb_0.0', fig_name = 'test'):
     ax[1].set_ylabel(r'Cul $C_L$ error', fontsize=20)
     ax[fig_num-1].set_xlabel("t", fontsize=20)
     
-    for k in range(len(log_list)):
-        # data_list = torch.load(f'logs/data/error/phase1_test_{log_list[k]}_{ex_name}')
-        data_list = torch.load(f'logs/data/phase1_test_{log_list[k]}_{ex_name}')
-        _, _, error_Cd_cul, error_Cl_cul = calMean(data_list)
-        _, _, error_Cd_cul_v, error_Cl_cul_v = calVar(data_list)
+    data_list = torch.load(f'logs/data/phase1_test_{log_list[0]}_{ex_name}')
+    _, _, error_Cd_cul, error_Cl_cul = calMean(data_list)
+    _, _, error_Cd_cul_v, error_Cl_cul_v = calVar(data_list)
+    
+    for j in range(len(scale_k)):
+        ax[0].plot(t_nn, error_Cd_cul[scale_k[j]], label = f'{log_list[0]}')
+        ax[1].plot(t_nn, error_Cl_cul[scale_k[j]], label = f'{log_list[0]}')
         
-        for j in range(len(scale_k)):
-            ax[0].plot(t_nn, error_Cd_cul[scale_k[j]], label = f'{log_list[k]}, scale={scale[scale_k[j]]}')
-            ax[1].plot(t_nn, error_Cl_cul[scale_k[j]], label = f'{log_list[k]}, scale={scale[scale_k[j]]}')
+        ax[0].fill_between(t_nn, error_Cd_cul_v[0][scale_k[j]], error_Cd_cul_v[1][scale_k[j]], alpha=0.2)
+        ax[1].fill_between(t_nn, error_Cl_cul_v[0][scale_k[j]], error_Cl_cul_v[1][scale_k[j]], alpha=0.2)
+        
+        ax[0].legend()
+
+    for k in range(1, len(log_list)):
+        for ts in ts_list:
+            # data_list = torch.load(f'logs/data/error/phase1_test_{log_list[k]}_{ex_name}')
+            data_list = torch.load(f'logs/data/phase1_test_ts_{ts}_{log_list[k]}_{ex_name}')
+            _, _, error_Cd_cul, error_Cl_cul = calMean(data_list)
+            _, _, error_Cd_cul_v, error_Cl_cul_v = calVar(data_list)
             
-            ax[0].fill_between(t_nn, error_Cd_cul_v[0][scale_k[j]], error_Cd_cul_v[1][scale_k[j]], alpha=0.2)
-            ax[1].fill_between(t_nn, error_Cl_cul_v[0][scale_k[j]], error_Cl_cul_v[1][scale_k[j]], alpha=0.2)
-            
-            ax[0].legend()
+            for j in range(len(scale_k)):
+                ax[0].plot(t_nn, error_Cd_cul[scale_k[j]], label = f'{log_list[k]}, ts={ts}')
+                ax[1].plot(t_nn, error_Cl_cul[scale_k[j]], label = f'{log_list[k]}, ts={ts}')
+                
+                ax[0].fill_between(t_nn, error_Cd_cul_v[0][scale_k[j]], error_Cd_cul_v[1][scale_k[j]], alpha=0.2)
+                ax[1].fill_between(t_nn, error_Cl_cul_v[0][scale_k[j]], error_Cl_cul_v[1][scale_k[j]], alpha=0.2)
+                
+                ax[0].legend()
             
     plt.savefig(f'logs/pics/error/phase1_coef_cul_{fig_name}_{ex_name}.jpg')    
     

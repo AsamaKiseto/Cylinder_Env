@@ -71,8 +71,8 @@ env.set_init()
 # obs_v = np.zeros((N0, nT+1, mesh_num, 5))
 
 for k in range(N0):
-    ctr_temp = args.scale * (np.random.rand(nt) - 0.5) + args.f_base
-    ctr_temp = ctr_temp.reshape(nt, 1).repeat(tg, 1).reshape(-1)
+    ctr_temp = args.scale * (np.random.rand(nt // 5) - 0.5) + args.f_base
+    ctr_temp = ctr_temp.reshape(nt // 5, 1).repeat(tg * 5, 1).reshape(-1)
     ctr[k] = ctr_temp
 
     print(f'start # {k}')

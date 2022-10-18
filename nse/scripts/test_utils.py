@@ -2,7 +2,7 @@ import numpy as np
 import torch
 from scripts.nse_model import *
 
-def loss_log(data, file_name, test_rate = 0.1):
+def loss_log(data, file_name, test_rate = 0.2):
     N0, nt, nx, ny = data.get_params()
     shape = [nx, ny]
     _, _, model_log = torch.load('logs/phase1_' + file_name + '_grid_pi')
