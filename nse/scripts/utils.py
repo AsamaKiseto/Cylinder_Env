@@ -309,7 +309,7 @@ def calMean(data_list):
     ans = []
     for data in data_list:
         length = data.shape[0]
-        data = data.reshape(10, length // 10, -1).mean(1)
+        data = data.reshape(length // 10, 10, -1).mean(1)
         ans.append(data)
     return ans
 
@@ -317,7 +317,7 @@ def calVar(data_list):
     ans = []
     for data in data_list:
         length = data.shape[0]
-        data_min = data.reshape(10, length // 10, -1).min(1)
-        data_max = data.reshape(10, length // 10, -1).max(1)
+        data_min = data.reshape(length // 10, 10, -1).min(1)
+        data_max = data.reshape(length // 10, 10, -1).max(1)
         ans.append([data_min.values, data_max.values])
     return ans

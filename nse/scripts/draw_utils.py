@@ -34,7 +34,7 @@ def loss_plot(log_list, fig_name = 'test'):
 
 
 def test_plot(t_nn, log_list, scale_k, ex_name = 'fb_0.0', fig_name = 'test'):
-    scale = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+    scale = [0.1, 0.5, 1.0]
 
     # state error fig setting
     fig_num = 2
@@ -45,6 +45,8 @@ def test_plot(t_nn, log_list, scale_k, ex_name = 'fb_0.0', fig_name = 'test'):
         ax[i].grid(True, lw=0.4, ls="--", c=".50")
         # ax[i].set_xlim(0, t_nn[-1])
         # ax[i].set_ylim(1e-4, 1)
+    
+    ax[1].set_ylim(0, 1)
         
     ax[0].set_title("Error/Loss in Different Scales", fontsize=20)
     ax[0].set_ylabel("One-step data error", fontsize=20)
@@ -76,7 +78,7 @@ def test_plot(t_nn, log_list, scale_k, ex_name = 'fb_0.0', fig_name = 'test'):
         ax[i].grid(True, lw=0.4, ls="--", c=".50")
         # ax[i].set_xlim(0, t_nn[-1])
         # ax[i].set_yscale('log')
-        ax[i].set_ylim(0, 0.5)
+        ax[i].set_ylim(0, 0.1)
         
     ax[0].set_title("Error/Loss in Different Scales", fontsize=20)
     ax[0].set_ylabel(r'Cul $C_D$ error', fontsize=20)
@@ -132,7 +134,6 @@ def test_plot(t_nn, log_list, scale_k, ex_name = 'fb_0.0', fig_name = 'test'):
     # plt.savefig(f'logs/pics/error/phase1_coef_1step_{fig_name}_{ex_name}.jpg')
     
 def test_plot1(t_nn, log_list, scale_k, ts_list, ex_name = 'fb_0.0', fig_name = 'test'):
-    scale = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
     
     # fig setting
     fig_num = 2
@@ -182,7 +183,7 @@ def test_plot1(t_nn, log_list, scale_k, ts_list, ex_name = 'fb_0.0', fig_name = 
     plt.savefig(f'logs/pics/error/phase1_coef_cul_{fig_name}_{ex_name}.jpg')    
     
 def coef_plot(t_nn, scale_k, data, fig_name):
-    scale = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+    scale = [0.1, 0.5, 1.0]
     
     Cd_mean, Cl_mean = calMean(data)
     Cd_var, Cl_var = calVar(data)
@@ -210,14 +211,12 @@ def coef_plot(t_nn, scale_k, data, fig_name):
         ax[0].fill_between(t_nn, Cd_var[0][scale_k[j]], Cd_var[1][scale_k[j]], alpha=0.2)
         ax[1].fill_between(t_nn, Cl_var[0][scale_k[j]], Cl_var[1][scale_k[j]], alpha=0.2)
 
-    plt.savefig(f'logs/obs_coef_{fig_name}.jpg')
+    plt.savefig(f'logs/pics/obs_coef_{fig_name}.jpg')
     
 def coef_plot1(t_nn, data, fig_name):
-    scale = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+    scale = [0.1, 0.5, 1.0]
     
     Cd, Cl = data
-    Cd_mean, Cl_mean = Cd.mean(0), Cl.mean(0)
-    Cd_var, Cl_var = [Cd.min(0), Cd.max(0)], [Cl.min(0), Cl.max(0)]
 
     # fig setting
     fig_num = 2
@@ -239,7 +238,7 @@ def coef_plot1(t_nn, data, fig_name):
         ax[0].plot(t_nn, Cd[i])
         ax[1].plot(t_nn, Cl[i])
 
-    plt.savefig(f'logs/obs_coef_{fig_name}.jpg')
+    plt.savefig(f'logs/pics/obs_coef_{fig_name}_all.jpg')
     
 def animate(data, name, file_name):
     nt = data.shape[0]

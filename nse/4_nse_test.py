@@ -15,7 +15,7 @@ def get_args(argv=None):
 dt = 0.01
 tg = 5
 
-ex_nums = ['data_based', 'ps_0.1']
+ex_nums = ['data_based', 'baseline']
 n_model = len(ex_nums)
         
 if __name__ == '__main__':
