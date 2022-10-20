@@ -8,12 +8,12 @@ def get_args(argv=None):
     parser = argparse.ArgumentParser(description = 'Put your hyperparameters')
 
     parser.add_argument('-dp', '--data_path', default='dt_0.01', type=str, help='data path name')
-    parser.add_argument('-lf', '--logs_fname', default='test', type=str, help='logs file name')
+    parser.add_argument('-lf', '--logs_fname', default='baseline', type=str, help='logs file name')
     
-    parser.add_argument('--phys_gap', default=20, type=int, help = 'Number of gap of Phys')
+    parser.add_argument('--phys_gap', default=1, type=int, help = 'Number of gap of Phys')
     parser.add_argument('--phys_epochs', default=5, type=int, help = 'Number of Phys Epochs')
     parser.add_argument('--phys_steps', default=2, type=int, help = 'Number of Phys Steps')
-    parser.add_argument('--phys_scale', default=0.05, type=float, help = 'Number of Phys Scale')
+    parser.add_argument('--phys_scale', default=0.1, type=float, help = 'Number of Phys Scale')
 
     parser.add_argument('--batch_size', default=64, type=int, help = 'batch size')
     parser.add_argument('--epochs', default=100, type=int, help = 'Number of Epochs')
@@ -50,6 +50,7 @@ if __name__=='__main__':
 
     # load data
     data_path = 'data/nse_data_reg_extra_' + args.data_path
+    data_path = 'data/nse_data_reg_' + args.data_path + '_fr_1.0'
     tg = args.tg     # sample evrey 5 timestamps
     Ng = args.Ng
     data = LoadData(data_path)
@@ -70,7 +71,7 @@ if __name__=='__main__':
     shape = [nx, ny]
 
     # loader
-    train_loader, test_loader = data.trans2TrainingSet(args.batch_size)
+    train_loader, test_loader = data.trans2TrainingSet(args.batch_size, 0.7)
 
     # model setting
     nse_model = NSEModel_FNO(shape, data.dt, args)
@@ -87,7 +88,7 @@ if __name__=='__main__':
 
     # extra train process
     for epoch in range(1, nse_model.params.epochs+1):
-        nse_model.data_train(epoch, train_loader)
+        # nse_model.data_train(epoch, train_loader)
         if epoch % nse_model.params.phys_gap == 0 and epoch != nse_model.params.epochs:
             # freeze phys_model trained in data training
             for param in list(nse_model.phys_model.parameters()):
@@ -96,8 +97,8 @@ if __name__=='__main__':
                 nse_model.phys_train(phys_epoch, train_loader)
             for param in list(nse_model.phys_model.parameters()):
                 param.requires_grad = True
-        if epoch % 5 == 0:
-            nse_model.save_log(logs)
-            nse_model.test(test_loader, logs)
+        # if epoch % 5 == 0:
+        #     nse_model.save_log(logs)
+        #     nse_model.test(test_loader, logs)
     
     torch.save([nse_model.pred_model.state_dict(), nse_model.phys_model.state_dict(), logs], logs_fname)
