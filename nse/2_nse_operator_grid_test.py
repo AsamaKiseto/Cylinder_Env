@@ -7,7 +7,7 @@ from scripts.nse_model import *
 def get_args(argv=None):
     parser = argparse.ArgumentParser(description = 'Put your hyperparameters')
 
-    parser.add_argument('-dp', '--data_path', default='dt_0.01_fr_1.0', type=str, help='data path name')
+    parser.add_argument('-dp', '--data_path', default='dt_0.01_fr_4.0', type=str, help='data path name')
     parser.add_argument('-lf', '--logs_fname', default='test', type=str, help='logs file name')
     parser.add_argument('-dr', '--date_rate', default=0.7, type=float, help='logs file name')
     
