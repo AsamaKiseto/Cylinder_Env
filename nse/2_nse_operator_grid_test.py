@@ -2,7 +2,7 @@ import torch
 import argparse
 
 from scripts.utils import *
-from scripts.nse_model import *
+from scripts.nse_model_test import *
 
 def get_args(argv=None):
     parser = argparse.ArgumentParser(description = 'Put your hyperparameters')
@@ -87,14 +87,14 @@ if __name__=='__main__':
     # train process
     for epoch in range(1, nse_model.params.epochs+1):
         nse_model.data_train(epoch, train_loader)
-        if epoch % nse_model.params.phys_gap == 0 and epoch != nse_model.params.epochs:
-            # freeze phys_model trained in data training
-            for param in list(nse_model.phys_model.parameters()):
-                param.requires_grad = False
-            for phys_epoch in range(1, nse_model.params.phys_epochs+1):
-                nse_model.phys_train_random(phys_epoch, train_loader)          
-            for param in list(nse_model.phys_model.parameters()):
-                param.requires_grad = True
+        # if epoch % nse_model.params.phys_gap == 0 and epoch != nse_model.params.epochs:
+        #     # freeze phys_model trained in data training
+        #     for param in list(nse_model.phys_model.parameters()):
+        #         param.requires_grad = False
+        #     for phys_epoch in range(1, nse_model.params.phys_epochs+1):
+        #         nse_model.phys_train_random(phys_epoch, train_loader)          
+        #     for param in list(nse_model.phys_model.parameters()):
+        #         param.requires_grad = True
         if epoch % 5 == 0:
             nse_model.save_log(logs)
             nse_model.test(test_loader, logs)
