@@ -74,7 +74,7 @@ if __name__=='__main__':
     train_loader, test_loader = data.trans2TrainingSet(args.batch_size, args.date_rate)
 
     # model setting
-    nse_model = NSEModel_FNO(shape, data.dt, args)
+    nse_model = NSEModel_FNO_prev(shape, data.dt, args)
     params_num = nse_model.count_params()
 
     print('N0: {}, nt: {}, nx: {}, ny: {}, device: {}'.format(N0, nt, nx, ny, nse_model.device))
