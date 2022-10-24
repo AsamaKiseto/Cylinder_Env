@@ -172,7 +172,7 @@ class NSEModel():
         return loss1, loss2, loss3, loss4, loss6
 
     def model_step(self, ipt, ctr):
-        pred, x_rec, ctr_rec, trans_out, mod_pred = self.pred_model(ipt, ctr)
+        pred, x_rec, ctr_rec, trans_out = self.pred_model(ipt, ctr)
         ipt_rec = x_rec[:, :, :, :3]
         opt_pred = pred[:, :, :, :3]
         Cd_pred = torch.mean(pred[:, :, :, -2].reshape(pred.shape[0], -1), 1)
