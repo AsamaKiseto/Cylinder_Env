@@ -9,30 +9,31 @@ scale = [0.1, 0.5, 1.0]
 
 scale_k = [2]
 
-print('begin plot phys data num')
-log_list = ['dr_0.3', 'dr_0.5', 'baseline']
-test_plot(t_nn, log_list, scale_k, ex_name='fb_0.0', fig_name='f_dr')
+print('begin plot train method')
+log_list = ['data_based', 'baseline', 'no_random', 'random_select_0.01', 'random_select_0.001']
+test_plot(t_nn, log_list, scale_k, ex_name='fb_0.0', fig_name='train_method')
+test_plot1(t_nn, log_list, scale_k, ex_name='fb_0.0', fig_name='train_method')
 
-print('begin plot phys scale')
-log_list = ['ps_0.01', 'ps_0.03', 'ps_0.05', 'baseline', 'ps_0.2', 'ps_0.3']
+print('begin plot data&phys')
+log_list = ['data_based', 'baseline', 'databased_dr_0.3', 'databased_dr_0.5', 'baseline_dr_0.3', 'baseline_dr_0.5']
+# test_plot1(t_nn, log_list, scale_k, ex_name='fb_0.0', fig_name='base')
+test_plot(t_nn, log_list, scale_k, ex_name='fb_0.0', fig_name='f_data')
+test_plot1(t_nn, log_list, scale_k, ex_name='fb_0.0', fig_name='f_data')
+
+print('begin plot phys scales')
+log_list = ['baseline', 'ps_0.01', 'ps_0.05', 'ps_0.2', 'ps_0.5']
 test_plot(t_nn, log_list, scale_k, ex_name='fb_0.0', fig_name='f_ps')
+test_plot1(t_nn, log_list, scale_k, ex_name='fb_0.0', fig_name='f_ps')
 
 print('begin plot phys epochs')
-log_list = ['pe_5', 'baseline', 'pe_20']
+log_list = ['baseline', 'pe_5', 'pe_15', 'pe_20']
 test_plot(t_nn, log_list, scale_k, ex_name='fb_0.0', fig_name='f_pe')
+test_plot1(t_nn, log_list, scale_k, ex_name='fb_0.0', fig_name='f_pe')
 
-print('begin plot phys steps')
-log_list = ['baseline', 'psp_1', 'psp_3']
-test_plot(t_nn, log_list, scale_k, ex_name='fb_0.0', fig_name='f_psp')
-
-print('begin plot phys train')
-log_list = ['baseline', 'no_random', 'data_based', 'random_select_0.01', 'random_select_0.001']
-test_plot(t_nn, log_list, scale_k, ex_name='fb_0.0', fig_name='f_pt')
-
-# print('begin plot diff t_start')
-# log_list = ['data_based', 'baseline']
-# ts_list = ['0.5', '1.0', '1.5', '2.0']
-# test_plot1(t_nn, log_list, scale_k, ts_list, ex_name='fb_0.0', fig_name='f_ts')
+# print('begin plot')
+# log_list = ['baseline', 'pe_20', 'pe_30', 'pe_40', 'pe_50']
+# test_plot(t_nn, log_list, scale_k, ex_name='fb_0.0', fig_name='f_pe')
+# test_plot(t_nn, log_list, scale_k, ex_name='fb_1.0', fig_name='f_pe')
 
 # test_data_name = 'fr_1.0'
 # data_path = 'data/nse_data_reg_dt_0.01_' + test_data_name
@@ -44,26 +45,23 @@ test_plot(t_nn, log_list, scale_k, ex_name='fb_0.0', fig_name='f_pt')
 # _, Cd, Cl, _ = data.get_data()
 # coef_plot1(t_nn, [Cd, Cl], test_data_name)
 
+
 # test_data_name = 'fb_0.0'
 # data_path = 'data/test_data/nse_data_reg_dt_0.01_' + test_data_name
 # print('load data')
 # data = LoadData(data_path)
 # data.split(1, tg)
 # print('load data finished')
-# # data.normalize()
+# data.normalize()
 # _, Cd, Cl, _ = data.get_data()
-# print('begin plot coef')
-# # coef_plot(t_nn, scale_k, [Cd, Cl], test_data_name)
-# coef_plot1(t_nn, [Cd, Cl], test_data_name)
+# coef_plot(t_nn, scale_k, [Cd, Cl], test_data_name)
 
-# test_data_name = 'fr_1.0'
-# data_path = 'data/nse_data_reg_dt_0.01_' + test_data_name
+# test_data_name = 'fb_1.0'
+# data_path = 'data/test_data/nse_data_reg_dt_0.01_' + test_data_name
 # print('load data')
 # data = LoadData(data_path)
 # data.split(1, tg)
 # print('load data finished')
-# # data.normalize()
+# data.normalize()
 # _, Cd, Cl, _ = data.get_data()
-# print('begin plot coef')
-# # coef_plot(t_nn, scale_k, [Cd, Cl], test_data_name)
-# coef_plot1(t_nn, [Cd, Cl], test_data_name)
+# coef_plot(t_nn, scale_k, [Cd, Cl], test_data_name)

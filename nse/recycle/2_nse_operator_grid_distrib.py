@@ -3,7 +3,7 @@ import argparse
 
 from torch.utils.data.distributed import DistributedSampler
 from scripts.utils import *
-from nse.recycle.nse_model_test import *
+from scripts.nse_model_test import *
 
 def get_args(argv=None):
     parser = argparse.ArgumentParser(description = 'Put your hyperparameters')

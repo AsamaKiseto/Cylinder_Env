@@ -33,8 +33,11 @@ def loss_plot(log_list, fig_name = 'test'):
     plt.savefig(f'logs/loss_plot_{fig_name}.jpg')
 
 
-def test_plot(t_nn, log_list, scale_k, ex_name = 'fb_0.0', fig_name = 'test'):
-    scale = [0.1, 0.5, 1.0]
+def test_plot(t_nn, log_list, scale_k, ex_name = 'fb_0.0', fig_name = 'test', bak = False):
+    if bak:
+        scale = [0.1, 0.5, 1.0]
+    else:
+        scale = [0.1, 1.0, 10.0]
 
     # state error fig setting
     fig_num = 2
@@ -46,7 +49,7 @@ def test_plot(t_nn, log_list, scale_k, ex_name = 'fb_0.0', fig_name = 'test'):
         # ax[i].set_xlim(0, t_nn[-1])
         # ax[i].set_ylim(1e-4, 1)
     
-    ax[1].set_ylim(0, 1)
+    # ax[1].set_ylim(0, 0.1)
         
     ax[0].set_title("Error/Loss in Different Scales", fontsize=20)
     ax[0].set_ylabel("One-step data error", fontsize=20)
@@ -54,7 +57,10 @@ def test_plot(t_nn, log_list, scale_k, ex_name = 'fb_0.0', fig_name = 'test'):
     ax[fig_num - 1].set_xlabel("t", fontsize=20)
 
     for k in range(len(log_list)):
-        data_list = torch.load(f'logs/data/error/phase1_test_{log_list[k]}_{ex_name}')
+        if bak:
+            data_list = torch.load(f'logs/data_bak/error/phase1_test_{log_list[k]}_{ex_name}')
+        else:
+            data_list = torch.load(f'logs/data/error/phase1_test_{log_list[k]}_{ex_name}')
         error_1step, error_cul, _, _, _, _ = calMean(data_list)
         error_1step_v, error_cul_v, _, _, _, _ = calVar(data_list)
         
@@ -66,8 +72,11 @@ def test_plot(t_nn, log_list, scale_k, ex_name = 'fb_0.0', fig_name = 'test'):
             ax[1].fill_between(t_nn, error_cul_v[0][scale_k[j]], error_cul_v[1][scale_k[j]], alpha=0.2)
             
             ax[0].legend()
-            
-    plt.savefig(f'logs/pics/error/phase1_{fig_name}_{ex_name}.jpg')
+    
+    if bak:
+        plt.savefig(f'logs/pics_bak/error/phase1_state_{fig_name}_{ex_name}.jpg')
+    else:
+        plt.savefig(f'logs/pics/error/phase1_state_{fig_name}_{ex_name}.jpg')
     
     # fig setting
     fig_num = 2
@@ -86,7 +95,10 @@ def test_plot(t_nn, log_list, scale_k, ex_name = 'fb_0.0', fig_name = 'test'):
     ax[fig_num-1].set_xlabel("t", fontsize=20)
     
     for k in range(len(log_list)):
-        data_list = torch.load(f'logs/data/error/phase1_test_{log_list[k]}_{ex_name}')
+        if bak:
+            data_list = torch.load(f'logs/data_bak/error/phase1_test_{log_list[k]}_{ex_name}')
+        else:
+            data_list = torch.load(f'logs/data/error/phase1_test_{log_list[k]}_{ex_name}')
         _, _, _, _, error_Cd_cul, error_Cl_cul = calMean(data_list)
         _, _, _, _, error_Cd_cul_v, error_Cl_cul_v = calVar(data_list)
         
@@ -99,7 +111,10 @@ def test_plot(t_nn, log_list, scale_k, ex_name = 'fb_0.0', fig_name = 'test'):
             
             ax[0].legend()
             
-    plt.savefig(f'logs/pics/error/phase1_coef_cul_{fig_name}_{ex_name}.jpg')
+    if bak:
+        plt.savefig(f'logs/pics_bak/error/phase1_culcoef_{fig_name}_{ex_name}.jpg')
+    else:
+        plt.savefig(f'logs/pics/error/phase1_culcoef_{fig_name}_{ex_name}.jpg')
     
     # # 1 step coef fig setting
     # fig_num = 2
@@ -132,8 +147,8 @@ def test_plot(t_nn, log_list, scale_k, ex_name = 'fb_0.0', fig_name = 'test'):
     #         ax[0].legend()
             
     # plt.savefig(f'logs/pics/error/phase1_coef_1step_{fig_name}_{ex_name}.jpg')
-    
-def test_plot1(t_nn, log_list, scale_k, ts_list, ex_name = 'fb_0.0', fig_name = 'test'):
+
+def test_plot_ts(t_nn, log_list, scale_k, ts_list, ex_name = 'fb_0.0', fig_name = 'test'):
     
     # fig setting
     fig_num = 2

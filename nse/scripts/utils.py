@@ -51,7 +51,7 @@ def count_params(model):
         c += reduce(operator.mul, list(p.size()))
     return c
 
-def Lpde(state_af, state_bf, dt):
+def Lpde(state_bf, state_af, dt):
     nx = state_bf.shape[1]
     ny = state_bf.shape[2]
     device = state_af.device

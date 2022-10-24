@@ -42,10 +42,14 @@ if __name__ == '__main__':
     ts = int(args.t_start // (dt * tg))
 
     operator_path = 'logs/phase1_' + ex_nums[0] + '_grid_pi'
-    model = LoadModel(operator_path, shape)
-    
-    data.normalize('logs_unif', model.data_norm)
-    print(model.data_norm)
+    print(operator_path)
+    state_dict_pred, state_dict_phys, logs = torch.load(operator_path)
+    data.normalize('logs_unif', logs['data_norm'])
+
+    model = NSEModel_FNO(shape, 0.01 * logs['args'].tg, logs['args'])
+    model.load_state(state_dict_pred, state_dict_phys)
+    model.toCPU()
+
     obs, Cd, Cl, ctr = data.get_data()
     in_nn = obs[:, 0]
     model.set_init(in_nn)
@@ -58,8 +62,13 @@ if __name__ == '__main__':
     
     # data_based
     operator_path = 'logs/phase1_' + ex_nums[0] + '_grid_pi'
-    model = LoadModel(operator_path, shape)
-    data.normalize('logs_unif', model.data_norm)
+    print(operator_path)
+    state_dict_pred, state_dict_phys, logs = torch.load(operator_path)
+    data.normalize('logs_unif', logs['data_norm'])
+
+    model = NSEModel_FNO(shape, 0.01 * logs['args'].tg, logs['args'])
+    model.load_state(state_dict_pred, state_dict_phys)
+    model.toCPU()
     print(model.data_norm)
     obs, Cd, Cl, ctr = data.get_data()
     
@@ -80,9 +89,13 @@ if __name__ == '__main__':
 
     for k in range(1, n_model):
         operator_path = 'logs/phase1_' + ex_nums[k] + '_grid_pi'
-        model = LoadModel(operator_path, shape)
-        data.normalize('logs_unif', model.data_norm)
-        print(model.data_norm)
+        print(operator_path)
+        state_dict_pred, state_dict_phys, logs = torch.load(operator_path)
+        data.normalize('logs_unif', logs['data_norm'])
+
+        model = NSEModel_FNO(shape, 0.01 * logs['args'].tg, logs['args'])
+        model.load_state(state_dict_pred, state_dict_phys)
+        model.toCPU()
         obs, Cd, Cl, ctr = data.get_data()
         
         # in_nn = obs[:, 0]
