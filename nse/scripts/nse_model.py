@@ -171,13 +171,17 @@ class NSEModel():
 
         return loss1, loss2, loss3, loss4, loss6
 
+    def model_step(self, ipt, ctr):
+        pred, x_rec, ctr_rec, trans_out, mod_pred = self.pred_model(ipt, ctr)
+        ipt_rec = x_rec[:, :, :, :3]
+        opt_pred = pred[:, :, :, :3]
+        Cd_pred = torch.mean(pred[:, :, :, -2].reshape(pred.shape[0], -1), 1)
+        Cl_pred = torch.mean(pred[:, :, :, -1].reshape(pred.shape[0], -1), 1)
+        mod_pred = self.phys_model(ipt, ctr, opt_pred)
+        return opt_pred, Cd_pred, Cl_pred, mod_pred, ipt_rec, ctr_rec, trans_out
+
     def set_init(self, state_nn):
         self.in_nn = state_nn
-
-    def model_step(self, ipt, ctr):
-        print('to be finished')
-        # return opt_pred, Cd_pred, Cl_pred, mod_pred, ipt_rec, ctr_rec, trans_out
-        pass
 
     def train_step(self, loss1, loss2, loss3, loss4, loss5, loss6):
         print('to be finished')
@@ -278,21 +282,12 @@ class NSEModel_FNO(NSEModel):
             param.requires_grad = True
 
         return in_train, ctr_train
-    
-    def model_step(self, ipt, ctr):
-        pred, x_rec, ctr_rec, trans_out = self.pred_model(ipt, ctr)
-        ipt_rec = x_rec[:, :, :, :3]
-        opt_pred = pred[:, :, :, :3]
-        Cd_pred = torch.mean(pred[:, :, :, -2].reshape(pred.shape[0], -1), 1)
-        Cl_pred = torch.mean(pred[:, :, :, -1].reshape(pred.shape[0], -1), 1)
-        mod_pred = self.phys_model(ipt, ctr, opt_pred)
-        return opt_pred, Cd_pred, Cl_pred, mod_pred, ipt_rec, ctr_rec, trans_out
 
 
 class NSEModel_FNO_prev(NSEModel):
     def __init__(self, shape, dt, args):
         super().__init__(shape, dt, args)
-        self.set_model(FNO_ensemble_test)
+        self.set_model()
     
     def train_step(self, loss1, loss2, loss3, loss4, loss5, loss6):
         lambda1, lambda2, lambda3, lambda4 = self.params.lambda1, self.params.lambda2, self.params.lambda3, self.params.lambda4
@@ -300,14 +295,9 @@ class NSEModel_FNO_prev(NSEModel):
 
         loss_pred.backward()
         self.pred_optimizer.step()
+        self.phys_optimizer.step()
     
     def scheduler_step(self):
         self.pred_scheduler.step()
+        self.phys_scheduler.step()
 
-    def model_step(self, ipt, ctr):
-        pred, x_rec, ctr_rec, trans_out, mod_pred = self.pred_model(ipt, ctr)
-        ipt_rec = x_rec[:, :, :, :3]
-        opt_pred = pred[:, :, :, :3]
-        Cd_pred = torch.mean(pred[:, :, :, -2].reshape(pred.shape[0], -1), 1)
-        Cl_pred = torch.mean(pred[:, :, :, -1].reshape(pred.shape[0], -1), 1)
-        return opt_pred, Cd_pred, Cl_pred, mod_pred, ipt_rec, ctr_rec, trans_out

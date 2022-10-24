@@ -352,7 +352,6 @@ class state_mo_test(nn.Module):
 
         return x
 
-
 class FNO_ensemble(nn.Module):
     def __init__(self, params):
         super(FNO_ensemble, self).__init__()
