@@ -1,7 +1,7 @@
 # from scripts.draw_utils import *
 import matplotlib.pyplot as plt 
 from scripts.utils import *
-from scripts.nse_model_test import *
+from nse.recycle.nse_model_test import *
 
 ex_nums = ['data_based_bn', 'baseline_bn']
 label = ['data_based_bn', 'baseline_bn']

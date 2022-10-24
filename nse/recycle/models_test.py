@@ -22,13 +22,12 @@ class SpectralConv2d(nn.Module):
         self.modes2 = modes2
 
         self.scale = (1 / (in_channels * out_channels))
-        self.weights1 = nn.Parameter(self.scale * torch.rand(in_channels, out_channels, self.modes1, self.modes2, dtype=torch.float))
-        self.weights2 = nn.Parameter(self.scale * torch.rand(in_channels, out_channels, self.modes1, self.modes2, dtype=torch.float))
+        self.weights1 = nn.Parameter(self.scale * torch.rand(in_channels, out_channels, self.modes1, self.modes2, dtype=torch.cfloat))
+        self.weights2 = nn.Parameter(self.scale * torch.rand(in_channels, out_channels, self.modes1, self.modes2, dtype=torch.cfloat))
 
     # Complex multiplication
     def compl_mul2d(self, input, weights):
         # (batch, in_channel, x, y), (in_channel, out_channel, x, y) -> (batch, out_channel, x, y)
-        print(f'inpit: {input.shape}')
         return torch.einsum("bixt,ioxt->boxt", input, weights)
 
     def forward(self, x):
@@ -37,7 +36,7 @@ class SpectralConv2d(nn.Module):
         x_ft = torch.fft.rfft2(x)
 
         # Multiply relevant Fourier modes
-        out_ft = torch.zeros(batchsize, self.out_channels,  x.size(-2), x.size(-1)//2 + 1, dtype=torch.float, device=x.device)
+        out_ft = torch.zeros(batchsize, self.out_channels,  x.size(-2), x.size(-1)//2 + 1, dtype=torch.cfloat, device=x.device)
         out_ft[:, :, :self.modes1, :self.modes2] = \
             self.compl_mul2d(x_ft[:, :, :self.modes1, :self.modes2], self.weights1)
         out_ft[:, :, -self.modes1:, :self.modes2] = \
@@ -45,6 +44,7 @@ class SpectralConv2d(nn.Module):
 
         #Return to physical space
         x = torch.fft.irfft2(out_ft, s=(x.size(-2), x.size(-1)))
+        # print(x.dtype)
         return x
 
 
@@ -68,6 +68,7 @@ class FNO_layer(nn.Module):
         x1 = self.conv(x)
         x2 = self.w(x)
         x = x1 + x2
+        x = self.bn(x)
         if not self.last:
             x = F.gelu(x)
             
@@ -81,7 +82,7 @@ class FNO_layer_trans(nn.Module):
         """
         self.last = last
 
-        self.bn = nn.BatchNorm2d(width+extra_channels)
+        self.bn = nn.BatchNorm2d(width)
         self.conv = SpectralConv2d(width+extra_channels, width, modes1, modes2)
         self.w = nn.Conv2d(width+extra_channels, width, 1)
         # self.bn = torch.nn.BatchNorm2d(width)
@@ -93,6 +94,7 @@ class FNO_layer_trans(nn.Module):
         x1 = self.conv(x)
         x2 = self.w(x)
         x = x1 + x2
+        x = self.bn(x)
         if not self.last:
             x = F.gelu(x)
             
@@ -337,32 +339,18 @@ class state_mo_test(nn.Module):
 
         self.fc0 = nn.Linear(5, width)
         self.fc1 = nn.Linear(width, 128)
-        self.fc2 = nn.Linear(128, 3)
+        self.fc2 = nn.Linear(128, 2)
         # self.fc2 = nn.Linear(128, 2)
 
-    def forward(self, x, modify):
-        if modify == False:
-            return 0
+    def forward(self, x):
         
-        grid = self.get_grid(x.shape, x.device)
-        x = torch.cat((x, grid), dim=-1)    # [batch_size, nx, ny, 6]
-        x = self.fc0(x)
-        x = x.permute(0, 3, 1, 2)
         x = self.net(x)
         x = x.permute(0, 2, 3, 1)
         x = self.fc1(x)
         x = F.gelu(x)
         x = self.fc2(x)
 
-        return x    
-
-    def get_grid(self, shape, device):
-        batchsize, nx, ny = shape[0], shape[1], shape[2]
-        gridx = torch.tensor(np.linspace(0, 2.2, nx), dtype=torch.float)
-        gridx = gridx.reshape(1, nx, 1, 1).repeat([batchsize, 1, ny, 1])
-        gridy = torch.tensor(np.linspace(0, 0.41, ny), dtype=torch.float)
-        gridy = gridy.reshape(1, 1, ny, 1).repeat([batchsize, nx, 1, 1])
-        return torch.cat((gridx, gridy), dim=-1).to(device)
+        return x
 
 
 class FNO_ensemble(nn.Module):
@@ -379,7 +367,7 @@ class FNO_ensemble(nn.Module):
 
         self.stat_en = state_en(modes1, modes2, width, L)
         self.stat_de = state_de(modes1, modes2, width, L)
-        # self.state_mo = state_mo(modes1, modes2, width, L+2)
+        self.state_mo = state_mo_test(modes1, modes2, width, L)
 
         self.ctr_en = control_en(nx, ny, f_channels)
         self.ctr_de = control_de(f_channels)
@@ -396,10 +384,11 @@ class FNO_ensemble(nn.Module):
         ctr_rec = self.ctr_de(ctr_latent)
 
         trans_out = self.trans(x_latent, ctr_latent)
+        mod = self.state_mo(trans_out)
         
         pred = self.stat_de(trans_out)
         
-        return pred, x_rec, ctr_rec, trans_out #, mod
+        return pred, x_rec, ctr_rec, trans_out, mod
 
 
 class FNO_ensemble_test(nn.Module):

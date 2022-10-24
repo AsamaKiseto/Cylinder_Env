@@ -3,7 +3,7 @@ from torch.utils.data import DataLoader
 from timeit import default_timer
 import copy
 
-from scripts.models_test import *
+from nse.recycle.models_test import *
 from scripts.utils import *
 
 class NSEModel_FNO():
