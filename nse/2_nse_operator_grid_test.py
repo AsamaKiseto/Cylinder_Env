@@ -2,7 +2,7 @@ import torch
 import argparse
 
 from scripts.utils import *
-from nse.scripts.nse_model import *
+from scripts.nse_model import *
 
 def get_args(argv=None):
     parser = argparse.ArgumentParser(description = 'Put your hyperparameters')
