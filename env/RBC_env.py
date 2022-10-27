@@ -18,7 +18,7 @@ class RBC():
     def __init__(self, params=None):
 
         self.set_params(params)
-        self.geometry = MyGeometry(min_x = self.params['min_x'], max_x =self.params['max_x'] , min_y = self.params['min_y'],max_y = self.params['max_y'])
+        self.geometry = MyGeometry(min_x = self.params['min_x'], max_x =self.params['max_x'] , min_y = self.params['min_y'],max_y = self.params['max_y'], params = self.params)
         # default is [0,3,0,1]
         self.function_space = MyFunctionSpace(self.geometry, )
         self.solver = MySolver(self.geometry, self.function_space, params={'T': self.params['T'] ,'dt': self.params['dt'],'dimx':self.params['dimx'],'dimy':self.params['dimy'],'Ra' :self.params['Ra'] })
@@ -37,18 +37,16 @@ class RBC():
         else:
             self.params = {'dt':  0.125,
                             'T':  0.125*130,
-                            'dimx': 64+1,
-                            'dimy': 64+1,
+                            'dimx': 129,
+                            'dimy': 64,
                             'min_x' : 0, 
                             'max_x' : 2.0, 
                             'min_y' : 0.0, 
-                            'max_y' : 1.0 ,'Ra':2E6
+                            'max_y' : 1.0 ,'Ra':1E6
                             }
         
     def reset(self, ctr=0.0):
         self.solver.init_solve(ctr)
-        print('init now')
-        print('init now')
         print('init now')
 
     def solve(self):
