@@ -106,10 +106,10 @@ class MySolver:
         self.bc_bottom = Expression('a+b*sin(2*pi*x[0])',a = self.const,b = self.amp, pi = np.pi, degree = 2)
         
         self.noslip = Constant((0, 0))
-        self.bcv_t = DirichletBC(self.W.sub(0), Constant((0, 0)), self.bndry, 3)
+        self.bcv_t = DirichletBC(self.W.sub(0), Constant((ctr, 0)), self.bndry, 3)
         self.bcv_b = DirichletBC(self.W.sub(0), Constant((0, 0)), self.bndry, 4)
         self.bct_t = DirichletBC(self.W.sub(2), Expression('0.0',degree = 2), self.bndry, 3)
-        self.bct_b = DirichletBC(self.W.sub(2), Expression('ctr', ctr = self.ctr), self.bndry, 4)   # cavity 
+        self.bct_b = DirichletBC(self.W.sub(2), self.bc_bottom, self.bndry, 4)   # cavity 
         self.bcp_t = DirichletBC(self.W.sub(1), Expression('0.0',degree = 2), self.bndry, 3)
         self.bcp_b = DirichletBC(self.W.sub(1), Expression('0.0',degree = 2), self.bndry, 4)
         self.bcs = [self.bcv_t, self.bcv_b, self.bct_t, self.bct_b]# ,self.bcp_t,self.bcp_b
@@ -154,9 +154,9 @@ class MySolver:
         self.prm['newton_solver']['maximum_iterations'] = 30
         self.prm['newton_solver']['linear_solver'] = 'mumps'
 
-    def init_solve(self):
+    def init_solve(self, ctr=0.0):
         self.generate_variable()
-        self.generate_bc()
+        self.generate_bc(ctr)
         self.generate_solver()
         self.generate_grid()
         self.time = 0 
@@ -169,7 +169,7 @@ class MySolver:
             self.w_old.assign(self.w)
             self.plot_all()
 
-    def step_forward(self):
+    def step_forward(self, ctr=0.0):
         self.time += self.dt
         self.epoch +=1
         self.solver.solve()
@@ -200,7 +200,7 @@ class MySolver:
         u =  np.array(self.w.compute_vertex_values()[:1*nu].reshape(shape))
         v =  np.array(self.w.compute_vertex_values()[1*nu:2*nu].reshape(shape))
         velo = np.concatenate([np.expand_dims(u,axis = -1),np.expand_dims(v,axis = -1)],axis = -1)
-        return temp, velo, p ,self.const , self.amp
+        return temp, velo, p, self.ctr, self.amp
     
     def plot_all(self):
         temp, velo, p ,_ , _  = self.get_obs()

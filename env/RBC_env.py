@@ -25,7 +25,6 @@ class RBC():
         self.geometry.generate()
         self.function_space.generate()
         self.solver.generate_variable()
- 
         self.solver.generate_grid()
         # self.solver.solve()
 
@@ -46,8 +45,8 @@ class RBC():
                             'max_y' : 1.0 ,'Ra':2E6
                             }
         
-    def reset(self):
-        self.solver.init_solve()
+    def reset(self, ctr=0.0):
+        self.solver.init_solve(ctr)
         print('init now')
         print('init now')
         print('init now')
@@ -68,7 +67,7 @@ class RBC():
 
     def forward(self,w_tn,w_tnp1,a1,b1):
         return self.solver.forward(w_tn,w_tnp1,a1,b1)
-        
+
     def backward(self,w_tn,w_tnp1,a1,b1):
         return self.solver.backward(w_tn,w_tnp1,a1,b1)
 
