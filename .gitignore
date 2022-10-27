@@ -8,3 +8,5 @@ nse/navier_GPU/
 
 nse/*.jpg
 nse/*.gif
+
+env/pics

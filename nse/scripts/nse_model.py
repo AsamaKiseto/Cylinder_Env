@@ -301,3 +301,8 @@ class NSEModel_FNO_prev(NSEModel):
         self.pred_scheduler.step()
         self.phys_scheduler.step()
 
+
+class NSEModel_FNO_RBC(NSEModel):
+    def __init__(self, shape, dt, args):
+        super().__init__(shape, dt, args)
+        self.set_model()

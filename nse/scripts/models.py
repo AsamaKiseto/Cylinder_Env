@@ -427,6 +427,38 @@ class FNO_ensemble_test(nn.Module):
         return pred, x_rec, ctr_rec, trans_out, mod
 
 
+class FNO_RBC(nn.Module):
+    def __init__(self, params):
+        super(FNO_ensemble, self).__init__()
+
+        modes1 = params['modes']
+        modes2 = params['modes']
+        width = params['width']
+        L = params['L']
+        shape = params['shape']
+        f_channels = params['f_channels']
+        nx, ny = shape[0], shape[1]
+
+        self.stat_en = state_en(modes1, modes2, width, L)
+        self.stat_de = state_de(modes1, modes2, width, L)
+        # self.state_mo = state_mo(modes1, modes2, width, L+2)
+
+    # def forward(self, x, f, modify=True):
+    def forward(self, x, ctr):
+        # x: [batch_size, nx, ny, 3]; f: [1]
+        x_latent = self.stat_en(x)
+        x_rec = self.stat_de(x_latent)
+
+        ctr_latent = self.ctr_en(ctr)
+        ctr_rec = self.ctr_de(ctr_latent)
+
+        trans_out = self.trans(x_latent, ctr_latent)
+        
+        pred = self.stat_de(trans_out)
+        
+        return pred, x_rec, ctr_rec, trans_out #, mod
+
+
 class policy_net_cnn(nn.Module):
     def __init__(self):
         super(policy_net_cnn, self).__init__()

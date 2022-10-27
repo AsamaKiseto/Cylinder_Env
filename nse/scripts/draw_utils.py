@@ -256,7 +256,7 @@ def coef_plot1(t_nn, data, fig_name):
 
     plt.savefig(f'logs/pics/obs_coef_{fig_name}_all.jpg')
     
-def animate(data, name, file_name):
+def animate_field(data, name, file_name):
     nt = data.shape[0]
     
     x = np.arange(256) / 256 * 2.2
@@ -286,6 +286,39 @@ def animate(data, name, file_name):
     print(f'generate anime {name}')
     myAnimation = animation.FuncAnimation(fig, animate, frames=np.arange(nt), interval=1, repeat=False)
     myAnimation.save(f'logs/pics/output/{name}_{file_name}_2D.gif')
+    
+    
+def animate2D(data, name, file_name):
+    nt = data.shape[0]
+    
+    x = np.arange(256) / 256 * 2.2
+    y = np.arange(64) / 64 * 0.41
+    y, x = np.meshgrid(y, x)
+    xl, xh  = np.min(x), np.max(x)
+    yl, yh = np.min(y), np.max(y)
+
+    figsizer=10
+    fig, ax = plt.subplots(figsize=((xh - xl)*figsizer,(yh-yl)*figsizer))
+    ax.axis('equal')
+    # ax.set(xlim=(0, 2.2), ylim=(0, 0.41))
+    ax.set(xlim=(xl, xh), ylim=(yl, yh))
+    ax.set_title(f'{name} {file_name}')
+
+    # fig = plt.figure()
+    # ax = plt.axes(projection='3d')
+
+    def animate(i):
+        ax.clear()
+        # print(data[i].shape)
+        # ax.quiver(x, y, u[i], v[i], w[i])
+        ax.contourf(x, y, data[i], 200, cmap='jet')
+        # ax.colorbar()
+        # ax.plot_surface(x, y, Lpde_obs[i, :, :, 0])
+        # ax.plot(x[i], y[i])
+        
+    print(f'generate anime {name}')
+    myAnimation = animation.FuncAnimation(fig, animate, frames=np.arange(nt), interval=1, repeat=False)
+    myAnimation.save(f'logs/pics_bak/output/{name}_{file_name}_2D.gif')
 
 def animate3D(data, name, file_name, zlim = 100):
     nt = data.shape[0]
@@ -305,6 +338,7 @@ def animate3D(data, name, file_name, zlim = 100):
     fig = plt.figure(dpi=400)
     ax = plt.axes(projection='3d')
     ax.get_proj = lambda: np.dot(Axes3D.get_proj(ax), np.diag([2.2, 0.41, 1, 2.2]))
+    ax.set_title(f'{name} {file_name}')
     
     u, v = [data[:, :, :, i] for i in range(2)]
     w = u**2 + v**2
@@ -318,4 +352,4 @@ def animate3D(data, name, file_name, zlim = 100):
         
     print(f'generate anime {name}')
     myAnimation = animation.FuncAnimation(fig, animate, frames=np.arange(nt), interval=1, repeat=False)
-    myAnimation.save(f'logs/pics/output/{name}_{file_name}.gif')
+    myAnimation.save(f'logs/pics_bak/output/{name}_{file_name}.gif')
