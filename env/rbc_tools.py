@@ -97,21 +97,21 @@ class MySolver:
         self.E = self.function_space.E
         self.W = self.function_space.W
 
-    def generate_bc(self):
+    def generate_bc(self, ctr = 0.0):
         self.bndry = self.geometry.bndry
         
-        self.const = np.random.rand(1)*0.4 + 1.8
-        self.amp = np.random.rand(1)*0.1
-        self.bc_bottom = Expression('a+b*sin(2*pi*x[0])',a = self.const[0],b = self.amp[0],pi = np.pi, degree = 2)
-        self.bc_top = Expression('0.0',degree = 2)
+        self.const = 1.8
+        self.amp = 0.1
+        self.ctr = ctr
+        self.bc_bottom = Expression('a+b*sin(2*pi*x[0])',a = self.const,b = self.amp, pi = np.pi, degree = 2)
         
         self.noslip = Constant((0, 0))
-        self.bcv_t = DirichletBC(self.W.sub(0), self.noslip, self.bndry, 3)
-        self.bcv_b = DirichletBC(self.W.sub(0), self.noslip, self.bndry, 4)
-        self.bct_t = DirichletBC(self.W.sub(2), self.bc_top, self.bndry, 3)
-        self.bct_b = DirichletBC(self.W.sub(2), self.bc_bottom, self.bndry, 4)
-        self.bcp_t = DirichletBC(self.W.sub(1), self.bc_top, self.bndry, 3)
-        self.bcp_b = DirichletBC(self.W.sub(1), self.bc_top, self.bndry, 4)
+        self.bcv_t = DirichletBC(self.W.sub(0), Constant((0, 0)), self.bndry, 3)
+        self.bcv_b = DirichletBC(self.W.sub(0), Constant((0, 0)), self.bndry, 4)
+        self.bct_t = DirichletBC(self.W.sub(2), Expression('0.0',degree = 2), self.bndry, 3)
+        self.bct_b = DirichletBC(self.W.sub(2), Expression('ctr', ctr = self.ctr), self.bndry, 4)   # cavity 
+        self.bcp_t = DirichletBC(self.W.sub(1), Expression('0.0',degree = 2), self.bndry, 3)
+        self.bcp_b = DirichletBC(self.W.sub(1), Expression('0.0',degree = 2), self.bndry, 4)
         self.bcs = [self.bcv_t, self.bcv_b, self.bct_t, self.bct_b]# ,self.bcp_t,self.bcp_b
 
     def generate_solver(self):
@@ -225,8 +225,6 @@ class MySolver:
         ax.quiver(self.meshgrid[0],self.meshgrid[1], velo[:,:,0],velo[:,:,1] , temp)
         plt.savefig('./pics/img_velo/pic-{}.png'.format(self.epoch))
 
-
-    
 
     def forward(self,w_tn, w_tnp1,a1,b1):
         self.generate_variable()

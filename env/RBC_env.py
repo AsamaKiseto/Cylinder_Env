@@ -38,7 +38,7 @@ class RBC():
         else:
             self.params = {'dt':  0.125,
                             'T':  0.125*130,
-                            'dimx': 64*2+1,
+                            'dimx': 64+1,
                             'dimy': 64+1,
                             'min_x' : 0, 
                             'max_x' : 2.0, 
@@ -68,11 +68,10 @@ class RBC():
 
     def forward(self,w_tn,w_tnp1,a1,b1):
         return self.solver.forward(w_tn,w_tnp1,a1,b1)
+        
     def backward(self,w_tn,w_tnp1,a1,b1):
         return self.solver.backward(w_tn,w_tnp1,a1,b1)
 
-        
- 
     def _get_done(self):
         return self.solver.time > self.solver.T
         # return self.env.getDown()

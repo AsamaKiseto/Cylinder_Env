@@ -43,12 +43,13 @@ def test_plot(t_nn, log_list, scale_k, ex_name = 'fb_0.0', fig_name = 'test', ba
     fig_num = 2
     fig, ax = plt.subplots(nrows=fig_num, ncols=1, figsize=(15,12), dpi=200)
     ax = ax.flatten()
+    
     for i in range(fig_num):
         ax[i] = plt.subplot2grid((fig_num, 1), (i, 0))
         ax[i].grid(True, lw=0.4, ls="--", c=".50")
         # ax[i].set_xlim(0, t_nn[-1])
         ax[i].set_yscale('log')
-        ax[i].set_ylim(1e-4, 1)
+        # ax[i].set_ylim(1e-4, 1)
     
     # ax[1].set_ylim(0, 0.1)
         
@@ -83,6 +84,7 @@ def test_plot(t_nn, log_list, scale_k, ex_name = 'fb_0.0', fig_name = 'test', ba
     fig_num = 2
     fig, ax = plt.subplots(nrows=fig_num, ncols=1, figsize=(15,12), dpi=200)
     ax = ax.flatten()
+
     for i in range(fig_num):
         ax[i] = plt.subplot2grid((fig_num, 1), (i, 0))
         ax[i].grid(True, lw=0.4, ls="--", c=".50")
@@ -150,7 +152,6 @@ def test_plot(t_nn, log_list, scale_k, ex_name = 'fb_0.0', fig_name = 'test', ba
     # plt.savefig(f'logs/pics/error/phase1_coef_1step_{fig_name}_{ex_name}.jpg')
 
 def test_plot_ts(t_nn, log_list, scale_k, ts_list, ex_name = 'fb_0.0', fig_name = 'test'):
-    
     # fig setting
     fig_num = 2
     fig, ax = plt.subplots(nrows=fig_num, ncols=1, figsize=(15,12), dpi=200)
@@ -270,6 +271,7 @@ def animate_field(data, name, file_name):
     ax.axis('equal')
     # ax.set(xlim=(0, 2.2), ylim=(0, 0.41))
     ax.set(xlim=(xl, xh), ylim=(yl, yh))
+    ax.set_title(f'{name} {file_name}')
 
     # fig = plt.figure()
     # ax = plt.axes(projection='3d')
