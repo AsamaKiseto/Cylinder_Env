@@ -64,15 +64,15 @@ class MyFunctionSpace:
         self.params = params
     
     def generate(self, params=None):
-        self.pbc = PeriodicBoundary()
-        self.V = VectorElement("CG",self.geometry.mesh.ufl_cell(), 2,dim = 2)
-        self.P = FiniteElement( "CG",self.geometry.mesh.ufl_cell(), 2)
-        self.E = FiniteElement( "CG",self.geometry.mesh.ufl_cell(), 2)
-        self.W = FunctionSpace(self.geometry.mesh, MixedElement([self.V, self.P,self.E]),constrained_domain = self.pbc)
-        # self.V = VectorElement("CG",self.geometry.mesh.ufl_cell(), degree = 2,dim = 2)
-        # self.P = FiniteElement("CG",self.geometry.mesh.ufl_cell(), degree = 2)
-        # self.E = FiniteElement("CG",self.geometry.mesh.ufl_cell(), degree = 2)
-        # self.W = FunctionSpace(self.geometry.mesh, MixedElement([self.V, self.P,self.E]))
+        # self.pbc = PeriodicBoundary()
+        # self.V = VectorElement("CG",self.geometry.mesh.ufl_cell(), 2,dim = 2)
+        # self.P = FiniteElement( "CG",self.geometry.mesh.ufl_cell(), 2)
+        # self.E = FiniteElement( "CG",self.geometry.mesh.ufl_cell(), 2)
+        # self.W = FunctionSpace(self.geometry.mesh, MixedElement([self.V, self.P,self.E]),constrained_domain = self.pbc)
+        self.V = VectorElement("CG",self.geometry.mesh.ufl_cell(), degree = 2,dim = 2)
+        self.P = FiniteElement("CG",self.geometry.mesh.ufl_cell(), degree = 2)
+        self.E = FiniteElement("CG",self.geometry.mesh.ufl_cell(), degree = 2)
+        self.W = FunctionSpace(self.geometry.mesh, MixedElement([self.V, self.P,self.E]))
 
 
 class MySolver:
@@ -197,9 +197,9 @@ class MySolver:
             
     def get_obs(self):
         nu = self.params['dimy']*self.params['dimx']
-        print('nu: ', nu)
+        # print('nu: ', nu)
         shape = [self.params['dimy'], self.params['dimx']]
-        print('shape: ', shape)
+        # print('shape: ', shape)
         temp = np.array(self.w.compute_vertex_values()[3*nu:].reshape(shape))
         p = np.array(self.w.compute_vertex_values()[2*nu:3*nu].reshape(shape))
         u =  np.array(self.w.compute_vertex_values()[:1*nu].reshape(shape))

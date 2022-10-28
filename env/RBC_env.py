@@ -45,7 +45,7 @@ class RBC():
                             'max_y' : 1.0 ,'Ra':1E6
                             }
         
-    def reset(self, ctr=0.0):
+    def reset(self, ctr=0):
         self.solver.init_solve(ctr)
         print('init now')
 
