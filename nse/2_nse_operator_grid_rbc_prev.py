@@ -117,7 +117,7 @@ if __name__=='__main__':
     test_loader = DataLoader(dataset=test_data, batch_size=args.batch_size, shuffle=True, drop_last=True)
 
     # model setting
-    nse_model = RBCModel_FNO(shape, 0.05, args)
+    nse_model = RBCModel_FNO_prev(shape, 0.05, args)
     params_num = nse_model.count_params()
 
     print('N0: {}, nt: {}, nx: {}, ny: {}, device: {}'.format(N0, nt, nx, ny, nse_model.device))
@@ -128,14 +128,14 @@ if __name__=='__main__':
     # train process
     for epoch in range(1, nse_model.params.epochs+1):
         nse_model.data_train(epoch, train_loader)
-        if epoch % nse_model.params.phys_gap == 0 and epoch != nse_model.params.epochs:
-            # freeze phys_model trained in data training
-            for param in list(nse_model.phys_model.parameters()):
-                param.requires_grad = False
-            for phys_epoch in range(1, nse_model.params.phys_epochs+1):
-                nse_model.phys_train(phys_epoch, train_loader, random=args.phys_random_select)          
-            for param in list(nse_model.phys_model.parameters()):
-                param.requires_grad = True
+        # if epoch % nse_model.params.phys_gap == 0 and epoch != nse_model.params.epochs:
+        #     # freeze phys_model trained in data training
+        #     for param in list(nse_model.phys_model.parameters()):
+        #         param.requires_grad = False
+        #     for phys_epoch in range(1, nse_model.params.phys_epochs+1):
+        #         nse_model.phys_train(phys_epoch, train_loader, random=args.phys_random_select)          
+        #     for param in list(nse_model.phys_model.parameters()):
+        #         param.requires_grad = True
         if epoch % 2 == 0:
             nse_model.save_log(logs)
             nse_model.test(test_loader, logs)
