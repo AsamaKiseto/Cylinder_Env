@@ -7,6 +7,8 @@ from scripts.nse_model import *
 def get_args(argv=None):
     parser = argparse.ArgumentParser(description = 'Put your hyperparameters')
 
+    parser.add_argument('-lf', '--logs_fname', default='test', type=str, help='logs file name')
+    parser.add_argument('-dc', '--dict', default='model_rbc', type=str, help='dict name')
     parser.add_argument('-dr', '--data_rate', default=0.7, type=float, help='logs file name')
     
     parser.add_argument('-L', '--L', default=2, type=int, help='the number of layers')
@@ -46,7 +48,7 @@ if __name__=='__main__':
     logs = dict()
     logs['args'] = args
 
-    logs_fname = 'logs/model/phase1_rbc_grid_pi'
+    logs_fname = f'logs/model_{args.dict}/phase1_rbc_{args.logs_fname}_grid_pi'
 
     # load data
     data_path = 'data/nse_data_reg_rbc'
@@ -110,6 +112,7 @@ if __name__=='__main__':
             return x, y
     
     RBC_data = RBC_Dataset(obs, ctr)
+    print(f'Ndata: {RBC_data.Ndata}')
     tr_num = int(args.data_rate * RBC_data.Ndata)
     ts_num = int(0.2 * RBC_data.Ndata)
     train_data, test_data, _ = random_split(RBC_data, [tr_num, ts_num, RBC_data.Ndata - tr_num - ts_num])
@@ -136,7 +139,7 @@ if __name__=='__main__':
                 nse_model.phys_train(phys_epoch, train_loader, random=args.phys_random_select)          
             for param in list(nse_model.phys_model.parameters()):
                 param.requires_grad = True
-        if epoch % 2 == 0:
+        if epoch % 5 == 0:
             nse_model.save_log(logs)
             nse_model.test(test_loader, logs)
 
