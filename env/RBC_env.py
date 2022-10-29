@@ -11,7 +11,7 @@ import random
 import math
 import torch.nn as nn
 
-from rbc_tools import *
+from rbc_tools_test import *
 import time
 
 class RBC():
@@ -28,36 +28,35 @@ class RBC():
         self.solver.generate_grid()
         # self.solver.solve()
 
-
         self.current_t = self.solver.time 
         
     def set_params(self, params =None):
         if params is not None:
             self.params = params
         else:
-            self.params = {'dt':  0.125,
-                            'T':  0.125*130,
-                            'dimx': 129,
-                            'dimy': 64,
+            self.params = {'dt':  0.05,
+                            'T':  0.01,
+                            'dimx': 40,
+                            'dimy': 40,
                             'min_x' : 0, 
                             'max_x' : 2.0, 
                             'min_y' : 0.0, 
-                            'max_y' : 1.0 ,'Ra':1E6
+                            'max_y' : 2.0 ,'Ra':1E2
                             }
         
-    def reset(self, ctr=0):
-        self.solver.init_solve(ctr)
+    def reset(self, ctr=1.0, const=2.0):
+        self.solver.init_solve(ctr, const)
         print('init now')
 
     def solve(self):
         self.solver.direct_solve(epoch = 100)
 
     def step(self):        
-        temp , velo , p ,a1 , b1= self.solver.step_forward()
+        temp , velo , p= self.solver.step_forward()
         #self.solver.plot_all()
         episode_over = self._get_done()
         
-        return temp , velo , p , episode_over, a1 , b1
+        return temp , velo , p , episode_over
     
     def adjoint_forward(self,w_tn, w_tnp1,a1,b1):
         grad_wn,grad_wnp1,J=self.solver.RBC_step(w_tn, w_tnp1,a1,b1)

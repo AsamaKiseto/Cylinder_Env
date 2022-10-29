@@ -68,8 +68,8 @@ class NSEModel():
             
             # split data read in train_loader
             in_train, ctr_train = x_train[:, :, :, :-1], x_train[:, 0, 0, -1]
-            out_train, Cd_train, Cl_train = y_train[:, :, :, :-2], y_train[:, 0, 0, -2], y_train[:, 0, 0, -1]
-            opt_train = [out_train, Cd_train, Cl_train]
+            out_train = y_train[:, :, :, :3]
+            opt_train = y_train
 
             # put data to generate 4 loss
             loss1, loss2, loss3, loss4, loss6 = self.pred_loss(in_train, ctr_train, opt_train)
@@ -144,8 +144,8 @@ class NSEModel():
                 x_test, y_test = x_test.to(self.device), y_test.to(self.device)
                 # split data read in test_loader
                 in_test, ctr_test = x_test[:, :, :, :-1], x_test[:, 0, 0, -1]
-                out_test, Cd_test, Cl_test = y_test[:, :, :, :-2], y_test[:, 0, 0, -2], y_test[:, 0, 0, -1]
-                opt_test = [out_test, Cd_test, Cl_test]
+                out_test = y_test[:, :, :, :3]
+                opt_test = y_test
 
                 loss1, loss2, loss3, loss4, loss6 = self.pred_loss(in_test, ctr_test, opt_test)
                 mod = self.phys_model(in_test, ctr_test, out_test)
@@ -157,28 +157,28 @@ class NSEModel():
               .format(test_log.loss1.avg, test_log.loss2.avg, test_log.loss3.avg, test_log.loss4.avg, test_log.loss5.avg, test_log.loss6.avg))
 
     def pred_loss(self, ipt, ctr, opt):
-        opt, Cd, Cl = opt
+        out, Cd, Cl = opt[:, :, :, :3], opt[:, 0, 0, -2], opt[:, 0, 0, -1]
         # latent items
-        opt_latent = self.pred_model.stat_en(opt)
+        out_latent = self.pred_model.stat_en(out)
         # prediction & rec items
-        opt_pred, Cd_pred, Cl_pred, mod_pred, ipt_rec, ctr_rec, trans_out = self.model_step(ipt, ctr)
+        out_pred, Cd_pred, Cl_pred, mod_pred, ipt_rec, ctr_rec, trans_out = self.model_step(ipt, ctr)
         
-        loss1 = rel_error(opt_pred, opt).mean() + rel_error(Cd_pred, Cd).mean() + rel_error(Cl_pred, Cl).mean()
+        loss1 = rel_error(out_pred, out).mean() + rel_error(Cd_pred, Cd).mean() + rel_error(Cl_pred, Cl).mean()
         loss2 = rel_error(ipt_rec, ipt).mean()
         loss3 = rel_error(ctr_rec, ctr).mean()
-        loss4 = rel_error(trans_out, opt_latent).mean()
-        loss6 = ((Lpde(ipt, opt_pred, self.dt) + mod_pred) ** 2).mean()
+        loss4 = rel_error(trans_out, out_latent).mean()
+        loss6 = ((Lpde(ipt, out_pred, self.dt) + mod_pred) ** 2).mean()
 
         return loss1, loss2, loss3, loss4, loss6
 
     def model_step(self, ipt, ctr):
         pred, x_rec, ctr_rec, trans_out = self.pred_model(ipt, ctr)
         ipt_rec = x_rec[:, :, :, :3]
-        opt_pred = pred[:, :, :, :3]
+        out_pred = pred[:, :, :, :3]
         Cd_pred = torch.mean(pred[:, :, :, -2].reshape(pred.shape[0], -1), 1)
         Cl_pred = torch.mean(pred[:, :, :, -1].reshape(pred.shape[0], -1), 1)
-        mod_pred = self.phys_model(ipt, ctr, opt_pred)
-        return opt_pred, Cd_pred, Cl_pred, mod_pred, ipt_rec, ctr_rec, trans_out
+        mod_pred = self.phys_model(ipt, ctr, out_pred)
+        return out_pred, Cd_pred, Cl_pred, mod_pred, ipt_rec, ctr_rec, trans_out
 
     def set_init(self, state_nn):
         self.in_nn = state_nn
@@ -272,9 +272,6 @@ class NSEModel_FNO(NSEModel):
                 ctr_new = ctr_new.data + scale * dLf    # use .data to generate new leaf tensor
                 in_new = in_new.data + scale * dLu
                 print(f'ctr_comp : {dLf.max()} | in_comp : {dLu.max()} | scale: {scale}')
-                # print('f in : {:1.4e} {:1.4e}'.format((ctr_new ** 2).mean(), (in_new ** 2).mean()))
-                # print('dLf dLu : {:1.4e} {:1.4e}'.format((dLf ** 2).mean(), (dLu ** 2).mean()))
-                # print(ctr_new.mean(),in_new.mean())
         
         in_train, ctr_train = in_new.data, ctr_new.data
         
@@ -302,7 +299,148 @@ class NSEModel_FNO_prev(NSEModel):
         self.phys_scheduler.step()
 
 
-class NSEModel_FNO_RBC(NSEModel):
+class RBCModel_FNO(NSEModel):
     def __init__(self, shape, dt, args):
         super().__init__(shape, dt, args)
-        self.set_model()
+        self.set_model(FNO_ensemble_RBC, state_mo)
+    
+    def train_step(self, loss1, loss2, loss3, loss4, loss5, loss6):
+        lambda1, lambda2, lambda3, lambda4 = self.params.lambda1, self.params.lambda2, self.params.lambda3, self.params.lambda4
+        loss_pred = lambda1 * loss1 + lambda2 * loss2 + lambda3 * loss3 + lambda4 * loss4
+
+        loss_pred.backward()
+        loss5.backward()
+
+        self.pred_optimizer.step()
+        self.phys_optimizer.step()
+    
+    def scheduler_step(self):
+        self.pred_scheduler.step()
+        self.phys_scheduler.step()
+        
+    def pred_loss(self, ipt, ctr, opt):
+        out = opt[:, :, :, :3]
+        # latent items
+        out_latent = self.pred_model.stat_en(out)
+        # prediction & rec items
+        out_pred, mod_pred, ipt_rec, ctr_rec, trans_out = self.model_step(ipt, ctr)
+        
+        loss1 = rel_error(out_pred, out).mean()
+        loss2 = rel_error(ipt_rec, ipt).mean()
+        loss3 = rel_error(ctr_rec, ctr).mean()
+        loss4 = rel_error(trans_out, out_latent).mean()
+        loss6 = ((Lpde(ipt, out_pred, self.dt) + mod_pred) ** 2).mean()
+
+        return loss1, loss2, loss3, loss4, loss6
+
+    def model_step(self, ipt, ctr):
+        pred, x_rec, ctr_rec, trans_out = self.pred_model(ipt, ctr)
+        ipt_rec = x_rec[:, :, :, :3]
+        out_pred = pred[:, :, :, :3]
+        mod_pred = self.phys_model(ipt, ctr, out_pred)
+        return out_pred, mod_pred, ipt_rec, ctr_rec, trans_out
+    
+    def phys_train(self, phys_epoch, train_loader, random=False):
+        loss_pde = AverageMeter()
+        t3 = default_timer()
+
+        for x_train, _ in train_loader:
+            x_train = x_train.to(self.device)
+
+            # split data read in train_loader
+            in_new, ctr_new = x_train[:, :, :, :-1], x_train[:, 0, 0, -1]
+
+            self.phys_model.eval()
+
+            in_train, ctr_train = self.gen_new_data(in_new, ctr_new, random)
+            
+            self.pred_model.train()
+            self.pred_optimizer.zero_grad()
+
+            pred, _, _, _ = self.pred_model(in_train, ctr_train)
+            out_pred = pred[:, :, :, :3]
+            mod = self.phys_model(in_train, ctr_train, out_pred)
+            # 多训练几次？  
+            loss = ((Lpde(in_train, out_pred, self.dt) + mod) ** 2).mean()
+            loss.backward()
+            self.pred_optimizer.step()
+            loss_pde.update(loss.item(), self.params.batch_size)
+        
+        self.phys_scheduler.step()
+        t4 = default_timer()
+        print('----phys training: # {} {:1.2f} (pde) pred: {:1.2e} | '.format(phys_epoch, t4-t3, loss_pde.avg))
+    
+    def gen_new_data(self, in_new, ctr_new, random=False):
+        if random == True:
+            in_train = in_new + torch.rand(in_new.shape).cuda() * self.params.phys_scale
+            ctr_train = ctr_new + torch.rand(ctr_new.shape).cuda() * self.params.phys_scale
+            return in_train, ctr_train
+
+        self.pred_model.eval()
+        for param in list(self.pred_model.parameters()):
+            param.requires_grad = False
+
+        # 3 steps to generate new data along gradient
+        if self.params.phys_scale > 0:
+            for _ in range(self.params.phys_steps):
+                ctr_new = ctr_new.requires_grad_(True)
+                in_new = in_new.requires_grad_(True)
+                pred, _, _, _ = self.pred_model(in_new, ctr_new)
+                out_pred = pred[:, :, :, :3]
+                mod = self.phys_model(in_new, ctr_new, out_pred)
+                loss = ((Lpde(in_new, out_pred, self.dt) + mod) ** 2).mean()
+                loss.backward()
+                # print(ctr_new.is_leaf, in_new.is_leaf)
+                dLf = ctr_new.grad
+                dLu = in_new.grad
+                phys_scale = self.params.phys_scale
+                scale = torch.sqrt(loss.data) / torch.sqrt((dLf ** 2).sum() + (dLu ** 2).sum()) * phys_scale
+                ctr_new = ctr_new.data + scale * dLf    # use .data to generate new leaf tensor
+                in_new = in_new.data + scale * dLu
+        
+        in_train, ctr_train = in_new.data, ctr_new.data
+        
+        for param in list(self.pred_model.parameters()):
+            param.requires_grad = True
+
+        return in_train, ctr_train
+
+
+class RBCModel_FNO_prev(NSEModel):
+    def __init__(self, shape, dt, args):
+        super().__init__(shape, dt, args)
+        self.set_model(FNO_ensemble_RBC)
+    
+    def train_step(self, loss1, loss2, loss3, loss4, loss5, loss6):
+        lambda1, lambda2, lambda3, lambda4 = self.params.lambda1, self.params.lambda2, self.params.lambda3, self.params.lambda4
+        loss_pred = lambda1 * loss1 + lambda2 * loss2 + lambda3 * loss3 + lambda4 * loss4 + 0.1 * loss6
+
+        loss_pred.backward()
+        self.pred_optimizer.step()
+        self.phys_optimizer.step()
+    
+    def scheduler_step(self):
+        self.pred_scheduler.step()
+        self.phys_scheduler.step()
+    
+    def pred_loss(self, ipt, ctr, opt):
+        out = opt[:, :, :, :3]
+        # latent items
+        out_latent = self.pred_model.stat_en(out)
+        # prediction & rec items
+        out_pred, mod_pred, ipt_rec, ctr_rec, trans_out = self.model_step(ipt, ctr)
+        
+        loss1 = rel_error(out_pred, out).mean()
+        loss2 = rel_error(ipt_rec, ipt).mean()
+        loss3 = rel_error(ctr_rec, ctr).mean()
+        loss4 = rel_error(trans_out, out_latent).mean()
+        loss6 = ((Lpde(ipt, out_pred, self.dt) + mod_pred) ** 2).mean()
+
+        return loss1, loss2, loss3, loss4, loss6
+
+    def model_step(self, ipt, ctr):
+        pred, x_rec, ctr_rec, trans_out = self.pred_model(ipt, ctr)
+        ipt_rec = x_rec[:, :, :, :3]
+        out_pred = pred[:, :, :, :3]
+        mod_pred = self.phys_model(ipt, ctr, out_pred)
+        return out_pred, mod_pred, ipt_rec, ctr_rec, trans_out

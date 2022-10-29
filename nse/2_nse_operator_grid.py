@@ -19,6 +19,7 @@ def get_args(argv=None):
     parser.add_argument('--phys_epochs', default=10, type=int, help = 'Number of Phys Epochs')
     parser.add_argument('--phys_steps', default=2, type=int, help = 'Number of Phys Steps')
     parser.add_argument('--phys_scale', default=0.1, type=float, help = 'Number of Phys Scale')
+    parser.add_argument('--phys_random_select', default=False, type=bool, help = 'Whether random select')
 
     parser.add_argument('--batch_size', default=32, type=int, help = 'batch size')
     parser.add_argument('--epochs', default=500, type=int, help = 'Number of Epochs')
@@ -92,7 +93,7 @@ if __name__=='__main__':
             for param in list(nse_model.phys_model.parameters()):
                 param.requires_grad = False
             for phys_epoch in range(1, nse_model.params.phys_epochs+1):
-                nse_model.phys_train(phys_epoch, train_loader)          
+                nse_model.phys_train(phys_epoch, train_loader, random=args.phys_random_select)          
             for param in list(nse_model.phys_model.parameters()):
                 param.requires_grad = True
         if epoch % 5 == 0:

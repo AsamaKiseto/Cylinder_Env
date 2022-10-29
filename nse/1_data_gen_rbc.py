@@ -14,34 +14,33 @@ from env.RBC_env import RBC
 
 simulator = RBC()
 
-N0 = 10
+N0 = 400 + 1
 nx = simulator.params['dimx']
 ny = simulator.params['dimy']
 dt = simulator.params['dt']
-init_nt = int(10 // dt)
-nt = int(10 // dt)
+nt = int(5 // dt) + 1
 print(f'N0: {N0}, nt: {nt}, nx: {nx}, ny: {ny}')
 
-temp , velo , p , a1 , b1  = np.zeros((N0, nt, nx, ny)), np.zeros((N0, nt, nx, ny, 2)), np.zeros((N0, nt, nx, ny)), np.zeros((N0, nt)), np.zeros((N0, nt))
+temp , velo , p = np.zeros((N0, nt, nx, ny)), np.zeros((N0, nt, nx, ny, 2)), np.zeros((N0, nt, nx, ny))
+ctr = np.linspace(-4, 4, N0)
 
 for k in range(N0):
     print(f'start # {k}')
     t1 = default_timer()
-    simulator.reset()
+    simulator.reset(ctr[k], const=1.0)
 
     for i in range(nt):
-        temp[k, i], velo[k, i], _, p[k, i], a1[k, i], b1[k, i] = simulator.step()
+        temp[k, i], velo[k, i], p[k, i], _  = simulator.step()
 
     t2 = default_timer()
     print(f'# {k} finish | {t2 - t1}')
 
-temp = torch.Tensor(temp)
+temp = torch.Tensor(temp).reshape(N0, nt, nx, ny, 1)
 velo = torch.Tensor(velo)
-p = torch.Tensor(p)
-a1 = torch.Tensor(a1)
-b1 = torch.Tensor(b1)
+p = torch.Tensor(p).reshape(N0, nt, nx, ny, 1)
+ctr = torch.Tensor(ctr).reshape(N0, 1).repeat(1, nt)
 
 obs = torch.cat((velo, p), dim=-1)
 
-data = [temp , velo , p , a1 , b1]
-torch.save(data, 'data/rbc_data_reg')
+data = [obs, temp , ctr]
+torch.save(data, 'data/nse_data_reg_rbc')

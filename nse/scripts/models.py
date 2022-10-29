@@ -210,6 +210,27 @@ class state_de(nn.Module):
         return x    # [batch_size, nx, ny, 5]
 
 
+class state_de_rbc(nn.Module):
+    def __init__(self, modes1, modes2, width, L):
+        super(state_de_rbc, self).__init__()
+
+        self.up = [ FNO_layer(modes1, modes2, width) for i in range(L-1) ]
+        self.up += [ FNO_layer(modes1, modes2, width, last=True) ]
+        self.up = nn.Sequential(*self.up)
+
+        self.fc1 = nn.Linear(width, 128)
+        self.fc2 = nn.Linear(128, 3)
+
+    def forward(self, x_latent):
+        x = self.up(x_latent)
+        x = x.permute(0, 2, 3, 1)
+        x = self.fc1(x)
+        x = F.gelu(x)
+        x = self.fc2(x)
+
+        return x    # [batch_size, nx, ny, 5]
+
+
 class control_en(nn.Module):
     def __init__(self, nx, ny, out_channels, width=5):
         super(control_en, self).__init__()
@@ -329,21 +350,19 @@ class state_mo(nn.Module):
         return torch.cat((gridx, gridy), dim=-1).to(device)
 
 
-class state_mo_test(nn.Module):
+class state_mo_prev(nn.Module):
     def __init__(self, modes1, modes2, width, L):
-        super(state_mo_test, self).__init__()
+        super(state_mo_prev, self).__init__()
 
         self.net = [ FNO_layer(modes1, modes2, width) for i in range(L-1) ]
         self.net += [ FNO_layer(modes1, modes2, width, last=True) ]
         self.net = nn.Sequential(*self.net)
 
-        self.fc0 = nn.Linear(5, width)
         self.fc1 = nn.Linear(width, 128)
         self.fc2 = nn.Linear(128, 2)
         # self.fc2 = nn.Linear(128, 2)
 
     def forward(self, x):
-        
         x = self.net(x)
         x = x.permute(0, 2, 3, 1)
         x = self.fc1(x)
@@ -403,7 +422,7 @@ class FNO_ensemble_test(nn.Module):
 
         self.stat_en = state_en(modes1, modes2, width, L)
         self.stat_de = state_de(modes1, modes2, width, L)
-        self.state_mo = state_mo_test(modes1, modes2, width, L)
+        self.state_mo = state_mo_prev(modes1, modes2, width, L)
 
         self.ctr_en = control_en(nx, ny, f_channels)
         self.ctr_de = control_de(f_channels)
@@ -427,9 +446,9 @@ class FNO_ensemble_test(nn.Module):
         return pred, x_rec, ctr_rec, trans_out, mod
 
 
-class FNO_RBC(nn.Module):
+class FNO_ensemble_RBC(nn.Module):
     def __init__(self, params):
-        super(FNO_ensemble, self).__init__()
+        super(FNO_ensemble_RBC, self).__init__()
 
         modes1 = params['modes']
         modes2 = params['modes']
@@ -440,8 +459,13 @@ class FNO_RBC(nn.Module):
         nx, ny = shape[0], shape[1]
 
         self.stat_en = state_en(modes1, modes2, width, L)
-        self.stat_de = state_de(modes1, modes2, width, L)
+        self.stat_de = state_de_rbc(modes1, modes2, width, L)
         # self.state_mo = state_mo(modes1, modes2, width, L+2)
+
+        self.ctr_en = control_en(nx, ny, f_channels)
+        self.ctr_de = control_de(f_channels)
+
+        self.trans = trans_net(modes1, modes2, width, L, f_channels)
 
     # def forward(self, x, f, modify=True):
     def forward(self, x, ctr):
@@ -453,80 +477,44 @@ class FNO_RBC(nn.Module):
         ctr_rec = self.ctr_de(ctr_latent)
 
         trans_out = self.trans(x_latent, ctr_latent)
-        
         pred = self.stat_de(trans_out)
         
         return pred, x_rec, ctr_rec, trans_out #, mod
 
 
-class policy_net_cnn(nn.Module):
-    def __init__(self):
-        super(policy_net_cnn, self).__init__()
+class FNO_ensemble_test_RBC(nn.Module):
+    def __init__(self, params):
+        super(FNO_ensemble_test_RBC, self).__init__()
 
-        self.net = nn.Sequential(
-            nn.Conv2d(3, 64, 5, padding=2),
-            # nn.Tanh(),
-            nn.Conv2d(64, 32, 5, padding=2),
-            # nn.Tanh(),
-            nn.Conv2d(32, 16, 5, padding=2),
-            # nn.Tanh(),
-            nn.Conv2d(16, 1, 5, padding=2),
-        )
+        modes1 = params['modes']
+        modes2 = params['modes']
+        width = params['width']
+        L = params['L']
+        shape = params['shape']
+        f_channels = params['f_channels']
+        nx, ny = shape[0], shape[1]
 
-    def forward(self, x):
-        x = x.permute(0, 3, 1, 2)
-        f = self.net(x)
-        f = torch.mean(f.reshape(f.shape[0], -1), 1)
-        return f
+        self.stat_en = state_en(modes1, modes2, width, L)
+        self.stat_de = state_de(modes1, modes2, width, L)
+        self.state_mo = state_mo_prev(modes1, modes2, width, L)
 
+        self.ctr_en = control_en(nx, ny, f_channels)
+        self.ctr_de = control_de(f_channels)
 
-class PIPN(nn.Module):
-    def __init__(self):
-        super(PIPN, self).__init__()
+        self.trans = trans_net(modes1, modes2, width, L, f_channels)
 
-        self.en = nn.Sequential(
-            nn.Conv1d(6, 64, 1),
-            nn.ReLU(),
-            nn.BatchNorm1d(64),
-            nn.Conv1d(64, 64, 1),
-            nn.ReLU(),
-            nn.BatchNorm1d(64),
-        )
-        self.la = nn.Sequential(
-            nn.Conv1d(64, 128, 1),
-            nn.ReLU(),
-            nn.BatchNorm1d(128),
-            # nn.Conv1d(128, 512, 1),
-            # nn.ReLU(),
-            # nn.BatchNorm1d(512),
-            nn.Conv1d(128, 1024, 1),
-            nn.ReLU(),
-            nn.BatchNorm1d(1024),
-        )
-        self.de = nn.Sequential(
-            nn.Conv1d(1088, 512, 1),
-            nn.ReLU(),
-            nn.BatchNorm1d(512),
-            nn.Conv1d(512, 256, 1),
-            nn.ReLU(),
-            nn.BatchNorm1d(256),
-            nn.Conv1d(256, 128, 1),
-            nn.ReLU(),
-            nn.BatchNorm1d(128),
-            nn.Conv1d(128, 5, 1),
-        )
+    # def forward(self, x, f, modify=True):
+    def forward(self, x, ctr):
+        # x: [batch_size, nx, ny, 3]; f: [1]
+        x_latent = self.stat_en(x)
+        x_rec = self.stat_de(x_latent)
 
-    def forward(self, x, f):
-        bs = x.shape[0]
-        nv = x.shape[1]
-        f = f.reshape(bs, 1, 1).repeat(1, nv, 1)
-        x = torch.cat((x, f), -1)
-        x = x.permute(0, 2, 1)
-        w = self.en(x)
-        v = self.la(w)
-        gf = v.mean(-1).reshape(bs, -1, 1).repeat(1, 1, nv)
-        u = torch.cat((w, gf), 1)
-        y = self.de(u)
-        y = y.permute(0, 2, 1)
+        ctr_latent = self.ctr_en(ctr)
+        ctr_rec = self.ctr_de(ctr_latent)
 
-        return y
+        trans_out = self.trans(x_latent, ctr_latent)
+        mod = self.state_mo(trans_out)
+        
+        pred = self.stat_de(trans_out)
+        
+        return pred, x_rec, ctr_rec, trans_out, mod

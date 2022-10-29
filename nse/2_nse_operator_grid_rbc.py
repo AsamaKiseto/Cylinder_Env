@@ -7,18 +7,17 @@ from scripts.nse_model import *
 def get_args(argv=None):
     parser = argparse.ArgumentParser(description = 'Put your hyperparameters')
 
-    parser.add_argument('-dp', '--data_path', default='dt_0.01_fr_1.0', type=str, help='data path name')
-    parser.add_argument('-lf', '--logs_fname', default='test', type=str, help='logs file name')
-    parser.add_argument('-dr', '--date_rate', default=0.7, type=float, help='logs file name')
+    parser.add_argument('-dr', '--data_rate', default=0.7, type=float, help='logs file name')
     
     parser.add_argument('-L', '--L', default=2, type=int, help='the number of layers')
     parser.add_argument('-m', '--modes', default=16, type=int, help='the number of modes of Fourier layer')
     parser.add_argument('-w', '--width', default=32, type=int, help='the number of width of FNO layer')
     
-    parser.add_argument('--phys_gap', default=40, type=int, help = 'Number of gap of Phys')
-    parser.add_argument('--phys_epochs', default=10, type=int, help = 'Number of Phys Epochs')
+    parser.add_argument('--phys_gap', default=2, type=int, help = 'Number of gap of Phys')
+    parser.add_argument('--phys_epochs', default=2, type=int, help = 'Number of Phys Epochs')
     parser.add_argument('--phys_steps', default=2, type=int, help = 'Number of Phys Steps')
     parser.add_argument('--phys_scale', default=0.1, type=float, help = 'Number of Phys Scale')
+    parser.add_argument('--phys_random_select', default=False, type=bool, help = 'Whether random select')
 
     parser.add_argument('--batch_size', default=32, type=int, help = 'batch size')
     parser.add_argument('--epochs', default=500, type=int, help = 'Number of Epochs')
@@ -47,17 +46,21 @@ if __name__=='__main__':
     logs = dict()
     logs['args'] = args
 
-    logs_fname = 'logs/model/phase1_' + args.logs_fname + '_grid_pi'
+    logs_fname = 'logs/model/phase1_rbc_grid_pi'
 
     # load data
-    data_path = 'data/nse_data_reg_' + args.data_path
+    data_path = 'data/nse_data_reg_rbc'
     tg = args.tg     # sample evrey 5 timestamps
     Ng = args.Ng
-    temp , velo , p , a1 , b1 = torch.load(data_path)
-    obs = torch.cat((velo, p), dim=-1)
-    
-    obs, Cd, Cl, ctr = data.split(Ng, tg)
-    logs['data_norm'] = data.normalize('unif')   # unif: min, range  norm: mean, var
+    obs, temp , ctr = torch.load(data_path)
+    ctr = ctr[:, :-1]
+    end = 40
+    obs = obs[:, :-end]
+    ctr = ctr[:, :-end]
+    print('obs: ', obs.shape)
+    N0, nt, nx, ny = obs.shape[0], obs.shape[1]-1, obs.shape[2], obs.shape[3]
+
+    # logs['data_norm'] = data.normalize('unif')   # unif: min, range  norm: mean, var
     logs['pred_model'] = []
     logs['phys_model'] = []
 
@@ -69,21 +72,44 @@ if __name__=='__main__':
     logs['test_loss_pde_pred'] = []
 
     # data param
-    N0, nt, nx, ny = data.get_params()
+    N0, nt, nx, ny = obs.shape[0], obs.shape[1], obs.shape[2], obs.shape[3]
     shape = [nx, ny]
 
     # loader
-    train_loader, test_loader = data.trans2TrainingSet(args.batch_size, args.date_rate)
+    class RBC_Dataset(Dataset):
+        def __init__(self, obs, ctr):
+            N0, nt, nx, ny = obs.shape[0], obs.shape[1]-1, obs.shape[2], obs.shape[3]
+            self.Ndata = N0 * (nt - 1)
+
+            ctr = ctr.reshape(N0, nt, 1, 1, 1).repeat([1, 1, nx, ny, 1]).reshape(-1, nx, ny, 1)
+            input_data = obs[:, :-1].reshape(-1, nx, ny, 3)
+            output_data = obs[:, 1:].reshape(-1, nx, ny, 3)     #- input_data
+
+            self.ipt = torch.cat((input_data, ctr), dim=-1)
+            self.opt = output_data
+            
+        def __len__(self):
+            return self.Ndata
+
+        def __getitem__(self, idx):
+            x = torch.FloatTensor(self.ipt[idx])
+            y = torch.FloatTensor(self.opt[idx])
+            return x, y
+    
+    RBC_data = RBC_Dataset(obs, ctr)
+    tr_num = int(args.data_rate * RBC_data.Ndata)
+    ts_num = int(0.2 * RBC_data.Ndata)
+    train_data, test_data, _ = random_split(RBC_data, [tr_num, ts_num, RBC_data.Ndata - tr_num - ts_num])
+    train_loader = DataLoader(dataset=train_data, batch_size=args.batch_size, shuffle=True, drop_last=True)
+    test_loader = DataLoader(dataset=test_data, batch_size=args.batch_size, shuffle=True, drop_last=True)
 
     # model setting
-    nse_model = NSEModel_FNO(shape, data.dt, args)
+    nse_model = RBCModel_FNO(shape, 0.05, args)
     params_num = nse_model.count_params()
 
     print('N0: {}, nt: {}, nx: {}, ny: {}, device: {}'.format(N0, nt, nx, ny, nse_model.device))
-    print(f'Cd: {logs["data_norm"]["Cd"]}')
-    print(f'Cl: {logs["data_norm"]["Cl"]}')
-    print(f'ctr: {logs["data_norm"]["ctr"]}')
-    print(f'obs: {logs["data_norm"]["obs"]}')
+    # print(f'ctr: {logs["data_norm"]["ctr"]}')
+    # print(f'obs: {logs["data_norm"]["obs"]}')
     print(f'param numbers of the model: {params_num}')
 
     # train process
@@ -94,10 +120,10 @@ if __name__=='__main__':
             for param in list(nse_model.phys_model.parameters()):
                 param.requires_grad = False
             for phys_epoch in range(1, nse_model.params.phys_epochs+1):
-                nse_model.phys_train(phys_epoch, train_loader)          
+                nse_model.phys_train(phys_epoch, train_loader, random=args.phys_random_select)          
             for param in list(nse_model.phys_model.parameters()):
                 param.requires_grad = True
-        if epoch % 5 == 0:
+        if epoch % 2 == 0:
             nse_model.save_log(logs)
             nse_model.test(test_loader, logs)
 
