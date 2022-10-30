@@ -33,12 +33,7 @@ def loss_plot(log_list, fig_name = 'test'):
     plt.savefig(f'logs/loss_plot_{fig_name}.jpg')
 
 
-def test_plot(t_nn, log_list, scale_k, ex_name = 'fb_0.0', fig_name = 'test', bak = False):
-    if bak:
-        scale = [0.1, 0.5, 1.0]
-    else:
-        scale = [0.1, 1.0, 10.0]
-
+def test_plot(t_nn, log_list, scale_k, ex_name = 'fb_0.0', fig_name = 'test', dict = 'nse'):
     # state error fig setting
     fig_num = 2
     fig, ax = plt.subplots(nrows=fig_num, ncols=1, figsize=(15,12), dpi=200)
@@ -59,97 +54,60 @@ def test_plot(t_nn, log_list, scale_k, ex_name = 'fb_0.0', fig_name = 'test', ba
     ax[fig_num - 1].set_xlabel("t", fontsize=20)
 
     for k in range(len(log_list)):
-        if bak:
-            data_list = torch.load(f'logs/data_bak/error/phase1_test_{log_list[k]}_{ex_name}')
-        else:
-            data_list = torch.load(f'logs/data/error/phase1_test_{log_list[k]}_{ex_name}')
+        data_list = torch.load(f'logs/data_{dict}/error/phase1_test_{log_list[k]}_{ex_name}')
+
         error_1step, error_cul, _, _, _, _ = calMean(data_list)
         error_1step_v, error_cul_v, _, _, _, _ = calVar(data_list)
         
         for j in range(len(scale_k)):
-            ax[0].plot(t_nn, error_1step[scale_k[j]], label = f'{log_list[k]}, scale={scale[scale_k[j]]}')
-            ax[1].plot(t_nn, error_cul[scale_k[j]], label = f'{log_list[k]}, scale={scale[scale_k[j]]}')
+            ax[0].plot(t_nn, error_1step[scale_k[j]], label = f'{log_list[k]}')
+            ax[1].plot(t_nn, error_cul[scale_k[j]], label = f'{log_list[k]}')
 
             ax[0].fill_between(t_nn, error_1step_v[0][scale_k[j]], error_1step_v[1][scale_k[j]], alpha=0.2)
             ax[1].fill_between(t_nn, error_cul_v[0][scale_k[j]], error_cul_v[1][scale_k[j]], alpha=0.2)
             
             ax[0].legend()
     
-    if bak:
-        plt.savefig(f'logs/pics_bak/error/phase1_state_{fig_name}_{ex_name}.jpg')
-    else:
-        plt.savefig(f'logs/pics/error/phase1_state_{fig_name}_{ex_name}.jpg')
-    
-    # fig setting
-    fig_num = 2
-    fig, ax = plt.subplots(nrows=fig_num, ncols=1, figsize=(15,12), dpi=200)
-    ax = ax.flatten()
+    plt.savefig(f'logs/pics_{dict}/error/phase1_state_{fig_name}_{ex_name}.jpg')
 
-    for i in range(fig_num):
-        ax[i] = plt.subplot2grid((fig_num, 1), (i, 0))
-        ax[i].grid(True, lw=0.4, ls="--", c=".50")
-        # ax[i].set_xlim(0, t_nn[-1])
-        ax[i].set_yscale('log')
-        ax[i].set_ylim(1e-4, 1)
-        
-    ax[0].set_title("Error/Loss in Different Scales", fontsize=20)
-    ax[0].set_ylabel(r'Cul $C_D$ error', fontsize=20)
-    ax[1].set_ylabel(r'Cul $C_L$ error', fontsize=20)
-    ax[fig_num-1].set_xlabel("t", fontsize=20)
-    
-    for k in range(len(log_list)):
-        if bak:
-            data_list = torch.load(f'logs/data_bak/error/phase1_test_{log_list[k]}_{ex_name}')
-        else:
-            data_list = torch.load(f'logs/data/error/phase1_test_{log_list[k]}_{ex_name}')
-        _, _, _, _, error_Cd_cul, error_Cl_cul = calMean(data_list)
-        _, _, _, _, error_Cd_cul_v, error_Cl_cul_v = calVar(data_list)
-        
-        for j in range(len(scale_k)):
-            ax[0].plot(t_nn, error_Cd_cul[scale_k[j]], label = f'{log_list[k]}, scale={scale[scale_k[j]]}')
-            ax[1].plot(t_nn, error_Cl_cul[scale_k[j]], label = f'{log_list[k]}, scale={scale[scale_k[j]]}')
-            
-            ax[0].fill_between(t_nn, error_Cd_cul_v[0][scale_k[j]], error_Cd_cul_v[1][scale_k[j]], alpha=0.2)
-            ax[1].fill_between(t_nn, error_Cl_cul_v[0][scale_k[j]], error_Cl_cul_v[1][scale_k[j]], alpha=0.2)
-            
-            ax[0].legend()
-            
-    if bak:
-        plt.savefig(f'logs/pics_bak/error/phase1_culcoef_{fig_name}_{ex_name}.jpg')
-    else:
-        plt.savefig(f'logs/pics/error/phase1_culcoef_{fig_name}_{ex_name}.jpg')
-    
-    # # 1 step coef fig setting
+    # # coef fig setting
     # fig_num = 2
     # fig, ax = plt.subplots(nrows=fig_num, ncols=1, figsize=(15,12), dpi=200)
     # ax = ax.flatten()
+
     # for i in range(fig_num):
     #     ax[i] = plt.subplot2grid((fig_num, 1), (i, 0))
     #     ax[i].grid(True, lw=0.4, ls="--", c=".50")
     #     # ax[i].set_xlim(0, t_nn[-1])
     #     ax[i].set_yscale('log')
-    #     ax[i].set_ylim(1e-4, 1e-1)
+    #     ax[i].set_ylim(1e-4, 1)
         
     # ax[0].set_title("Error/Loss in Different Scales", fontsize=20)
-    # ax[0].set_ylabel(r'One-step $C_D$ error', fontsize=20)
-    # ax[1].set_ylabel(r'One-step $C_L$ error', fontsize=20)
+    # ax[0].set_ylabel(r'Cul $C_D$ error', fontsize=20)
+    # ax[1].set_ylabel(r'Cul $C_L$ error', fontsize=20)
     # ax[fig_num-1].set_xlabel("t", fontsize=20)
     
     # for k in range(len(log_list)):
-    #     data_list = torch.load(f'logs/data/error/phase1_test_{log_list[k]}_{ex_name}')
-    #     _, _, error_Cd_1step, error_Cl_1step, _, _ = calMean(data_list)
-    #     _, _, error_Cd_1step_v, error_Cl_1step_v, _, _ = calVar(data_list)
+    #     if bak:
+    #         data_list = torch.load(f'logs/data_bak/error/phase1_test_{log_list[k]}_{ex_name}')
+    #     else:
+    #         data_list = torch.load(f'logs/data/error/phase1_test_{log_list[k]}_{ex_name}')
+    #     _, _, _, _, error_Cd_cul, error_Cl_cul = calMean(data_list)
+    #     _, _, _, _, error_Cd_cul_v, error_Cl_cul_v = calVar(data_list)
         
     #     for j in range(len(scale_k)):
-    #         ax[0].plot(t_nn, error_Cd_1step[scale_k[j]], label = f'{log_list[k]}, scale={scale[scale_k[j]]}')
-    #         ax[1].plot(t_nn, error_Cl_1step[scale_k[j]], label = f'{log_list[k]}, scale={scale[scale_k[j]]}')
+    #         ax[0].plot(t_nn, error_Cd_cul[scale_k[j]], label = f'{log_list[k]}')
+    #         ax[1].plot(t_nn, error_Cl_cul[scale_k[j]], label = f'{log_list[k]}')
             
-    #         # ax[0].fill_between(t_nn, error_Cd_1step_v[0][scale_k[j]], error_Cd_1step_v[1][scale_k[j]], alpha=0.2)
-    #         # ax[1].fill_between(t_nn, error_Cl_1step_v[0][scale_k[j]], error_Cl_1step_v[1][scale_k[j]], alpha=0.2)
+    #         ax[0].fill_between(t_nn, error_Cd_cul_v[0][scale_k[j]], error_Cd_cul_v[1][scale_k[j]], alpha=0.2)
+    #         ax[1].fill_between(t_nn, error_Cl_cul_v[0][scale_k[j]], error_Cl_cul_v[1][scale_k[j]], alpha=0.2)
             
     #         ax[0].legend()
             
-    # plt.savefig(f'logs/pics/error/phase1_coef_1step_{fig_name}_{ex_name}.jpg')
+    # if bak:
+    #     plt.savefig(f'logs/pics_bak/error/phase1_culcoef_{fig_name}_{ex_name}.jpg')
+    # else:
+    #     plt.savefig(f'logs/pics/error/phase1_culcoef_{fig_name}_{ex_name}.jpg')
 
 def test_plot_ts(t_nn, log_list, scale_k, ts_list, ex_name = 'fb_0.0', fig_name = 'test'):
     # fig setting
