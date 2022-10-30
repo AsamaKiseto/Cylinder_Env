@@ -14,7 +14,7 @@ from env.RBC_env import RBC
 
 simulator = RBC()
 
-N0 = 100 + 1
+N0 = 60
 nx = simulator.params['dimx']
 ny = simulator.params['dimy']
 dt = simulator.params['dt']
@@ -22,7 +22,10 @@ nt = int(5 // dt) + 1
 print(f'N0: {N0}, nt: {nt}, nx: {nx}, ny: {ny}')
 
 temp , velo , p = np.zeros((N0, nt, nx, ny)), np.zeros((N0, nt, nx, ny, 2)), np.zeros((N0, nt, nx, ny))
-ctr = (2 * np.random.rand(N0) - 1) * 4
+ctr1 = (2 * np.random.rand(int(N0//3)) - 1) * 1
+ctr2 = (2 * np.random.rand(int(N0//3)) - 1) * 2
+ctr3 = (2 * np.random.rand(int(N0//3)) - 1) * 3
+ctr = np.concatenate([ctr1, ctr2, ctr3])
 
 for k in range(N0):
     print(f'start # {k}')
