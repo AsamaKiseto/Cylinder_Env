@@ -14,7 +14,7 @@ from env.RBC_env import RBC
 
 simulator = RBC()
 
-N0 = 200 + 1
+N0 = 100 + 1
 nx = simulator.params['dimx']
 ny = simulator.params['dimy']
 dt = simulator.params['dt']
