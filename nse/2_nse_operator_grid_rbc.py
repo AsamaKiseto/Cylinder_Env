@@ -54,29 +54,13 @@ if __name__=='__main__':
     data_path = 'data/nse_data_reg_rbc'
     tg = args.tg     # sample evrey 5 timestamps
     Ng = args.Ng
-    obs, temp , ctr = torch.load(data_path)
+    data = LoadDataRBC(data_path)
     end = 40
+    obs, temp, ctr = data.split(Ng, end)
+    print('obs: ', obs.shape, 'obs.mean: ', obs.mean())
+    print('temp: ', temp.shape, 'temp.mean: ', temp.mean())
+    print('ctr: ', ctr.shape, 'ctr.mean: ', ctr.mean())
 
-    def choose_data(data_list, Ng, end):
-        data_chosen = []
-        for data in data_list:
-            length = int(data.shape[0]//4)
-            data = data[length: length * 3 + 1, :-end + 1]
-            data = data[::Ng]
-            data_chosen.append(data)
-        return data_chosen
-
-    # obs = obs[::Ng, :-end + 1]
-    # temp = temp[::Ng, :-end + 1]
-    # ctr = ctr[::Ng, :-end + 1]
-    obs, temp, ctr = choose_data([obs, temp, ctr], Ng, end)
-    print('obs: ', obs.shape)
-    print('temp: ', temp.shape)
-    print('ctr: ', ctr.shape)
-
-    N0, nt, nx, ny = obs.shape[0], obs.shape[1]-1, obs.shape[2], obs.shape[3]
-
-    # logs['data_norm'] = data.normalize('unif')   # unif: min, range  norm: mean, var
     logs['pred_model'] = []
     logs['phys_model'] = []
 
@@ -88,39 +72,13 @@ if __name__=='__main__':
     logs['test_loss_pde_pred'] = []
 
     # data param
+    N0, nt, nx, ny = data.get_params()
     shape = [nx, ny]
 
-    # loader
-    class RBC_Dataset(Dataset):
-        def __init__(self, obs, ctr):
-            N0, nt, nx, ny = obs.shape[0], obs.shape[1]-1, obs.shape[2], obs.shape[3]
-            self.Ndata = N0 * nt
-            ctr = ctr[:, :-1]
-            ctr = ctr.reshape(N0, nt, 1, 1, 1).repeat([1, 1, nx, ny, 1]).reshape(-1, nx, ny, 1)
-            input_data = obs[:, :-1].reshape(-1, nx, ny, 3)
-            output_data = obs[:, 1:].reshape(-1, nx, ny, 3)     #- input_data
-
-            self.ipt = torch.cat((input_data, ctr), dim=-1)
-            self.opt = output_data
-            
-        def __len__(self):
-            return self.Ndata
-
-        def __getitem__(self, idx):
-            x = torch.FloatTensor(self.ipt[idx])
-            y = torch.FloatTensor(self.opt[idx])
-            return x, y
-    
-    RBC_data = RBC_Dataset(obs, ctr)
-    print(f'Ndata: {RBC_data.Ndata}')
-    tr_num = int(args.data_rate * RBC_data.Ndata)
-    ts_num = int(0.2 * RBC_data.Ndata)
-    train_data, test_data, _ = random_split(RBC_data, [tr_num, ts_num, RBC_data.Ndata - tr_num - ts_num])
-    train_loader = DataLoader(dataset=train_data, batch_size=args.batch_size, shuffle=True, drop_last=True)
-    test_loader = DataLoader(dataset=test_data, batch_size=args.batch_size, shuffle=True, drop_last=True)
+    train_loader, test_loader = data.trans2TrainingSet(args.batch_size, args.data_rate)
 
     # model setting
-    nse_model = RBCModel_FNO(shape, 0.05, args)
+    nse_model = RBCModel_FNO_prev(shape, 0.05, args)
     params_num = nse_model.count_params()
 
     print('N0: {}, nt: {}, nx: {}, ny: {}, device: {}'.format(N0, nt, nx, ny, nse_model.device))

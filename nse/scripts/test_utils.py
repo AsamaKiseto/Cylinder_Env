@@ -6,11 +6,10 @@ def loss_log(data, file_name, test_rate = 0.2):
     N0, nt, nx, ny = data.get_params()
     shape = [nx, ny]
     _, _, model_log = torch.load('logs/phase1_' + file_name + '_grid_pi')
-    args, data_norm = model_log['args'], model_log['data_norm']
-    pred_model, phys_model = model_log['pred_model'], model_log['phys_model']
+    args, pred_model, phys_model = model_log['args'], model_log['pred_model'], model_log['phys_model']
     epochs = len(pred_model)
 
-    data.normalize('logs_unif', data_norm)
+    data.normalize('logs_unif', model_log)
     data_loader = data.trans2CheckSet(test_rate, args.batch_size)
     model = NSEModel_FNO(shape, data.dt, args)
     loss = np.zeros((3, epochs))
@@ -38,29 +37,24 @@ def loss_log(data, file_name, test_rate = 0.2):
     data.unnormalize()
     torch.save(loss, 'logs/data/losslog/loss_log_' + file_name)
 
-def test_log(data, file_name, ex_name, model_loaded = NSEModel_FNO, bak = False):
+def test_log(data, file_name, ex_name, model_loaded = NSEModel_FNO, dict = 'nse'):
     N0, nt, nx, ny = data.get_params()
     shape = [nx, ny]
 
-    if bak:
-        operator_path = 'logs/model_bak/phase1_' + file_name + '_grid_pi'
-    else:
-        operator_path = 'logs/model/phase1_' + file_name + '_grid_pi'
+    operator_path = f'logs/model_{dict}/phase1_{file_name}_grid_pi'
+    
     print(operator_path)
     state_dict_pred, state_dict_phys, logs = torch.load(operator_path)
-    data.normalize('logs_unif', logs['data_norm'])
+    data.normalize('logs_unif', logs)
 
-    model = model_loaded(shape, 0.01 * logs['args'].tg, logs['args'])
+    model = model_loaded(shape, 0.05, logs['args'])
     model.load_state(state_dict_pred, state_dict_phys)
     model.toCPU()
     
-    obs, Cd, Cl, ctr = data.get_data()
-    in_nn = obs[:, 0]
-    
-    model.set_init(in_nn)
+    obs = data.get_obs()
 
-    out_1step, Lpde_obs, Lpde_pred, error_Cd_1step, error_Cl_1step = model.cal_1step(obs, Cd, Cl, ctr)
-    out_cul, Lpde_pred_cul, error_Cd_cul, error_Cl_cul = model.process(obs, Cd, Cl, ctr)
+    out_1step, Lpde_obs, Lpde_pred = model.cal_1step(data)
+    out_cul, Lpde_pred_cul = model.process(data)
     
     error_1step = ((out_1step - obs[:, 1:]) ** 2).reshape(N0, nt, -1).mean(2)
     error_cul = ((out_cul - obs[:, 1:]) ** 2).reshape(N0, nt, -1).mean(2)
@@ -68,11 +62,7 @@ def test_log(data, file_name, ex_name, model_loaded = NSEModel_FNO, bak = False)
     
     data.unnormalize()
     log_data = [out_1step, out_cul, Lpde_obs, Lpde_pred, Lpde_pred_cul]
-    log_error = [error_1step, error_cul, error_Cd_1step, error_Cl_1step, error_Cd_cul, error_Cl_cul]
+    log_error = [error_1step, error_cul]
     
-    if bak:
-        torch.save(log_data, f'logs/data_bak/output/phase1_test_{file_name}_{ex_name}')
-        torch.save(log_error, f'logs/data_bak/error/phase1_test_{file_name}_{ex_name}')
-    else:
-        torch.save(log_data, f'logs/data/output/phase1_test_{file_name}_{ex_name}')
-        torch.save(log_error, f'logs/data/error/phase1_test_{file_name}_{ex_name}')
+    torch.save(log_data, f'logs/data_{dict}/output/phase1_test_{file_name}_{ex_name}')
+    torch.save(log_error, f'logs/data_{dict}/error/phase1_test_{file_name}_{ex_name}')

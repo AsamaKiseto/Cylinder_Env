@@ -123,6 +123,23 @@ def fftd2D(u, device):
 
     return ux, uy, u_lap
 
+def calMean(data_list):
+    ans = []
+    for data in data_list:
+        length = data.shape[0]
+        data = data.reshape(length // 10, 10, -1).mean(1)
+        ans.append(data)
+    return ans
+
+def calVar(data_list):
+    ans = []
+    for data in data_list:
+        length = data.shape[0]
+        data_min = data.reshape(length // 10, 10, -1).min(1)
+        data_max = data.reshape(length // 10, 10, -1).max(1)
+        ans.append([data_min.values, data_max.values])
+    return ans
+
 # def AD2D(u, device):
 #     nv = u.shape[-2]
 #     dimu = u.shape[-1]
@@ -143,20 +160,112 @@ class AverageMeter(object):
         self.count += n
         self.avg = self.sum / self.count
 
+class PredLog():
+    def __init__(self, length):
+        self.length = length
+        self.loss1 = AverageMeter()
+        self.loss2 = AverageMeter()
+        self.loss3 = AverageMeter()
+        self.loss4 = AverageMeter()
+        self.loss5 = AverageMeter()
+        self.loss6 = AverageMeter()
+    
+    def update(self, loss_list):
+        for i in range(len(loss_list)):
+            exec(f'self.loss{i+1}.update(loss_list[{i}], self.length)')
+
+    def save_log(self, logs):
+        logs['test_loss_trans'].append(self.loss1.avg)
+        logs['test_loss_u_t_rec'].append(self.loss2.avg)
+        logs['test_loss_ctr_t_rec'].append(self.loss3.avg)
+        logs['test_loss_trans_latent'].append(self.loss4.avg)
+        logs['test_loss_pde_obs'].append(self.loss5.avg)
+        logs['test_loss_pde_pred'].append(self.loss6.avg)
+
 
 class LoadData:
-    def __init__(self, data_path, mode='grid'):
-        self.mode = mode
-        self.obs, self.Cd, self.Cl, self.ctr = torch.load(data_path)
-        if self.mode == 'grid':
-            self.obs = self.obs[..., 2:]
-            self.nx, self.ny = self.obs.shape[-3], self.obs.shape[-2]
-        elif self.mode == 'vertex':
-            self.nv = self.obs.shape[-2]
+    def __init__(self, data_path):
+        self.data = torch.load(data_path)
+        self.data_set = NSE_Dataset
+        self.norm = dict()
+        self.Ndata = 0
+        self.init_set()
+
+    def init_set(self):
+        "to be finished"
+        pass 
+
+    def get_params(self):
+        "to be finished"
+        pass
+    
+    def get_obs(self):
+        return self.obs
+
+    def get_data(self):
+        "to be finished"
+        pass
+    
+    def split(self):
+        "to be finished"
+        pass
+
+    def normalize(self, method = 'unif', logs = None):
+        "to be finished"
+        pass
+    
+    def unnormalize(self):
+        "to be finished"
+        pass
+    
+    def toGPU(self):
+        "to be finished"
+        pass
+    
+    def trans2TrainingSet(self, batch_size, rate):
+        NSE_data = self.data_set(self)
+        tr_num = int(rate * self.Ndata)
+        ts_num = int(0.2 * self.Ndata)
+        train_data, test_data, _ = random_split(NSE_data, [tr_num, ts_num, self.Ndata - tr_num - ts_num])
+        train_loader = DataLoader(dataset=train_data, batch_size=batch_size, shuffle=True, drop_last=True)
+        test_loader = DataLoader(dataset=test_data, batch_size=batch_size, shuffle=True, drop_last=True)
+        return train_loader, test_loader
+    
+    def trans2CheckSet(self, batch_size, rate):
+        NSE_data = self.data_set(self)
+        tr_num = int(rate * self.Ndata)
+        check_data, _ = random_split(NSE_data, [tr_num, self.Ndata - tr_num])
+        data_loader = DataLoader(dataset=check_data, batch_size=batch_size, shuffle=True, drop_last=True)
+        return data_loader
+
+
+class LoadDataNSE(LoadData):
+    def __init__(self, data_path):
+        super().__init__(data_path)
+        self.data_set = NSE_Dataset
+
+    def init_set(self):
+        self.obs, self.Cd, self.Cl, self.ctr = self.data
+        self.obs = self.obs[..., 2:]
+        self.nx, self.ny = self.obs.shape[2], self.obs.shape[3]
+
+        self.get_params()
+
+    def get_data(self):
+        return self.obs, self.Cd, self.Cl, self.ctr
+    
+    def get_params(self):
         self.nt = self.ctr.shape[-1]
         self.N0 = self.ctr.shape[0]
         self.Ndata = self.N0 * self.nt
-        self.norm = dict()
+        
+        return self.N0, self.nt, self.nx, self.ny
+    
+    def toGPU(self):
+        self.obs = self.obs.cuda()
+        self.Cd = self.Cd.cuda()
+        self.Cl = self.Cl.cuda()
+        self.ctr = self.ctr.cuda()
 
     def split(self, Ng, tg):
         self.Ng = Ng
@@ -184,6 +293,7 @@ class LoadData:
             self.norm['obs'] = [obs_min, obs_range]
 
         elif method == 'logs_unif':
+            logs = logs['data_norm']
             Cd_min, Cd_range = logs['Cd']
             Cl_min, Cl_range = logs['Cl']
             ctr_min, ctr_range = logs['ctr']
@@ -205,50 +315,51 @@ class LoadData:
         self.Cl = self.Cl * Cl_range + Cl_min
         # self.obs = self.obs * obs_range + obs_min
 
-    def get_data(self):
-        return self.obs, self.Cd, self.Cl, self.ctr
+    
+class LoadDataRBC(LoadData):
+    def __init__(self, data_path):
+        super().__init__(data_path)
+        self.data_set = RBC_Dataset
 
+    def init_set(self):
+        self.obs, self.temp, self.ctr = self.data
+        self.ctr = self.ctr[:, :-1]
+        self.temp = self.temp[:, 1:]
+        self.data = [self.obs, self.temp, self.ctr]
+
+        self.nx, self.ny = self.obs.shape[-3], self.obs.shape[-2]
+        self.get_params()
+
+    def get_data(self):
+        return self.obs, self.temp, self.ctr
+    
     def get_params(self):
-        self.nt = self.ctr.shape[-1]
+        self.nt = self.ctr.shape[1]
         self.N0 = self.ctr.shape[0]
         self.Ndata = self.N0 * self.nt
-        if self.mode=='grid':
-            # print(f'N0: {self.N0}, nt: {self.nt}, nx: {self.nx}, ny: {self.ny}')
-            return self.N0, self.nt, self.nx, self.ny
-        elif self.mode=='vertex':
-            # print(f'N0: {self.N0}, nt: {self.nt}, nv: {self.nv}')
-            return self.N0, self.nt, self.nv
+        
+        return self.N0, self.nt, self.nx, self.ny
     
     def toGPU(self):
         self.obs = self.obs.cuda()
-        self.Cd = self.Cd.cuda()
-        self.Cl = self.Cl.cuda()
+        self.temp = self.temp.cuda()
         self.ctr = self.ctr.cuda()
-    
-    def trans2TrainingSet(self, batch_size, rate):
-        NSE_data = NSE_Dataset(self, self.mode)
-        tr_num = int(rate * self.Ndata)
-        ts_num = int(0.2 * self.Ndata)
-        train_data, test_data, _ = random_split(NSE_data, [tr_num, ts_num, self.Ndata - tr_num - ts_num])
-        train_loader = DataLoader(dataset=train_data, batch_size=batch_size, shuffle=True, drop_last=True)
-        test_loader = DataLoader(dataset=test_data, batch_size=batch_size, shuffle=True, drop_last=True)
-        return train_loader, test_loader
-    
-    def trans2CheckSet(self, batch_size, rate):
-        NSE_data = NSE_Dataset(self, self.mode)
-        tr_num = int(rate * self.Ndata)
-        check_data, _ = random_split(NSE_data, [tr_num, self.Ndata - tr_num])
-        data_loader = DataLoader(dataset=check_data, batch_size=batch_size, shuffle=True, drop_last=True)
-        return data_loader
 
-    def trans2DistributedSet(self, batch_size):
-        NSE_data = NSE_Dataset(self, self.mode)
-        tr_num = int(0.7 * self.Ndata)
-        train_data, test_data = random_split(NSE_data, [tr_num, self.Ndata - tr_num])
-        train_sampler, test_sampler = DistributedSampler(train_data), DistributedSampler(test_data)
-        train_loader = DataLoader(dataset=train_data, sampler=train_sampler, batch_size=batch_size)
-        test_loader = DataLoader(dataset=test_data, sampler=test_sampler, batch_size=batch_size)
-        return train_loader, test_loader
+    def split(self, Ng = 2, end = 40):
+        self.Ng = Ng
+        self.end = end
+        self.dt = 0.05
+        for i in range(len(self.data)):
+            data = self.data[i]
+            length = int(data.shape[0]//4)
+            data = data[length: length * 3 + 1, 1:-end + 2]
+            data = data[::Ng]
+            self.data[i] = data
+        self.get_params()
+        self.obs, self.temp, self.ctr = self.data
+        print(f'obs: {self.obs.shape}')
+        return self.obs, self.temp, self.ctr
+
 
 class NSE_Dataset(Dataset):
     def __init__(self, data, mode='grid'):
@@ -282,42 +393,24 @@ class NSE_Dataset(Dataset):
         y = torch.FloatTensor(self.opt[idx])
         return x, y
 
-class PredLog():
-    def __init__(self, length):
-        self.length = length
-        self.loss1 = AverageMeter()
-        self.loss2 = AverageMeter()
-        self.loss3 = AverageMeter()
-        self.loss4 = AverageMeter()
-        self.loss5 = AverageMeter()
-        self.loss6 = AverageMeter()
-    
-    def update(self, loss_list):
-        for i in range(len(loss_list)):
-            exec(f'self.loss{i+1}.update(loss_list[{i}], self.length)')
 
-    def save_log(self, logs):
-        logs['test_loss_trans'].append(self.loss1.avg)
-        logs['test_loss_u_t_rec'].append(self.loss2.avg)
-        logs['test_loss_ctr_t_rec'].append(self.loss3.avg)
-        logs['test_loss_trans_latent'].append(self.loss4.avg)
-        logs['test_loss_pde_obs'].append(self.loss5.avg)
-        logs['test_loss_pde_pred'].append(self.loss6.avg)
+class RBC_Dataset(Dataset):
+    def __init__(self, data):
+        N0, nt, nx, ny = data.get_params()
+        obs, temp, ctr = data.get_data()
+        self.Ndata = N0 * nt
+        ctr = ctr.reshape(N0, nt, 1, 1, 1).repeat([1, 1, nx, ny, 1]).reshape(-1, nx, ny, 1)
+        input_data = obs[:, :-1].reshape(-1, nx, ny, 3)
+        output_data = obs[:, 1:].reshape(-1, nx, ny, 3)     #- input_data
 
+        self.ipt = torch.cat((input_data, ctr), dim=-1)
+        self.opt = output_data
+        
+    def __len__(self):
+        return self.Ndata
 
-def calMean(data_list):
-    ans = []
-    for data in data_list:
-        length = data.shape[0]
-        data = data.reshape(length // 10, 10, -1).mean(1)
-        ans.append(data)
-    return ans
+    def __getitem__(self, idx):
+        x = torch.FloatTensor(self.ipt[idx])
+        y = torch.FloatTensor(self.opt[idx])
+        return x, y
 
-def calVar(data_list):
-    ans = []
-    for data in data_list:
-        length = data.shape[0]
-        data_min = data.reshape(length // 10, 10, -1).min(1)
-        data_max = data.reshape(length // 10, 10, -1).max(1)
-        ans.append([data_min.values, data_max.values])
-    return ans

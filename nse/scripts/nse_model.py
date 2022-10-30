@@ -53,6 +53,9 @@ class NSEModel():
             logs['pred_model'].append(copy.deepcopy(self.pred_model.state_dict()))
             logs['phys_model'].append(copy.deepcopy(self.phys_model.state_dict()))
     
+    def set_init(self, state_nn):
+        self.in_nn = state_nn
+
     def data_train(self, epoch, train_loader):
         self.pred_model.train()
         self.phys_model.train()
@@ -86,7 +89,8 @@ class NSEModel():
         print('# {} train: {:1.2f} | (pred): {:1.2e}  (rec) state: {:1.2e}  ctr: {:1.2e} (latent): {:1.2e} (pde) obs: {:1.2e} pred: {:1.2e}'
               .format(epoch, t2-t1, train_log.loss1.avg, train_log.loss2.avg, train_log.loss3.avg, train_log.loss4.avg, train_log.loss5.avg, train_log.loss6.avg))
 
-    def cal_1step(self, obs, Cd, Cl, ctr):
+    def cal_1step(self, data):
+        obs, Cd, Cl, ctr = data.get_data()
         N0, nt = obs.shape[0], obs.shape[1] - 1
         nx, ny = self.shape
         out_nn, Lpde_obs, Lpde_pred = torch.zeros(N0, nt, nx, ny, 3), torch.zeros(N0, nt, nx, ny, 2), torch.zeros(N0, nt, nx, ny, 2)
@@ -109,9 +113,11 @@ class NSEModel():
                     print(f'# {k} | {t2 - t1:1.2f}: error_Cd: {error_Cd[:, k].mean():1.4f} | error_Cl: {error_Cl[:, k].mean():1.4f} | error_state: {error_1step[:, k].mean():1.4f}\
                         | pred_Lpde: {Lpde_pred[:, k].mean():1.4f} | obs_Lpde: {Lpde_obs[:, k].mean():1.4f}')
 
-        return out_nn, Lpde_obs, Lpde_pred, error_Cd, error_Cl
+        return out_nn, Lpde_obs, Lpde_pred
 
-    def process(self, obs, Cd, Cl, ctr):
+    def process(self, data):
+        obs, Cd, Cl, ctr = data.get_data()
+        self.set_init(obs[:, 0])
         N0, nt = obs.shape[0], obs.shape[1] - 1
         nx, ny = self.shape
         print(f'N0: {N0}, nt: {nt}, nx: {nx}, ny: {ny}')
@@ -133,7 +139,7 @@ class NSEModel():
                     print(f'# {k} | {t2 - t1:1.2f}: error_Cd: {error_Cd[:, k].mean():1.4f} | error_Cl: {error_Cl[:, k].mean():1.4f} | \
                             error_state: {error_cul[:, k].mean():1.4f}| cul_Lpde: {Lpde_pred[:, k].mean():1.4f}')
 
-        return out_nn, Lpde_pred, error_Cd, error_Cl
+        return out_nn, Lpde_pred
 
     def test(self, test_loader, logs):
         self.pred_model.eval()
@@ -179,9 +185,6 @@ class NSEModel():
         Cl_pred = torch.mean(pred[:, :, :, -1].reshape(pred.shape[0], -1), 1)
         mod_pred = self.phys_model(ipt, ctr, out_pred)
         return out_pred, Cd_pred, Cl_pred, mod_pred, ipt_rec, ctr_rec, trans_out
-
-    def set_init(self, state_nn):
-        self.in_nn = state_nn
 
     def train_step(self, loss1, loss2, loss3, loss4, loss5, loss6):
         print('to be finished')
@@ -299,25 +302,11 @@ class NSEModel_FNO_prev(NSEModel):
         self.phys_scheduler.step()
 
 
-class RBCModel_FNO(NSEModel):
+class RBCModel(NSEModel):
     def __init__(self, shape, dt, args):
         super().__init__(shape, dt, args)
         self.set_model(FNO_ensemble_RBC, state_mo)
     
-    def train_step(self, loss1, loss2, loss3, loss4, loss5, loss6):
-        lambda1, lambda2, lambda3, lambda4 = self.params.lambda1, self.params.lambda2, self.params.lambda3, self.params.lambda4
-        loss_pred = lambda1 * loss1 + lambda2 * loss2 + lambda3 * loss3 + lambda4 * loss4
-
-        loss_pred.backward()
-        loss5.backward()
-
-        self.pred_optimizer.step()
-        self.phys_optimizer.step()
-    
-    def scheduler_step(self):
-        self.pred_scheduler.step()
-        self.phys_scheduler.step()
-        
     def pred_loss(self, ipt, ctr, opt):
         out = opt[:, :, :, :3]
         # latent items
@@ -339,6 +328,74 @@ class RBCModel_FNO(NSEModel):
         out_pred = pred[:, :, :, :3]
         mod_pred = self.phys_model(ipt, ctr, out_pred)
         return out_pred, mod_pred, ipt_rec, ctr_rec, trans_out
+
+    def cal_1step(self, data):
+        obs, temp, ctr = data.get_data()
+        N0, nt = obs.shape[0], obs.shape[1] - 1
+        nx, ny = self.shape
+        out_nn, Lpde_obs, Lpde_pred = torch.zeros(N0, nt, nx, ny, 3), torch.zeros(N0, nt, nx, ny, 2), torch.zeros(N0, nt, nx, ny, 2)
+        error_1step = torch.zeros(N0, nt)
+        with torch.no_grad():
+            for k in range(nt):
+                t1 = default_timer()
+                out_nn[:, k], mod_pred, _, _, _ = self.model_step(obs[:, k], ctr[:, k])
+                Lpde_pred[:, k] = ((Lpde(obs[:, k], out_nn[:, k], self.dt) + mod_pred) ** 2)
+
+                mod_obs = self.phys_model(obs[:, k], ctr[:, k], obs[:, k+1])
+                Lpde_obs[:, k] = ((Lpde(obs[:, k], obs[:, k+1], self.dt) + mod_obs) ** 2)
+                
+                error_1step[:, k] = rel_error(out_nn[:, k], obs[:, k+1]) 
+                t2 = default_timer()
+                if k % 5 == 0:
+                    print(f'# {k} | {t2 - t1:1.2f}: error_state: {error_1step[:, k].mean():1.4f}\
+                        | pred_Lpde: {Lpde_pred[:, k].mean():1.4f} | obs_Lpde: {Lpde_obs[:, k].mean():1.4f}')
+
+        return out_nn, Lpde_obs, Lpde_pred
+
+    def process(self, data):
+        obs, temp, ctr = data.get_data()
+        self.set_init(obs[:, 0])
+        N0, nt = obs.shape[0], obs.shape[1] - 1
+        nx, ny = self.shape
+        print(f'N0: {N0}, nt: {nt}, nx: {nx}, ny: {ny}')
+        zeros = torch.zeros(N0, nt+1, nx, ny, 1)
+        temp = temp.reshape(N0, nt+1, nx, ny, 1)
+        temp = torch.cat((zeros, temp), -1)
+        out_nn, Lpde_pred = torch.zeros(N0, nt, nx, ny, 3), torch.zeros(N0, nt, nx, ny, 2)
+        error_cul = torch.zeros(N0, nt)
+        with torch.no_grad():
+            for k in range(nt):
+                t1 = default_timer()
+                out_nn[:, k], mod_pred, _, _, _ = self.model_step(self.in_nn, ctr[:, k])
+                # print(pred.shape, mod_pred.shape, self.in_nn.shape)
+                Lpde_pred[:, k] = ((Lpde(self.in_nn, out_nn[:, k], self.dt) + mod_pred) ** 2)
+                self.in_nn = out_nn[:, k]
+                error_cul[:, k] = rel_error(out_nn[:, k], obs[:, k+1]) 
+                t2 = default_timer()
+                if k % 5 == 0:
+                    print(f'# {k} | {t2 - t1:1.2f}: error_state: {error_cul[:, k].mean():1.4f}| cul_Lpde: {Lpde_pred[:, k].mean():1.4f}')
+
+        return out_nn, Lpde_pred
+
+
+class RBCModel_FNO(RBCModel):
+    def __init__(self, shape, dt, args):
+        super().__init__(shape, dt, args)
+        self.set_model(FNO_ensemble_RBC, state_mo)
+    
+    def train_step(self, loss1, loss2, loss3, loss4, loss5, loss6):
+        lambda1, lambda2, lambda3, lambda4 = self.params.lambda1, self.params.lambda2, self.params.lambda3, self.params.lambda4
+        loss_pred = lambda1 * loss1 + lambda2 * loss2 + lambda3 * loss3 + lambda4 * loss4
+
+        loss_pred.backward()
+        loss5.backward()
+
+        self.pred_optimizer.step()
+        self.phys_optimizer.step()
+    
+    def scheduler_step(self):
+        self.pred_scheduler.step()
+        self.phys_scheduler.step()
     
     def phys_train(self, phys_epoch, train_loader, random=False):
         loss_pde = AverageMeter()
@@ -406,7 +463,7 @@ class RBCModel_FNO(NSEModel):
         return in_train, ctr_train
 
 
-class RBCModel_FNO_prev(NSEModel):
+class RBCModel_FNO_prev(RBCModel):
     def __init__(self, shape, dt, args):
         super().__init__(shape, dt, args)
         self.set_model(FNO_ensemble_RBC)
@@ -422,25 +479,3 @@ class RBCModel_FNO_prev(NSEModel):
     def scheduler_step(self):
         self.pred_scheduler.step()
         self.phys_scheduler.step()
-    
-    def pred_loss(self, ipt, ctr, opt):
-        out = opt[:, :, :, :3]
-        # latent items
-        out_latent = self.pred_model.stat_en(out)
-        # prediction & rec items
-        out_pred, mod_pred, ipt_rec, ctr_rec, trans_out = self.model_step(ipt, ctr)
-        
-        loss1 = rel_error(out_pred, out).mean()
-        loss2 = rel_error(ipt_rec, ipt).mean()
-        loss3 = rel_error(ctr_rec, ctr).mean()
-        loss4 = rel_error(trans_out, out_latent).mean()
-        loss6 = ((Lpde(ipt, out_pred, self.dt) + mod_pred) ** 2).mean()
-
-        return loss1, loss2, loss3, loss4, loss6
-
-    def model_step(self, ipt, ctr):
-        pred, x_rec, ctr_rec, trans_out = self.pred_model(ipt, ctr)
-        ipt_rec = x_rec[:, :, :, :3]
-        out_pred = pred[:, :, :, :3]
-        mod_pred = self.phys_model(ipt, ctr, out_pred)
-        return out_pred, mod_pred, ipt_rec, ctr_rec, trans_out

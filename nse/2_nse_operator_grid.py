@@ -9,7 +9,7 @@ def get_args(argv=None):
 
     parser.add_argument('-dp', '--data_path', default='dt_0.01_fr_1.0', type=str, help='data path name')
     parser.add_argument('-lf', '--logs_fname', default='test', type=str, help='logs file name')
-    parser.add_argument('-dr', '--date_rate', default=0.7, type=float, help='logs file name')
+    parser.add_argument('-dr', '--data_rate', default=0.7, type=float, help='logs file name')
     
     parser.add_argument('-L', '--L', default=2, type=int, help='the number of layers')
     parser.add_argument('-m', '--modes', default=16, type=int, help='the number of modes of Fourier layer')
@@ -54,7 +54,7 @@ if __name__=='__main__':
     data_path = 'data/nse_data_reg_' + args.data_path
     tg = args.tg     # sample evrey 5 timestamps
     Ng = args.Ng
-    data = LoadData(data_path)
+    data = LoadDataNSE(data_path)
     obs, Cd, Cl, ctr = data.split(Ng, tg)
     logs['data_norm'] = data.normalize('unif')   # unif: min, range  norm: mean, var
     logs['pred_model'] = []
@@ -72,7 +72,7 @@ if __name__=='__main__':
     shape = [nx, ny]
 
     # loader
-    train_loader, test_loader = data.trans2TrainingSet(args.batch_size, args.date_rate)
+    train_loader, test_loader = data.trans2TrainingSet(args.batch_size, args.data_rate)
 
     # model setting
     nse_model = NSEModel_FNO(shape, data.dt, args)
