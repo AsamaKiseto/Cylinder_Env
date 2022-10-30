@@ -14,7 +14,7 @@ from env.RBC_env import RBC
 
 simulator = RBC()
 
-N0 = 200 + 1
+N0 = 100 + 1
 nx = simulator.params['dimx']
 ny = simulator.params['dimy']
 dt = simulator.params['dt']
@@ -22,7 +22,7 @@ nt = int(5 // dt) + 1
 print(f'N0: {N0}, nt: {nt}, nx: {nx}, ny: {ny}')
 
 temp , velo , p = np.zeros((N0, nt, nx, ny)), np.zeros((N0, nt, nx, ny, 2)), np.zeros((N0, nt, nx, ny))
-ctr = np.linspace(-2, 2, N0)
+ctr = (2 * np.random.rand(N0) - 1) * 4
 
 for k in range(N0):
     print(f'start # {k}')
@@ -43,4 +43,4 @@ ctr = torch.Tensor(ctr).reshape(N0, 1).repeat(1, nt)
 obs = torch.cat((velo, p), dim=-1)
 
 data = [obs, temp , ctr]
-torch.save(data, 'data/nse_data_reg_rbc_hr')
+torch.save(data, 'data/test_data/nse_data_reg_rbc_hr')
