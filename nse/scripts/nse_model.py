@@ -333,6 +333,10 @@ class RBCModel(NSEModel):
         obs, temp, ctr = data.get_data()
         N0, nt = obs.shape[0], obs.shape[1] - 1
         nx, ny = self.shape
+        print(f'N0: {N0}, nt: {nt}, nx: {nx}, ny: {ny}')
+        zeros = torch.zeros(N0, nt, nx, ny, 1)
+        temp = temp.reshape(N0, nt, nx, ny, 1)
+        temp = torch.cat((zeros, temp), -1)
         out_nn, Lpde_obs, Lpde_pred = torch.zeros(N0, nt, nx, ny, 3), torch.zeros(N0, nt, nx, ny, 2), torch.zeros(N0, nt, nx, ny, 2)
         error_1step = torch.zeros(N0, nt)
         with torch.no_grad():
@@ -358,8 +362,8 @@ class RBCModel(NSEModel):
         N0, nt = obs.shape[0], obs.shape[1] - 1
         nx, ny = self.shape
         print(f'N0: {N0}, nt: {nt}, nx: {nx}, ny: {ny}')
-        zeros = torch.zeros(N0, nt+1, nx, ny, 1)
-        temp = temp.reshape(N0, nt+1, nx, ny, 1)
+        zeros = torch.zeros(N0, nt, nx, ny, 1)
+        temp = temp.reshape(N0, nt, nx, ny, 1)
         temp = torch.cat((zeros, temp), -1)
         out_nn, Lpde_pred = torch.zeros(N0, nt, nx, ny, 3), torch.zeros(N0, nt, nx, ny, 2)
         error_cul = torch.zeros(N0, nt)

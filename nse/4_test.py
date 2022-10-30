@@ -17,7 +17,7 @@ tg = 5
 log_list = ['data_based', 'baseline', 'pe_5', 'pe_15', 'pe_20', 'ps_0.01', 'ps_0.05', 'ps_0.2', 'ps_0.5', \
             'no_random', 'random_select_0.01', 'random_select_0.001', 'random_select_0.0001']
 data_path = 'data/test_data/nse_data_reg_rbc'
-data_path = 'data/nse_data_reg_rbc'
+# data_path = 'data/nse_data_reg_rbc'
 
 data = LoadDataRBC(data_path)
 data.split()
