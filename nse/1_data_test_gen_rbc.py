@@ -14,11 +14,11 @@ from env.RBC_env import RBC
 
 simulator = RBC()
 
-N0 = 60
+N0 = 30
 nx = simulator.params['dimx']
 ny = simulator.params['dimy']
 dt = simulator.params['dt']
-nt = int(5 // dt) + 1
+nt = int(1 // dt) + 1
 print(f'N0: {N0}, nt: {nt}, nx: {nx}, ny: {ny}')
 
 temp , velo , p = np.zeros((N0, nt, nx, ny)), np.zeros((N0, nt, nx, ny, 2)), np.zeros((N0, nt, nx, ny))
@@ -31,6 +31,9 @@ for k in range(N0):
     print(f'start # {k}')
     t1 = default_timer()
     simulator.reset(ctr[k], const=1.0)
+
+    for init_i in range(4):
+        simulator.step()
 
     for i in range(nt):
         temp[k, i], velo[k, i], p[k, i], _  = simulator.step()

@@ -13,6 +13,7 @@ import torch.nn as nn
 
 from rbc_tools_test import *
 import time
+set_log_level(30)
 
 class RBC():
     def __init__(self, params=None):
@@ -34,7 +35,7 @@ class RBC():
         if params is not None:
             self.params = params
         else:
-            self.params = {'dt':  0.05,
+            self.params = {'dt':  0.01,
                             'T':  0.01,
                             'dimx': 40,
                             'dimy': 40,
