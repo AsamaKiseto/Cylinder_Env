@@ -284,7 +284,7 @@ def animate3D(data, xy_mesh, name, file_name, zlim = 100, dict = 'nse'):
 
     fig = plt.figure(dpi=400)
     ax = plt.axes(projection='3d')
-    ax.get_proj = lambda: np.dot(Axes3D.get_proj(ax), np.diag([2.2, 0.41, 1, 2.2]))
+    ax.get_proj = lambda: np.dot(Axes3D.get_proj(ax), np.diag([xh-xl, yh-yl, 1, 2]))
     ax.set_title(f'{name} {file_name}')
     
     u, v = [data[:, :, :, i] for i in range(2)]

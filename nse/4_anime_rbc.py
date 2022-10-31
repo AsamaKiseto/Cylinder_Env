@@ -22,8 +22,8 @@ print(ctr[num_k, 0])
 # animate2D(obs[num_k, ..., 2], xy_mesh, 'p', 'obs', 'rbc')
 # animate_field(obs[num_k, ..., :2], xy_mesh, 'state', 'obs', 'rbc')
 
-# log_list = ['data_based', 'phys_inc', 'no_random', 'random_select_0.001', 'random_select_0.0001', 'prev_phys']
-log_list = ['data_based', 'phys_inc']
+log_list = ['data_based', 'phys_inc', 'no_random', 'random_select_0.001', 'random_select_0.0001', 'prev_phys']
+# log_list = ['data_based', 'phys_inc']
 for file_name in log_list:
     print(file_name)
     
@@ -33,10 +33,10 @@ for file_name in log_list:
     Lpde_pred = Lpde_pred[20*scale_k : 20*(scale_k+1)].mean(0)
     Lpde_pred_cul = Lpde_pred_cul[20*scale_k : 20*(scale_k+1)].mean(0)
 
-    # animate_field(out_1step[num_k, ..., :2], xy_mesh, 'state', file_name, 'rbc')
-    # animate2D(out_cul[num_k, ..., 0], xy_mesh, 'u', file_name, 'rbc')
-    # animate2D(out_cul[num_k, ..., 1], xy_mesh, 'v', file_name, 'rbc')
-    # animate2D(out_cul[num_k, ..., 2], xy_mesh, 'p', file_name, 'rbc')
+    animate_field(out_1step[num_k, ..., :2], xy_mesh, 'state', file_name, 'rbc')
+    animate2D(out_cul[num_k, ..., 0], xy_mesh, 'u', file_name, 'rbc')
+    animate2D(out_cul[num_k, ..., 1], xy_mesh, 'v', file_name, 'rbc')
+    animate2D(out_cul[num_k, ..., 2], xy_mesh, 'p', file_name, 'rbc')
 
     # animate3D(Lpde_pred, xy_mesh, 'Lpde_pred', file_name, zlim=5, dict = 'rbc')
     # animate3D(Lpde_pred_cul, xy_mesh, 'Lpde_pred_cul', file_name, dict = 'rbc')

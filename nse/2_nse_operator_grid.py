@@ -9,6 +9,7 @@ def get_args(argv=None):
 
     parser.add_argument('-dp', '--data_path', default='dt_0.01_fr_1.0', type=str, help='data path name')
     parser.add_argument('-lf', '--logs_fname', default='test', type=str, help='logs file name')
+    parser.add_argument('-dc', '--dict', default='nse', type=str, help='dict name')
     parser.add_argument('-dr', '--data_rate', default=0.7, type=float, help='logs file name')
     
     parser.add_argument('-L', '--L', default=2, type=int, help='the number of layers')
@@ -48,7 +49,7 @@ if __name__=='__main__':
     logs = dict()
     logs['args'] = args
 
-    logs_fname = 'logs/model/phase1_' + args.logs_fname + '_grid_pi'
+    logs_fname = f'logs/model_{args.dict}/phase1_{args.logs_fname}_grid_pi'
 
     # load data
     data_path = 'data/nse_data_reg_' + args.data_path
