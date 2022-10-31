@@ -36,8 +36,8 @@ class RBC():
         else:
             self.params = {'dt':  0.05,
                             'T':  0.01,
-                            'dimx': 64,
-                            'dimy': 64,
+                            'dimx': 40,
+                            'dimy': 40,
                             'min_x' : 0, 
                             'max_x' : 2.0, 
                             'min_y' : 0.0, 

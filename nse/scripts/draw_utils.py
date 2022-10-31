@@ -56,8 +56,8 @@ def test_plot(t_nn, log_list, scale_k, ex_name = 'fb_0.0', fig_name = 'test', di
     for k in range(len(log_list)):
         data_list = torch.load(f'logs/data_{dict}/error/phase1_test_{log_list[k]}_{ex_name}')
 
-        error_1step, error_cul, _, _, _, _ = calMean(data_list)
-        error_1step_v, error_cul_v, _, _, _, _ = calVar(data_list)
+        error_1step, error_cul = calMean(data_list)
+        error_1step_v, error_cul_v = calVar(data_list)
         
         for j in range(len(scale_k)):
             ax[0].plot(t_nn, error_1step[scale_k[j]], label = f'{log_list[k]}')
@@ -215,19 +215,14 @@ def coef_plot1(t_nn, data, fig_name):
 
     plt.savefig(f'logs/pics/obs_coef_{fig_name}_all.jpg')
     
-def animate_field(data, name, file_name):
+def animate_field(data, xy_mesh, name, file_name, dict='nse'):
     nt = data.shape[0]
     
-    x = np.arange(256) / 256 * 2.2
-    y = np.arange(64) / 64 * 0.41
-    y, x = np.meshgrid(y, x)
-    xl, xh  = np.min(x), np.max(x)
-    yl, yh = np.min(y), np.max(y)
+    x, y, xl, xh, yl, yh = xy_mesh
 
     figsizer=10
     fig, ax = plt.subplots(figsize=((xh - xl)*figsizer,(yh-yl)*figsizer))
     ax.axis('equal')
-    # ax.set(xlim=(0, 2.2), ylim=(0, 0.41))
     ax.set(xlim=(xl, xh), ylim=(yl, yh))
     ax.set_title(f'{name} {file_name}')
 
@@ -245,17 +240,13 @@ def animate_field(data, name, file_name):
         
     print(f'generate anime {name}')
     myAnimation = animation.FuncAnimation(fig, animate, frames=np.arange(nt), interval=1, repeat=False)
-    myAnimation.save(f'logs/pics/output/{name}_{file_name}_2D.gif')
+    myAnimation.save(f'logs/pics_{dict}/output/{file_name}_{name}.gif')
     
     
-def animate2D(data, name, file_name):
+def animate2D(data, xy_mesh, name, file_name, dict='nse'):
     nt = data.shape[0]
     
-    x = np.arange(256) / 256 * 2.2
-    y = np.arange(64) / 64 * 0.41
-    y, x = np.meshgrid(y, x)
-    xl, xh  = np.min(x), np.max(x)
-    yl, yh = np.min(y), np.max(y)
+    x, y, xl, xh, yl, yh = xy_mesh
 
     figsizer=10
     fig, ax = plt.subplots(figsize=((xh - xl)*figsizer,(yh-yl)*figsizer))
@@ -278,16 +269,12 @@ def animate2D(data, name, file_name):
         
     print(f'generate anime {name}')
     myAnimation = animation.FuncAnimation(fig, animate, frames=np.arange(nt), interval=1, repeat=False)
-    myAnimation.save(f'logs/pics_bak/output/{name}_{file_name}_2D.gif')
+    myAnimation.save(f'logs/pics_{dict}/output/{file_name}_{name}.gif')
 
-def animate3D(data, name, file_name, zlim = 100):
+def animate3D(data, xy_mesh, name, file_name, zlim = 100, dict = 'nse'):
     nt = data.shape[0]
     
-    x = np.arange(256) / 256 * 2.2
-    y = np.arange(64) / 64 * 0.41
-    y, x = np.meshgrid(y, x)
-    xl, xh  = np.min(x), np.max(x)
-    yl, yh = np.min(y), np.max(y)
+    x, y, xl, xh, yl, yh = xy_mesh
 
     # figsizer=10
     # fig, ax = plt.subplots(figsize=((xh - xl)*figsizer,(yh-yl)*figsizer))
@@ -312,4 +299,4 @@ def animate3D(data, name, file_name, zlim = 100):
         
     print(f'generate anime {name}')
     myAnimation = animation.FuncAnimation(fig, animate, frames=np.arange(nt), interval=1, repeat=False)
-    myAnimation.save(f'logs/pics_bak/output/{name}_{file_name}.gif')
+    myAnimation.save(f'logs/pics_{dict}/output/{file_name}_{name}.gif')

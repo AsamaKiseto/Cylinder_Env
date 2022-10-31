@@ -2,6 +2,13 @@ import torch
 import numpy as np
 from scripts.draw_utils import *
 
+x = np.arange(256) / 256 * 2.2
+y = np.arange(64) / 64 * 0.41
+y, x = np.meshgrid(y, x)
+xl, xh  = np.min(x), np.max(x)
+yl, yh = np.min(y), np.max(y)
+xy_mesh = [x, y, xl, xh, yl, yh]
+
 tg = 5
 obs, _, _, ctr = torch.load('data/test_data/nse_data_reg_dt_0.01_fb_0.0_scale_0.1')
 obs = obs[:, ::tg][:, 1:][..., 2:]
@@ -10,7 +17,7 @@ ctr = ctr[:, ::tg]
 # animate2D(obs[0, ..., 0], 'u', 'obs')
 # animate2D(obs[0, ..., 1], 'v', 'obs')
 # animate2D(obs[0, ..., 2], 'p', 'obs')
-animate_field(obs[0, ..., :2], 'state', 'obs')
+animate_field(obs[0, ..., :2], xy_mesh, 'state', 'obs')
 
 log_list = ['data_based', 'baseline', 'no_random', 'random_select_0.01', 'random_select_0.001', 'pre_phys']
 for file_name in log_list:
@@ -22,20 +29,20 @@ for file_name in log_list:
     Lpde_pred = Lpde_pred[:10].mean(0)
     Lpde_pred_cul = Lpde_pred_cul[:10].mean(0)
 
-    animate_field(out_1step[0, ..., :2], 'state', file_name)
-    # animate2D(out_cul[0, ..., 0], 'u', file_name)
-    # animate2D(out_cul[0, ..., 1], 'v', file_name)
-    # animate2D(out_cul[0, ..., 2], 'p', file_name)
+    animate_field(out_1step[0, ..., :2], xy_mesh, 'state', file_name)
+    # animate2D(out_cul[0, ..., 0], xy_mesh, 'u', file_name)
+    # animate2D(out_cul[0, ..., 1], xy_mesh, 'v', file_name)
+    # animate2D(out_cul[0, ..., 2], xy_mesh, 'p', file_name)
 
-    # animate3D(Lpde_pred, 'Lpde_pred', file_name, zlim=5)
-    # animate3D(Lpde_pred_cul, 'Lpde_pred_cul', file_name)
+    # animate3D(Lpde_pred, xy_mesh, 'Lpde_pred', file_name, zlim=5)
+    # animate3D(Lpde_pred_cul, xy_mesh, 'Lpde_pred_cul', file_name)
 
     k = 0
     error_1step = (out_1step[k] - obs[k])[..., :2]
     error_cul = (out_cul[k] - obs[k])[..., :2]
 
-    # animate3D(error_1step, 'error_1step', file_name, zlim=5)
-    animate3D(error_cul, 'error_cul', file_name, zlim=5)
+    # animate3D(error_1step, xy_mesh, 'error_1step', file_name, zlim=5)
+    animate3D(error_cul, xy_mesh, 'error_cul', file_name, zlim=5)
 
 # ts_list = ['0.5', '1.0', '1.5']
 # for ts in ts_list:
@@ -71,3 +78,5 @@ for file_name in log_list:
 # error_cul = (out_cul[k] - obs[k])[..., :2]
 
 # animate3D(error_cul, 'error_cul_test', file_name, zlim=5)
+
+

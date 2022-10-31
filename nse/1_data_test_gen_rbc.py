@@ -46,4 +46,4 @@ ctr = torch.Tensor(ctr).reshape(N0, 1).repeat(1, nt)
 obs = torch.cat((velo, p), dim=-1)
 
 data = [obs, temp , ctr]
-torch.save(data, 'data/test_data/nse_data_reg_rbc_hr')
+torch.save(data, 'data/test_data/nse_data_reg_rbc')

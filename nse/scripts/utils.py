@@ -326,9 +326,9 @@ class LoadDataRBC(LoadData):
         self.ctr = self.ctr[:, :-1]
         self.temp = self.temp[:, 1:]
         self.end = 40
-        self.obs = self.obs[:, 1:-self.end + 2]
-        self.temp = self.temp[:, 1:-self.end + 2]
-        self.ctr = self.ctr[:, 1:-self.end + 2]
+        self.obs = self.obs[:, 2:-self.end + 3]
+        self.temp = self.temp[:, 2:-self.end + 3]
+        self.ctr = self.ctr[:, 2:-self.end + 3]
         self.data = [self.obs, self.temp, self.ctr]
 
         self.nx, self.ny = self.obs.shape[-3], self.obs.shape[-2]
