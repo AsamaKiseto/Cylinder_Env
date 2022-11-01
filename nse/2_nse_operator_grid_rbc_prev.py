@@ -51,7 +51,7 @@ if __name__=='__main__':
     logs_fname = f'logs/model_{args.dict}/phase1_{args.logs_fname}_grid_pi'
 
     # load data
-    data_path = 'data/nse_data_reg_rbc_hr'
+    data_path = 'data/nse_data_reg_rbc'
     tg = args.tg     # sample evrey 5 timestamps
     Ng = args.Ng
     data = LoadDataRBC(data_path)
