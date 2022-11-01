@@ -93,6 +93,8 @@ class NSEModel():
 
     def cal_1step(self, data):
         obs, Cd, Cl, ctr = data.get_data()
+        obs += (2 * torch.rand(obs.shape) - 1) * 0.01
+        ctr += (2 * torch.rand(ctr.shape) - 1) * 0.01
         N0, nt = obs.shape[0], obs.shape[1] - 1
         nx, ny = self.shape
         out_nn, Lpde_obs, Lpde_pred = torch.zeros(N0, nt, nx, ny, 3), torch.zeros(N0, nt, nx, ny, 2), torch.zeros(N0, nt, nx, ny, 2)
@@ -115,7 +117,7 @@ class NSEModel():
                     print(f'# {k} | {t2 - t1:1.2f}: error_Cd: {error_Cd[:, k].mean():1.4f} | error_Cl: {error_Cl[:, k].mean():1.4f} | error_state: {error_1step[:, k].mean():1.4f}\
                         | pred_Lpde: {Lpde_pred[:, k].mean():1.4f} | obs_Lpde: {Lpde_obs[:, k].mean():1.4f}')
 
-        return out_nn, Lpde_obs, Lpde_pred
+        return error_1step, Lpde_obs, Lpde_pred
 
     def process(self, data):
         obs, Cd, Cl, ctr = data.get_data()
@@ -302,7 +304,37 @@ class NSEModel_FNO_prev(NSEModel):
     def scheduler_step(self):
         self.pred_scheduler.step()
         self.phys_scheduler.step()
+        
+        
+class NSEModel_FNO_test(NSEModel):
+    def __init__(self, shape, dt, args):
+        super().__init__(shape, dt, args)
+        self.set_model()
+    
+    def train_step(self, loss1, loss2, loss3, loss4, loss5, loss6):
+        lambda1, lambda2, lambda3, lambda4 = self.params.lambda1, self.params.lambda2, self.params.lambda3, self.params.lambda4
+        loss_pred = lambda1 * loss1 + lambda2 * loss2 + lambda3 * loss3 + lambda4 * loss4 + 0.1 * loss6
 
+        loss_pred.backward()
+        self.pred_optimizer.step()
+    
+    def scheduler_step(self):
+        self.pred_scheduler.step()
+    
+    def pred_loss(self, ipt, ctr, opt):
+        out, Cd, Cl = opt[:, :, :, :3], opt[:, 0, 0, -2], opt[:, 0, 0, -1]
+        # latent items
+        out_latent = self.pred_model.stat_en(out)
+        # prediction & rec items
+        out_pred, Cd_pred, Cl_pred, mod_pred, ipt_rec, ctr_rec, trans_out = self.model_step(ipt, ctr)
+        
+        loss1 = rel_error(out_pred, out).mean() + rel_error(Cd_pred, Cd).mean() + rel_error(Cl_pred, Cl).mean()
+        loss2 = rel_error(ipt_rec, ipt).mean()
+        loss3 = rel_error(ctr_rec, ctr).mean()
+        loss4 = rel_error(trans_out, out_latent).mean()
+        loss6 = ((Lpde(ipt, out_pred, self.dt, Re = self.Re)) ** 2).mean()
+
+        return loss1, loss2, loss3, loss4, loss6
 
 class RBCModel(NSEModel):
     def __init__(self, shape, dt, args):

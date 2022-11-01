@@ -53,15 +53,14 @@ def test_log(data, file_name, ex_name, model_loaded = NSEModel_FNO, dict = 'nse'
     
     obs = data.get_obs()
 
-    out_1step, Lpde_obs, Lpde_pred = model.cal_1step(data)
+    error_1step, Lpde_obs, Lpde_pred = model.cal_1step(data)
     out_cul, Lpde_pred_cul = model.process(data)
     
-    error_1step = ((out_1step - obs[:, 1:]) ** 2).reshape(N0, nt, -1).mean(2)
     error_cul = ((out_cul - obs[:, 1:]) ** 2).reshape(N0, nt, -1).mean(2)
     # print(f'Lpde_nn: {Lpde_pred_cul[-1]}')
     
     data.unnormalize()
-    log_data = [out_1step, out_cul, Lpde_obs, Lpde_pred, Lpde_pred_cul]
+    log_data = [out_cul, Lpde_obs, Lpde_pred, Lpde_pred_cul]
     log_error = [error_1step, error_cul]
     
     torch.save(log_data, f'logs/data_{dict}/output/phase1_test_{file_name}_{ex_name}')
