@@ -1,7 +1,7 @@
 # from scripts.draw_utils import *
 import matplotlib.pyplot as plt 
 from scripts.utils import *
-from scripts.nse_model import *
+from scripts.models import *
 
 ex_nums = ['data_based', 'baseline']
 label = ['data_based', 'baseline']

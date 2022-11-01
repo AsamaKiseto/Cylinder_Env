@@ -9,7 +9,7 @@ import sys
 
 import argparse
 
-from scripts.models import FNO
+from scripts.nets import FNO
 from scripts.utils import *
 
 def get_args(argv=None):

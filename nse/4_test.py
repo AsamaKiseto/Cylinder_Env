@@ -21,6 +21,6 @@ for file_name in log_list:
 # # data.split()
 
 # for file_name in log_list:
-#     file_name = 'rbc_' + file_name
+#     file_name = file_name
 #     test_log(data, file_name,  'rbc', model_loaded = RBCModel_FNO,  dict = 'rbc')
-# test_log(data, 'rbc_prev_phys', 'rbc', model_loaded = RBCModel_FNO_prev,  dict = 'rbc')
+# test_log(data, 'prev_phys', 'rbc', model_loaded = RBCModel_FNO_prev,  dict = 'rbc')

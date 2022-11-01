@@ -7,7 +7,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from scripts.models import *
+from scripts.nets import *
 from env.Cylinder_Rotation_Env import Cylinder_Rotation_Env
 
 import argparse

@@ -1,6 +1,6 @@
 import numpy as np
 import torch
-from scripts.nse_model import *
+from scripts.models import *
 
 def loss_log(data, file_name, test_rate = 0.2):
     N0, nt, nx, ny = data.get_params()

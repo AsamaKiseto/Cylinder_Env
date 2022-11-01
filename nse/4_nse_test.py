@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import torch
 import argparse
 
-from scripts.nse_model import *
+from scripts.models import *
 from scripts.utils import *
 
 def get_args(argv=None):

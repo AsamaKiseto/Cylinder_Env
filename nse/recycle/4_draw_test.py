@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt 
 import torch
 
-from scripts.models import *
+from scripts.nets import *
 from scripts.utils import *
 from scripts.draw_utils import *
 

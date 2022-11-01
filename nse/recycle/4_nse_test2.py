@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt 
 import torch
 
-from scripts.nse_model import *
+from scripts.models import *
 from scripts.utils import *
 
 dt = 0.01

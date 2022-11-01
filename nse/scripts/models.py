@@ -1,520 +1,485 @@
-import numpy as np
+from email.policy import default
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
+from torch.utils.data import DataLoader
+from timeit import default_timer
+import copy
 
+from scripts.nets import *
 from scripts.utils import *
+
+class NSEModel():
+    def __init__(self, shape, dt, args):
+        self.shape = shape
+        self.dt = dt
+        self.params = args
+        self.device = torch.device('cuda:{}'.format(self.params.gpu) if torch.cuda.is_available() else 'cpu')
+
+    def set_model(self, pred_model=FNO_ensemble, phys_model=state_mo):
+        model_params = dict()
+        model_params['modes'] = self.params.modes
+        model_params['width'] = self.params.width
+        model_params['L'] = self.params.L
+        model_params['shape'] = self.shape
+        model_params['f_channels'] = self.params.f_channels
+
+        self.pred_model = pred_model(model_params).to(self.device)
+        self.phys_model = phys_model(model_params).to(self.device)
+
+        self.pred_optimizer = torch.optim.Adam(self.pred_model.parameters(), lr=self.params.lr, weight_decay=self.params.wd)
+        self.phys_optimizer = torch.optim.Adam(self.phys_model.parameters(), lr=self.params.lr * 5, weight_decay=self.params.wd)
+        self.pred_scheduler = torch.optim.lr_scheduler.StepLR(self.pred_optimizer, step_size=self.params.step_size, gamma=self.params.gamma)
+        self.phys_scheduler = torch.optim.lr_scheduler.StepLR(self.phys_optimizer, step_size=self.params.step_size, gamma=self.params.gamma)
+
+    def toCPU(self):
+        self.pred_model.to('cpu')
+        self.phys_model.to('cpu')
+
+    def count_params(self):
+        c = 0
+        for p in list(self.pred_model.parameters()):
+            c += reduce(operator.mul, list(p.size()))
+        for p in list(self.phys_model.parameters()):
+            c += reduce(operator.mul, list(p.size()))
+        return c
+
+    def load_state(self, pred_log, phys_log):
+        self.pred_model.load_state_dict(pred_log)
+        self.phys_model.load_state_dict(phys_log)
+        self.pred_model.eval()
+        self.phys_model.eval()
     
-#===========================================================================
-# 2d fourier layers
-#===========================================================================
-class SpectralConv2d(nn.Module):
-    def __init__(self, in_channels, out_channels, modes1, modes2):
-        super(SpectralConv2d, self).__init__()
+    def save_log(self, logs):
+        with torch.no_grad():
+            logs['pred_model'].append(copy.deepcopy(self.pred_model.state_dict()))
+            logs['phys_model'].append(copy.deepcopy(self.phys_model.state_dict()))
+    
+    def set_init(self, state_nn):
+        self.in_nn = state_nn
 
-        """
-        2D Fourier layer. It does FFT, linear transform, and Inverse FFT.    
-        """
+    def data_train(self, epoch, train_loader):
+        self.pred_model.train()
+        self.phys_model.train()
 
-        self.in_channels = in_channels
-        self.out_channels = out_channels
-        self.modes1 = modes1    # Number of Fourier modes to multiply, at most floor(N/2) + 1
-        self.modes2 = modes2
-
-        self.scale = (1 / (in_channels * out_channels))
-        self.weights1 = nn.Parameter(self.scale * torch.rand(in_channels, out_channels, self.modes1, self.modes2, dtype=torch.cfloat))
-        self.weights2 = nn.Parameter(self.scale * torch.rand(in_channels, out_channels, self.modes1, self.modes2, dtype=torch.cfloat))
-
-    # Complex multiplication
-    def compl_mul2d(self, input, weights):
-        # (batch, in_channel, x, y), (in_channel, out_channel, x, y) -> (batch, out_channel, x, y)
-        return torch.einsum("bixt,ioxt->boxt", input, weights)
-
-    def forward(self, x):
-        batchsize = x.shape[0]
-        #Compute Fourier coeffcients up to factor of e^(- something constant)
-        x_ft = torch.fft.rfft2(x)
-
-        # Multiply relevant Fourier modes
-        out_ft = torch.zeros(batchsize, self.out_channels,  x.size(-2), x.size(-1)//2 + 1, dtype=torch.cfloat, device=x.device)
-        out_ft[:, :, :self.modes1, :self.modes2] = \
-            self.compl_mul2d(x_ft[:, :, :self.modes1, :self.modes2], self.weights1)
-        out_ft[:, :, -self.modes1:, :self.modes2] = \
-            self.compl_mul2d(x_ft[:, :, -self.modes1:, :self.modes2], self.weights2)
-
-        #Return to physical space
-        x = torch.fft.irfft2(out_ft, s=(x.size(-2), x.size(-1)))
-        # print(x.dtype)
-        return x
-
-
-class FNO_layer(nn.Module):
-    def __init__(self, modes1, modes2, width, extra_channels=0, last=False):
-        super(FNO_layer, self).__init__()
-        """ ...
-        """
-        self.last = last
-
-        width = width + extra_channels
-        self.bn = nn.BatchNorm2d(width)
-        self.conv = SpectralConv2d(width, width, modes1, modes2)
-        self.w = nn.Conv2d(width, width, 1)
-        # self.bn = torch.nn.BatchNorm2d(width)
-
-    def forward(self, x):
-        """ x: (batch, hidden_channels, dim_x, dim_t)"""
-
-        # x = self.bn(x)
-        x1 = self.conv(x)
-        x2 = self.w(x)
-        x = x1 + x2
-        if not self.last:
-            x = F.gelu(x)
-            # x = self.bn(x)
+        t1 = default_timer()
+        train_log = PredLog(length=self.params.batch_size)
+        
+        for x_train, y_train in train_loader:
+            x_train, y_train = x_train.to(self.device), y_train.to(self.device)
             
-        return x
-
-
-class FNO_layer_trans(nn.Module):
-    def __init__(self, modes1, modes2, width, extra_channels=0, last=False):
-        super(FNO_layer_trans, self).__init__()
-        """ ...
-        """
-        self.last = last
-
-        self.bn = nn.BatchNorm2d(width)
-        self.conv = SpectralConv2d(width+extra_channels, width, modes1, modes2)
-        self.w = nn.Conv2d(width+extra_channels, width, 1)
-        # self.bn = torch.nn.BatchNorm2d(width)
-
-    def forward(self, x):
-        """ x: (batch, hidden_channels, dim_x, dim_t)"""
-
-        # x = self.bn(x)
-        x1 = self.conv(x)
-        x2 = self.w(x)
-        x = x1 + x2
-        if not self.last:
-            x = F.gelu(x)
-            # x = self.bn(x)
+            self.pred_optimizer.zero_grad()
+            self.phys_optimizer.zero_grad()
             
-        return x
+            # split data read in train_loader
+            in_train, ctr_train = x_train[:, :, :, :-1], x_train[:, 0, 0, -1]
+            out_train = y_train[:, :, :, :3]
+            opt_train = y_train
 
+            # put data to generate 4 loss
+            loss1, loss2, loss3, loss4, loss6 = self.pred_loss(in_train, ctr_train, opt_train)
+            mod = self.phys_model(in_train, ctr_train, out_train)
+            loss5 = ((Lpde(in_train, out_train, self.dt) + mod) ** 2).mean()
 
-class FNO(nn.Module):
-    def __init__(self, modes1, modes2, width, L):
-        super(FNO, self).__init__()
+            self.train_step(loss1, loss2, loss3, loss4, loss5, loss6)
 
-        self.modes1 = modes1
-        self.modes2 = modes2
-        self.width = width
-        self.L = L
-        self.padding = 6
-        self.fc0 = nn.Linear(6, self.width)       # input dim: state_dim=3, control_dim=1
-
-        self.net = [ FNO_layer(modes1, modes2, width) for i in range(self.L-1) ]
-        self.net += [ FNO_layer(modes1, modes2, width, last=True) ]
-        self.net = nn.Sequential(*self.net)
-
-        self.fc1 = nn.Linear(self.width, 128)
-        self.fc2 = nn.Linear(128, 5)
-
-        self.conv = nn.Conv2d(self.width, 2, 5, padding=2)
-
-        # self.fc3 = nn.Linear(ny*nx*3, 2)
-        # self.fcC = C_net(activate=nn.ReLU(), num_hiddens=[ny*nx*3, 1024, 512, 64, 2])
-
-    def forward(self, x, f):
-        """ 
-        - x: (batch, dim_x, dim_y, dim_feature)
-        """
-        batch_size, nx, ny = x.shape[0], x.shape[1], x.shape[2]
-        f = f.reshape(-1, 1, 1, 1).repeat(1, nx, ny, 1)
-        grid = self.get_grid(x.shape, x.device)
-        x = torch.cat((x, grid), dim=-1)
-        x = torch.cat((x, f), dim=-1)
-        x = self.fc0(x)
-        x = x.permute(0, 3, 1, 2)
-        # x = F.pad(x, [0,self.padding]) # pad the domain if input is non-periodic
-
-        x = self.net(x)
-        # x = F.gelu(x)
-
-        # x = x[..., :-self.padding]
-        c = self.conv(x)
-        x = x.permute(0, 2, 3, 1) # pad the domain if input is non-periodic
-        x = self.fc1(x)
-        x = F.gelu(x)
-        x = self.fc2(x)
-        Cd = torch.mean(x[:, :, :, 3].reshape(x.shape[0], -1), 1)
-        Cl = torch.mean(x[:, :, :, 4].reshape(x.shape[0], -1), 1)
-        # Cd = torch.mean(c[:, 0].reshape(c.shape[0], -1), 1)
-        # Cl = torch.mean(c[:, 1].reshape(c.shape[0], -1), 1)
+            train_log.update([loss1.item(), loss2.item(), loss3.item(), loss4.item(), loss5.item(), loss6.item()])
         
-        return x[:, :, :, :3], Cd, Cl
+        self.scheduler_step()
+        t2 = default_timer()
 
-    def get_grid(self, shape, device):
-        batchsize, nx, ny = shape[0], shape[1], shape[2]
-        gridx = torch.tensor(np.linspace(0, 2.2, nx), dtype=torch.float)
-        gridx = gridx.reshape(1, nx, 1, 1).repeat([batchsize, 1, ny, 1])
-        gridy = torch.tensor(np.linspace(0, 0.41, ny), dtype=torch.float)
-        gridy = gridy.reshape(1, 1, ny, 1).repeat([batchsize, nx, 1, 1])
-        return torch.cat((gridx, gridy), dim=-1).to(device)      
+        print('# {} train: {:1.2f} | (pred): {:1.2e}  (rec) state: {:1.2e}  ctr: {:1.2e} (latent): {:1.2e} (pde) obs: {:1.2e} pred: {:1.2e}'
+              .format(epoch, t2-t1, train_log.loss1.avg, train_log.loss2.avg, train_log.loss3.avg, train_log.loss4.avg, train_log.loss5.avg, train_log.loss6.avg))
 
+    def cal_1step(self, data):
+        obs, Cd, Cl, ctr = data.get_data()
+        N0, nt = obs.shape[0], obs.shape[1] - 1
+        nx, ny = self.shape
+        out_nn, Lpde_obs, Lpde_pred = torch.zeros(N0, nt, nx, ny, 3), torch.zeros(N0, nt, nx, ny, 2), torch.zeros(N0, nt, nx, ny, 2)
+        Cd_nn, Cl_nn = torch.zeros(N0, nt), torch.zeros(N0, nt)
+        error_1step, error_Cd, error_Cl = torch.zeros(N0, nt), torch.zeros(N0, nt), torch.zeros(N0, nt)
+        with torch.no_grad():
+            for k in range(nt):
+                t1 = default_timer()
+                out_nn[:, k], Cd_nn[:, k], Cl_nn[:, k], mod_pred, _, _, _ = self.model_step(obs[:, k], ctr[:, k])
+                Lpde_pred[:, k] = ((Lpde(obs[:, k], out_nn[:, k], self.dt) + mod_pred) ** 2)
 
-class state_en(nn.Module):
-    def __init__(self, modes1, modes2, width, L):
-        super(state_en, self).__init__()
+                mod_obs = self.phys_model(obs[:, k], ctr[:, k], obs[:, k+1])
+                Lpde_obs[:, k] = ((Lpde(obs[:, k], obs[:, k+1], self.dt) + mod_obs) ** 2)
+                
+                error_1step[:, k] = rel_error(out_nn[:, k], obs[:, k+1]) 
+                error_Cd[:, k] = ((Cd_nn[:, k] - Cd[:, k]) ** 2)
+                error_Cl[:, k] = ((Cl_nn[:, k] - Cl[:, k]) ** 2)
+                t2 = default_timer()
+                if k % 5 == 0:
+                    print(f'# {k} | {t2 - t1:1.2f}: error_Cd: {error_Cd[:, k].mean():1.4f} | error_Cl: {error_Cl[:, k].mean():1.4f} | error_state: {error_1step[:, k].mean():1.4f}\
+                        | pred_Lpde: {Lpde_pred[:, k].mean():1.4f} | obs_Lpde: {Lpde_obs[:, k].mean():1.4f}')
 
-        self.fc0 = nn.Linear(5, width)
-        self.down = [ FNO_layer(modes1, modes2, width) for i in range(L-1) ]
-        self.down += [ FNO_layer(modes1, modes2, width, last=True) ]
-        self.down = nn.Sequential(*self.down)
+        return out_nn, Lpde_obs, Lpde_pred
 
-    def forward(self, x):
-        grid = self.get_grid(x.shape, x.device)
-        x = torch.cat((x, grid), dim=-1)    # [batch_size, nx, ny, 5]
-        x = self.fc0(x)
-        x = x.permute(0, 3, 1, 2)
-        x_latent = self.down(x) 
+    def process(self, data):
+        obs, Cd, Cl, ctr = data.get_data()
+        self.set_init(obs[:, 0])
+        N0, nt = obs.shape[0], obs.shape[1] - 1
+        nx, ny = self.shape
+        print(f'N0: {N0}, nt: {nt}, nx: {nx}, ny: {ny}')
+        out_nn, Lpde_pred = torch.zeros(N0, nt, nx, ny, 3), torch.zeros(N0, nt, nx, ny, 2)
+        Cd_nn, Cl_nn = torch.zeros(N0, nt), torch.zeros(N0, nt)
+        error_cul, error_Cd, error_Cl = torch.zeros(N0, nt), torch.zeros(N0, nt), torch.zeros(N0, nt)
+        with torch.no_grad():
+            for k in range(nt):
+                t1 = default_timer()
+                out_nn[:, k], Cd_nn[:, k], Cl_nn[:, k], mod_pred, _, _, _ = self.model_step(self.in_nn, ctr[:, k])
+                # print(pred.shape, mod_pred.shape, self.in_nn.shape)
+                Lpde_pred[:, k] = ((Lpde(self.in_nn, out_nn[:, k], self.dt) + mod_pred) ** 2)
+                self.in_nn = out_nn[:, k]
+                error_cul[:, k] = rel_error(out_nn[:, k], obs[:, k+1]) 
+                error_Cd[:, k] = ((Cd_nn[:, k] - Cd[:, k]) ** 2)
+                error_Cl[:, k] = ((Cl_nn[:, k] - Cl[:, k]) ** 2)
+                t2 = default_timer()
+                if k % 5 == 0:
+                    print(f'# {k} | {t2 - t1:1.2f}: error_Cd: {error_Cd[:, k].mean():1.4f} | error_Cl: {error_Cl[:, k].mean():1.4f} | \
+                            error_state: {error_cul[:, k].mean():1.4f}| cul_Lpde: {Lpde_pred[:, k].mean():1.4f}')
 
-        return x_latent     # [batch_size, width, nx, ny]
+        return out_nn, Lpde_pred
+
+    def test(self, test_loader, logs):
+        self.pred_model.eval()
+        self.phys_model.eval()
+        test_log = PredLog(length=self.params.batch_size)
+        with torch.no_grad():
+            for x_test, y_test in test_loader:
+                x_test, y_test = x_test.to(self.device), y_test.to(self.device)
+                # split data read in test_loader
+                in_test, ctr_test = x_test[:, :, :, :-1], x_test[:, 0, 0, -1]
+                out_test = y_test[:, :, :, :3]
+                opt_test = y_test
+
+                loss1, loss2, loss3, loss4, loss6 = self.pred_loss(in_test, ctr_test, opt_test)
+                mod = self.phys_model(in_test, ctr_test, out_test)
+                loss5 = ((Lpde(in_test, out_test, self.dt) + mod) ** 2).mean()
+                test_log.update([loss1.item(), loss2.item(), loss3.item(), loss4.item(), loss5.item(), loss6.item()])
+            test_log.save_log(logs)
+        
+        print('--test | (pred): {:1.2e}  (rec) state: {:1.2e}  ctr: {:1.2e} (latent): {:1.2e} (pde) obs: {:1.2e} pred: {:1.2e}'
+              .format(test_log.loss1.avg, test_log.loss2.avg, test_log.loss3.avg, test_log.loss4.avg, test_log.loss5.avg, test_log.loss6.avg))
+
+    def pred_loss(self, ipt, ctr, opt):
+        out, Cd, Cl = opt[:, :, :, :3], opt[:, 0, 0, -2], opt[:, 0, 0, -1]
+        # latent items
+        out_latent = self.pred_model.stat_en(out)
+        # prediction & rec items
+        out_pred, Cd_pred, Cl_pred, mod_pred, ipt_rec, ctr_rec, trans_out = self.model_step(ipt, ctr)
+        
+        loss1 = rel_error(out_pred, out).mean() + rel_error(Cd_pred, Cd).mean() + rel_error(Cl_pred, Cl).mean()
+        loss2 = rel_error(ipt_rec, ipt).mean()
+        loss3 = rel_error(ctr_rec, ctr).mean()
+        loss4 = rel_error(trans_out, out_latent).mean()
+        loss6 = ((Lpde(ipt, out_pred, self.dt) + mod_pred) ** 2).mean()
+
+        return loss1, loss2, loss3, loss4, loss6
+
+    def model_step(self, ipt, ctr):
+        pred, x_rec, ctr_rec, trans_out = self.pred_model(ipt, ctr)
+        ipt_rec = x_rec[:, :, :, :3]
+        out_pred = pred[:, :, :, :3]
+        Cd_pred = torch.mean(pred[:, :, :, -2].reshape(pred.shape[0], -1), 1)
+        Cl_pred = torch.mean(pred[:, :, :, -1].reshape(pred.shape[0], -1), 1)
+        mod_pred = self.phys_model(ipt, ctr, out_pred)
+        return out_pred, Cd_pred, Cl_pred, mod_pred, ipt_rec, ctr_rec, trans_out
+
+    def train_step(self, loss1, loss2, loss3, loss4, loss5, loss6):
+        print('to be finished')
+        # do backward(), optim.step()
+        pass
     
-    def get_grid(self, shape, device):
-        batchsize, nx, ny = shape[0], shape[1], shape[2]
-        gridx = torch.tensor(np.linspace(0, 2.2, nx), dtype=torch.float)
-        gridx = gridx.reshape(1, nx, 1, 1).repeat([batchsize, 1, ny, 1])
-        gridy = torch.tensor(np.linspace(0, 0.41, ny), dtype=torch.float)
-        gridy = gridy.reshape(1, 1, ny, 1).repeat([batchsize, nx, 1, 1])
-        return torch.cat((gridx, gridy), dim=-1).to(device)
+    def scheduler_step(self):
+        print('to be finished')
+        pass
+        
 
-
-class state_de(nn.Module):
-    def __init__(self, modes1, modes2, width, L):
-        super(state_de, self).__init__()
-
-        self.up = [ FNO_layer(modes1, modes2, width) for i in range(L-1) ]
-        self.up += [ FNO_layer(modes1, modes2, width, last=True) ]
-        self.up = nn.Sequential(*self.up)
-
-        self.fc1 = nn.Linear(width, 128)
-        self.fc2 = nn.Linear(128, 5)
-
-    def forward(self, x_latent):
-        x = self.up(x_latent)
-        x = x.permute(0, 2, 3, 1)
-        x = self.fc1(x)
-        x = F.gelu(x)
-        x = self.fc2(x)
-
-        return x    # [batch_size, nx, ny, 5]
-
-
-class state_de_rbc(nn.Module):
-    def __init__(self, modes1, modes2, width, L):
-        super(state_de_rbc, self).__init__()
-
-        self.up = [ FNO_layer(modes1, modes2, width) for i in range(L-1) ]
-        self.up += [ FNO_layer(modes1, modes2, width, last=True) ]
-        self.up = nn.Sequential(*self.up)
-
-        self.fc1 = nn.Linear(width, 128)
-        self.fc2 = nn.Linear(128, 3)
-
-    def forward(self, x_latent):
-        x = self.up(x_latent)
-        x = x.permute(0, 2, 3, 1)
-        x = self.fc1(x)
-        x = F.gelu(x)
-        x = self.fc2(x)
-
-        return x    # [batch_size, nx, ny, 5]
-
-
-class control_en(nn.Module):
-    def __init__(self, nx, ny, out_channels, width=5):
-        super(control_en, self).__init__()
-        self.nx, self.ny = nx, ny
-        self.out_channels = out_channels
-        self.net = nn.Sequential(
-            nn.Conv2d(1, 64, width, padding=2),
-            nn.Tanh(),
-            nn.Conv2d(64, 32, width, padding=2),
-            nn.Tanh(),
-            nn.Conv2d(32, 16, width, padding=2),
-            nn.Tanh(),
-            nn.Conv2d(16, out_channels, width, padding=2),
-        )
-
-    def forward(self, f):
-        # [batch_size] ——> [batch_size, nx, ny, 1]
-        f = f.reshape(f.shape[0], 1, 1, 1).repeat(1, self.nx, self.ny, 1)   
-        f = f.permute(0, 3, 1, 2)
-        f = self.net(f)
-        return f    # [batch_size, out_channels, nx, ny]
+class NSEModel_FNO(NSEModel):
+    def __init__(self, shape, dt, args):
+        super().__init__(shape, dt, args)
+        self.set_model()
     
+    def train_step(self, loss1, loss2, loss3, loss4, loss5, loss6):
+        lambda1, lambda2, lambda3, lambda4 = self.params.lambda1, self.params.lambda2, self.params.lambda3, self.params.lambda4
+        loss_pred = lambda1 * loss1 + lambda2 * loss2 + lambda3 * loss3 + lambda4 * loss4
 
-class control_de(nn.Module):
-    def __init__(self, in_channels, width=5):
-        super(control_de, self).__init__()
-        self.in_channels = in_channels
-        self.net = nn.Sequential(
-            nn.Conv2d(in_channels, 64, width, padding=2),
-            nn.Tanh(),
-            nn.Conv2d(64, 32, width, padding=2),
-            nn.Tanh(),
-            nn.Conv2d(32, 16, width, padding=2),
-            nn.Tanh(),
-            nn.Conv2d(16, 1, width, padding=2),
-        )
+        loss_pred.backward()
+        loss5.backward()
 
-    def forward(self, f):
-        f = self.net(f)
-        f = torch.mean(f.reshape(f.shape[0], -1), 1)
-        return f    # [batch_size]
+        self.pred_optimizer.step()
+        self.phys_optimizer.step()
+    
+    def scheduler_step(self):
+        self.pred_scheduler.step()
+        self.phys_scheduler.step()
 
+    def phys_train(self, phys_epoch, train_loader, random=False):
+        loss_pde = AverageMeter()
+        t3 = default_timer()
 
-class trans_net(nn.Module):
-    def __init__(self, modes1, modes2, width, L, f_channels):
-        super(trans_net, self).__init__()
+        for x_train, _ in train_loader:
+            x_train = x_train.to(self.device)
 
-        self.trans = [ FNO_layer_trans(modes1, modes2, width, f_channels) ]
-        self.trans += [ FNO_layer(modes1, modes2, width) for i in range(L-2) ]
-        self.trans += [ FNO_layer(modes1, modes2, width, last=True) ]
-        self.trans = nn.Sequential(*self.trans)
+            # split data read in train_loader
+            in_new, ctr_new = x_train[:, :, :, :-1], x_train[:, 0, 0, -1]
 
-    def forward(self, x_latent, f_latent):
-        trans_in = torch.cat((x_latent, f_latent), dim=1)
-        # print(f'trans_in: {trans_in.size()}')
-        trans_out = self.trans(trans_in)
+            self.phys_model.eval()
 
-        return trans_out
+            in_train, ctr_train = self.gen_new_data(in_new, ctr_new, random)
+            
+            self.pred_model.train()
+            self.pred_optimizer.zero_grad()
 
-
-class state_mo(nn.Module):
-    def __init__(self, params):
-        super(state_mo, self).__init__()
-
-        modes1 = params['modes']
-        modes2 = params['modes']
-        width = params['width']
-        L = params['L'] + 2
-
-        # self.net = [ FNO_layer_trans(modes1, modes2, width, f_channels) ]
-        self.net = [ FNO_layer(modes1, modes2, width) for i in range(L-1) ]
-        self.net += [ FNO_layer(modes1, modes2, width, last=True) ]
-        self.net = nn.Sequential(*self.net)
-
-        self.fc0 = nn.Linear(15, width)  # (dim_u = 2 + dim_grad_u = 4 + dim_grad_p = 2 + dim_laplace_u = 2 + dim_u_next = 2 + dim_grid = 2 + dim_f = 1 = 15)
-        self.fc1 = nn.Linear(width, 128)
-        # self.fc2 = nn.Linear(128, 3)
-        self.fc2 = nn.Linear(128, 2)
-
-    def forward(self, x, ctr, x_next):
-        grid = self.get_grid(x.shape, x.device) # 2
-        ctr = ctr.reshape(ctr.shape[0], 1, 1, 1).repeat(1, x.shape[1], x.shape[2], 1) # 1
-        u_bf = x[..., :-1]   # 2
-        p_bf = x[..., -1].reshape(-1, x.shape[1], x.shape[2], 1)
-        u_af = x_next[..., :-1]  # 2
-        ux, uy = fdmd2D(u_bf, x.device)   # input 2 + 2
-        px, py = fdmd2D(p_bf, x.device)
-        uxx, _ = fdmd2D(ux, x.device)
-        _, uyy = fdmd2D(uy, x.device)
-        u_lap = uxx + uyy   # input 2
-        p_grad = torch.cat((px, py), -1)    # input 2
-        ipt = torch.cat((grid, u_bf, ctr, u_af, ux, uy, p_grad, u_lap), -1)
-        opt = self.fc0(ipt).permute(0, 3, 1, 2)
-        opt = self.net(opt).permute(0, 2, 3, 1)
-        opt = self.fc1(opt)
-        opt = F.gelu(opt)
-        opt = self.fc2(opt)
+            pred, _, _, _ = self.pred_model(in_train, ctr_train)
+            out_pred = pred[:, :, :, :3]
+            mod = self.phys_model(in_train, ctr_train, out_pred)
+            # 多训练几次？  
+            loss = ((Lpde(in_train, out_pred, self.dt) + mod) ** 2).mean()
+            loss.backward()
+            self.pred_optimizer.step()
+            loss_pde.update(loss.item(), self.params.batch_size)
         
-        # x = torch.cat((x, grid), dim=-1)    # [batch_size, nx, ny, 5]
-        # x = torch.cat((x, f), dim=-1)  
-        # x = self.fc0(x)
-        # x = x.permute(0, 3, 1, 2)
-        # x = self.net(x)
-        # x = x.permute(0, 2, 3, 1)
-        # x = self.fc1(x)
-        # x = F.gelu(x)
-        # x = self.fc2(x)
+        self.phys_scheduler.step()
+        t4 = default_timer()
+        print('----phys training: # {} {:1.2f} (pde) pred: {:1.2e} | '.format(phys_epoch, t4-t3, loss_pde.avg))
+    
+    def gen_new_data(self, in_new, ctr_new, random=False):
+        if random == True:
+            in_train = in_new + torch.rand(in_new.shape).cuda() * self.params.phys_scale
+            ctr_train = ctr_new + torch.rand(ctr_new.shape).cuda() * self.params.phys_scale
+            return in_train, ctr_train
 
-        return opt    # [batch_size, nx, ny, 5]
+        self.pred_model.eval()
+        for param in list(self.pred_model.parameters()):
+            param.requires_grad = False
 
-    def get_grid(self, shape, device):
-        batchsize, nx, ny = shape[0], shape[1], shape[2]
-        gridx = torch.tensor(np.linspace(0, 2.2, nx), dtype=torch.float)
-        gridx = gridx.reshape(1, nx, 1, 1).repeat([batchsize, 1, ny, 1])
-        gridy = torch.tensor(np.linspace(0, 0.41, ny), dtype=torch.float)
-        gridy = gridy.reshape(1, 1, ny, 1).repeat([batchsize, nx, 1, 1])
-        return torch.cat((gridx, gridy), dim=-1).to(device)
-
-
-class state_mo_prev(nn.Module):
-    def __init__(self, modes1, modes2, width, L):
-        super(state_mo_prev, self).__init__()
-
-        self.net = [ FNO_layer(modes1, modes2, width) for i in range(L-1) ]
-        self.net += [ FNO_layer(modes1, modes2, width, last=True) ]
-        self.net = nn.Sequential(*self.net)
-
-        self.fc1 = nn.Linear(width, 128)
-        self.fc2 = nn.Linear(128, 2)
-        # self.fc2 = nn.Linear(128, 2)
-
-    def forward(self, x):
-        x = self.net(x)
-        x = x.permute(0, 2, 3, 1)
-        x = self.fc1(x)
-        x = F.gelu(x)
-        x = self.fc2(x)
-
-        return x
-
-class FNO_ensemble(nn.Module):
-    def __init__(self, params):
-        super(FNO_ensemble, self).__init__()
-
-        modes1 = params['modes']
-        modes2 = params['modes']
-        width = params['width']
-        L = params['L']
-        shape = params['shape']
-        f_channels = params['f_channels']
-        nx, ny = shape[0], shape[1]
-
-        self.stat_en = state_en(modes1, modes2, width, L)
-        self.stat_de = state_de(modes1, modes2, width, L)
-        # self.state_mo = state_mo(modes1, modes2, width, L+2)
-
-        self.ctr_en = control_en(nx, ny, f_channels)
-        self.ctr_de = control_de(f_channels)
-
-        self.trans = trans_net(modes1, modes2, width, L, f_channels)
-
-    # def forward(self, x, f, modify=True):
-    def forward(self, x, ctr):
-        # x: [batch_size, nx, ny, 3]; f: [1]
-        x_latent = self.stat_en(x)
-        x_rec = self.stat_de(x_latent)
-
-        ctr_latent = self.ctr_en(ctr)
-        ctr_rec = self.ctr_de(ctr_latent)
-
-        trans_out = self.trans(x_latent, ctr_latent)
+        # 3 steps to generate new data along gradient
+        if self.params.phys_scale > 0:
+            for _ in range(self.params.phys_steps):
+                ctr_new = ctr_new.requires_grad_(True)
+                in_new = in_new.requires_grad_(True)
+                pred, _, _, _ = self.pred_model(in_new, ctr_new)
+                out_pred = pred[:, :, :, :3]
+                mod = self.phys_model(in_new, ctr_new, out_pred)
+                loss = ((Lpde(in_new, out_pred, self.dt) + mod) ** 2).mean()
+                loss.backward()
+                # print(ctr_new.is_leaf, in_new.is_leaf)
+                dLf = ctr_new.grad
+                dLu = in_new.grad
+                # print(ctr_new.shape, in_new.shape)
+                # print(dLu.shape, dLf.shape)
+                phys_scale = self.params.phys_scale
+                scale = torch.sqrt(loss.data) / torch.sqrt((dLf ** 2).sum() + (dLu ** 2).sum()) * phys_scale
+                ctr_new = ctr_new.data + scale * dLf    # use .data to generate new leaf tensor
+                in_new = in_new.data + scale * dLu
+                print(f'ctr_comp : {dLf.max()} | in_comp : {dLu.max()} | scale: {scale}')
         
-        pred = self.stat_de(trans_out)
+        in_train, ctr_train = in_new.data, ctr_new.data
         
-        return pred, x_rec, ctr_rec, trans_out #, mod
+        for param in list(self.pred_model.parameters()):
+            param.requires_grad = True
+
+        return in_train, ctr_train
 
 
-class FNO_ensemble_test(nn.Module):
-    def __init__(self, params):
-        super(FNO_ensemble_test, self).__init__()
+class NSEModel_FNO_prev(NSEModel):
+    def __init__(self, shape, dt, args):
+        super().__init__(shape, dt, args)
+        self.set_model()
+    
+    def train_step(self, loss1, loss2, loss3, loss4, loss5, loss6):
+        lambda1, lambda2, lambda3, lambda4 = self.params.lambda1, self.params.lambda2, self.params.lambda3, self.params.lambda4
+        loss_pred = lambda1 * loss1 + lambda2 * loss2 + lambda3 * loss3 + lambda4 * loss4 + 0.1 * loss6
 
-        modes1 = params['modes']
-        modes2 = params['modes']
-        width = params['width']
-        L = params['L']
-        shape = params['shape']
-        f_channels = params['f_channels']
-        nx, ny = shape[0], shape[1]
+        loss_pred.backward()
+        self.pred_optimizer.step()
+        self.phys_optimizer.step()
+    
+    def scheduler_step(self):
+        self.pred_scheduler.step()
+        self.phys_scheduler.step()
 
-        self.stat_en = state_en(modes1, modes2, width, L)
-        self.stat_de = state_de(modes1, modes2, width, L)
-        self.state_mo = state_mo_prev(modes1, modes2, width, L)
 
-        self.ctr_en = control_en(nx, ny, f_channels)
-        self.ctr_de = control_de(f_channels)
-
-        self.trans = trans_net(modes1, modes2, width, L, f_channels)
-
-    # def forward(self, x, f, modify=True):
-    def forward(self, x, ctr):
-        # x: [batch_size, nx, ny, 3]; f: [1]
-        x_latent = self.stat_en(x)
-        x_rec = self.stat_de(x_latent)
-
-        ctr_latent = self.ctr_en(ctr)
-        ctr_rec = self.ctr_de(ctr_latent)
-
-        trans_out = self.trans(x_latent, ctr_latent)
-        mod = self.state_mo(trans_out)
+class RBCModel(NSEModel):
+    def __init__(self, shape, dt, args):
+        super().__init__(shape, dt, args)
+        self.set_model(FNO_ensemble_RBC, state_mo)
+    
+    def pred_loss(self, ipt, ctr, opt):
+        out = opt[:, :, :, :3]
+        # latent items
+        out_latent = self.pred_model.stat_en(out)
+        # prediction & rec items
+        out_pred, mod_pred, ipt_rec, ctr_rec, trans_out = self.model_step(ipt, ctr)
         
-        pred = self.stat_de(trans_out)
+        loss1 = rel_error(out_pred, out).mean()
+        loss2 = rel_error(ipt_rec, ipt).mean()
+        loss3 = rel_error(ctr_rec, ctr).mean()
+        loss4 = rel_error(trans_out, out_latent).mean()
+        loss6 = ((Lpde(ipt, out_pred, self.dt) + mod_pred) ** 2).mean()
+
+        return loss1, loss2, loss3, loss4, loss6
+
+    def model_step(self, ipt, ctr):
+        pred, x_rec, ctr_rec, trans_out = self.pred_model(ipt, ctr)
+        ipt_rec = x_rec[:, :, :, :3]
+        out_pred = pred[:, :, :, :3]
+        mod_pred = self.phys_model(ipt, ctr, out_pred)
+        return out_pred, mod_pred, ipt_rec, ctr_rec, trans_out
+
+    def cal_1step(self, data):
+        obs, temp, ctr = data.get_data()
+        N0, nt = obs.shape[0], obs.shape[1] - 1
+        nx, ny = self.shape
+        print(f'N0: {N0}, nt: {nt}, nx: {nx}, ny: {ny}')
+        zeros = torch.zeros(N0, nt, nx, ny, 1)
+        temp = temp.reshape(N0, nt, nx, ny, 1)
+        temp = torch.cat((zeros, temp), -1)
+        out_nn, Lpde_obs, Lpde_pred = torch.zeros(N0, nt, nx, ny, 3), torch.zeros(N0, nt, nx, ny, 2), torch.zeros(N0, nt, nx, ny, 2)
+        error_1step = torch.zeros(N0, nt)
+        with torch.no_grad():
+            for k in range(nt):
+                t1 = default_timer()
+                out_nn[:, k], mod_pred, _, _, _ = self.model_step(obs[:, k], ctr[:, k])
+                Lpde_pred[:, k] = ((Lpde(obs[:, k], out_nn[:, k], self.dt) + mod_pred) ** 2)
+
+                mod_obs = self.phys_model(obs[:, k], ctr[:, k], obs[:, k+1])
+                Lpde_obs[:, k] = ((Lpde(obs[:, k], obs[:, k+1], self.dt) + mod_obs) ** 2)
+                
+                error_1step[:, k] = rel_error(out_nn[:, k], obs[:, k+1]) 
+                t2 = default_timer()
+                if k % 5 == 0:
+                    print(f'# {k} | {t2 - t1:1.2f}: error_state: {error_1step[:, k].mean():1.4f}\
+                        | pred_Lpde: {Lpde_pred[:, k].mean():1.4f} | obs_Lpde: {Lpde_obs[:, k].mean():1.4f}')
+
+        return out_nn, Lpde_obs, Lpde_pred
+
+    def process(self, data):
+        obs, temp, ctr = data.get_data()
+        self.set_init(obs[:, 0])
+        N0, nt = obs.shape[0], obs.shape[1] - 1
+        nx, ny = self.shape
+        print(f'N0: {N0}, nt: {nt}, nx: {nx}, ny: {ny}')
+        zeros = torch.zeros(N0, nt, nx, ny, 1)
+        temp = temp.reshape(N0, nt, nx, ny, 1)
+        temp = torch.cat((zeros, temp), -1)
+        out_nn, Lpde_pred = torch.zeros(N0, nt, nx, ny, 3), torch.zeros(N0, nt, nx, ny, 2)
+        error_cul = torch.zeros(N0, nt)
+        with torch.no_grad():
+            for k in range(nt):
+                t1 = default_timer()
+                out_nn[:, k], mod_pred, _, _, _ = self.model_step(self.in_nn, ctr[:, k])
+                # print(pred.shape, mod_pred.shape, self.in_nn.shape)
+                Lpde_pred[:, k] = ((Lpde(self.in_nn, out_nn[:, k], self.dt) + mod_pred) ** 2)
+                self.in_nn = out_nn[:, k]
+                error_cul[:, k] = rel_error(out_nn[:, k], obs[:, k+1]) 
+                t2 = default_timer()
+                if k % 5 == 0:
+                    print(f'# {k} | {t2 - t1:1.2f}: error_state: {error_cul[:, k].mean():1.4f}| cul_Lpde: {Lpde_pred[:, k].mean():1.4f}')
+
+        return out_nn, Lpde_pred
+
+
+class RBCModel_FNO(RBCModel):
+    def __init__(self, shape, dt, args):
+        super().__init__(shape, dt, args)
+        self.set_model(FNO_ensemble_RBC, state_mo)
+    
+    def train_step(self, loss1, loss2, loss3, loss4, loss5, loss6):
+        lambda1, lambda2, lambda3, lambda4 = self.params.lambda1, self.params.lambda2, self.params.lambda3, self.params.lambda4
+        loss_pred = lambda1 * loss1 + lambda2 * loss2 + lambda3 * loss3 + lambda4 * loss4
+
+        loss_pred.backward()
+        loss5.backward()
+
+        self.pred_optimizer.step()
+        self.phys_optimizer.step()
+    
+    def scheduler_step(self):
+        self.pred_scheduler.step()
+        self.phys_scheduler.step()
+    
+    def phys_train(self, phys_epoch, train_loader, random=False):
+        loss_pde = AverageMeter()
+        t3 = default_timer()
+
+        for x_train, _ in train_loader:
+            x_train = x_train.to(self.device)
+
+            # split data read in train_loader
+            in_new, ctr_new = x_train[:, :, :, :-1], x_train[:, 0, 0, -1]
+
+            self.phys_model.eval()
+
+            in_train, ctr_train = self.gen_new_data(in_new, ctr_new, random)
+            
+            self.pred_model.train()
+            self.pred_optimizer.zero_grad()
+
+            pred, _, _, _ = self.pred_model(in_train, ctr_train)
+            out_pred = pred[:, :, :, :3]
+            mod = self.phys_model(in_train, ctr_train, out_pred)
+            # 多训练几次？  
+            loss = ((Lpde(in_train, out_pred, self.dt) + mod) ** 2).mean()
+            loss.backward()
+            self.pred_optimizer.step()
+            loss_pde.update(loss.item(), self.params.batch_size)
         
-        return pred, x_rec, ctr_rec, trans_out, mod
+        self.phys_scheduler.step()
+        t4 = default_timer()
+        print('----phys training: # {} {:1.2f} (pde) pred: {:1.2e} | '.format(phys_epoch, t4-t3, loss_pde.avg))
+    
+    def gen_new_data(self, in_new, ctr_new, random=False):
+        if random == True:
+            in_train = in_new + torch.rand(in_new.shape).cuda() * self.params.phys_scale
+            ctr_train = ctr_new + torch.rand(ctr_new.shape).cuda() * self.params.phys_scale
+            return in_train, ctr_train
 
+        self.pred_model.eval()
+        for param in list(self.pred_model.parameters()):
+            param.requires_grad = False
 
-class FNO_ensemble_RBC(nn.Module):
-    def __init__(self, params):
-        super(FNO_ensemble_RBC, self).__init__()
-
-        modes1 = params['modes']
-        modes2 = params['modes']
-        width = params['width']
-        L = params['L']
-        shape = params['shape']
-        f_channels = params['f_channels']
-        nx, ny = shape[0], shape[1]
-
-        self.stat_en = state_en(modes1, modes2, width, L)
-        self.stat_de = state_de_rbc(modes1, modes2, width, L)
-        # self.state_mo = state_mo(modes1, modes2, width, L+2)
-
-        self.ctr_en = control_en(nx, ny, f_channels)
-        self.ctr_de = control_de(f_channels)
-
-        self.trans = trans_net(modes1, modes2, width, L, f_channels)
-
-    # def forward(self, x, f, modify=True):
-    def forward(self, x, ctr):
-        # x: [batch_size, nx, ny, 3]; f: [1]
-        x_latent = self.stat_en(x)
-        x_rec = self.stat_de(x_latent)
-
-        ctr_latent = self.ctr_en(ctr)
-        ctr_rec = self.ctr_de(ctr_latent)
-
-        trans_out = self.trans(x_latent, ctr_latent)
-        pred = self.stat_de(trans_out)
+        # 3 steps to generate new data along gradient
+        if self.params.phys_scale > 0:
+            for _ in range(self.params.phys_steps):
+                ctr_new = ctr_new.requires_grad_(True)
+                in_new = in_new.requires_grad_(True)
+                pred, _, _, _ = self.pred_model(in_new, ctr_new)
+                out_pred = pred[:, :, :, :3]
+                mod = self.phys_model(in_new, ctr_new, out_pred)
+                loss = ((Lpde(in_new, out_pred, self.dt) + mod) ** 2).mean()
+                loss.backward()
+                # print(ctr_new.is_leaf, in_new.is_leaf)
+                dLf = ctr_new.grad
+                dLu = in_new.grad
+                phys_scale = self.params.phys_scale
+                scale = torch.sqrt(loss.data) / torch.sqrt((dLf ** 2).sum() + (dLu ** 2).sum()) * phys_scale
+                ctr_new = ctr_new.data + scale * dLf    # use .data to generate new leaf tensor
+                in_new = in_new.data + scale * dLu
         
-        return pred, x_rec, ctr_rec, trans_out #, mod
-
-
-class FNO_ensemble_test_RBC(nn.Module):
-    def __init__(self, params):
-        super(FNO_ensemble_test_RBC, self).__init__()
-
-        modes1 = params['modes']
-        modes2 = params['modes']
-        width = params['width']
-        L = params['L']
-        shape = params['shape']
-        f_channels = params['f_channels']
-        nx, ny = shape[0], shape[1]
-
-        self.stat_en = state_en(modes1, modes2, width, L)
-        self.stat_de = state_de(modes1, modes2, width, L)
-        self.state_mo = state_mo_prev(modes1, modes2, width, L)
-
-        self.ctr_en = control_en(nx, ny, f_channels)
-        self.ctr_de = control_de(f_channels)
-
-        self.trans = trans_net(modes1, modes2, width, L, f_channels)
-
-    # def forward(self, x, f, modify=True):
-    def forward(self, x, ctr):
-        # x: [batch_size, nx, ny, 3]; f: [1]
-        x_latent = self.stat_en(x)
-        x_rec = self.stat_de(x_latent)
-
-        ctr_latent = self.ctr_en(ctr)
-        ctr_rec = self.ctr_de(ctr_latent)
-
-        trans_out = self.trans(x_latent, ctr_latent)
-        mod = self.state_mo(trans_out)
+        in_train, ctr_train = in_new.data, ctr_new.data
         
-        pred = self.stat_de(trans_out)
-        
-        return pred, x_rec, ctr_rec, trans_out, mod
+        for param in list(self.pred_model.parameters()):
+            param.requires_grad = True
+
+        return in_train, ctr_train
+
+
+class RBCModel_FNO_prev(RBCModel):
+    def __init__(self, shape, dt, args):
+        super().__init__(shape, dt, args)
+        self.set_model(FNO_ensemble_RBC)
+    
+    def train_step(self, loss1, loss2, loss3, loss4, loss5, loss6):
+        lambda1, lambda2, lambda3, lambda4 = self.params.lambda1, self.params.lambda2, self.params.lambda3, self.params.lambda4
+        loss_pred = lambda1 * loss1 + lambda2 * loss2 + lambda3 * loss3 + lambda4 * loss4 + 0.1 * loss6
+
+        loss_pred.backward()
+        self.pred_optimizer.step()
+        self.phys_optimizer.step()
+    
+    def scheduler_step(self):
+        self.pred_scheduler.step()
+        self.phys_scheduler.step()

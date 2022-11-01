@@ -9,7 +9,7 @@ import torch
 from fenics import * 
 from timeit import default_timer
 
-from scripts.models import *
+from scripts.nets import *
 from scripts.utils import *
 
 # plot colors

@@ -4,7 +4,7 @@ from torch.utils.data import DataLoader
 from timeit import default_timer
 import copy
 
-from scripts.models import *
+from scripts.nets import *
 from scripts.utils import *
 
 class NSEModel():
