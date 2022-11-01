@@ -14,9 +14,9 @@ obs, _, _, ctr = torch.load('data/test_data/nse_data_reg_dt_0.01_fb_0.0_scale_0.
 obs = obs[:, ::tg][:, 1:][..., 2:]
 ctr = ctr[:, ::tg]
 
-# animate2D(obs[0, ..., 0], 'u', 'obs')
-# animate2D(obs[0, ..., 1], 'v', 'obs')
-# animate2D(obs[0, ..., 2], 'p', 'obs')
+# animate2D(obs[0, ..., 0], xy_mesh, 'u', 'obs')
+# animate2D(obs[0, ..., 1], xy_mesh, 'v', 'obs')
+# animate2D(obs[0, ..., 2], xy_mesh, 'p', 'obs')
 animate_field(obs[0, ..., :2], xy_mesh, 'state', 'obs')
 
 log_list = ['data_based', 'baseline', 'no_random', 'random_select_0.01', 'random_select_0.001', 'pre_phys']

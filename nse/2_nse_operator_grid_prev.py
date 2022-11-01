@@ -48,7 +48,7 @@ if __name__=='__main__':
     logs = dict()
     logs['args'] = args
 
-    logs_fname = f'logs/model_{args.dict}/phase1_{args.logs_fname}_grid_pi'
+    logs_fname = f'logs/model_{args.dict}/phase1_{args.logs_fname}'
 
     # load data
     data_path = 'data/nse_data_reg_' + args.data_path
