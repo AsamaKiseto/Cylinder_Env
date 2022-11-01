@@ -12,6 +12,7 @@ class NSEModel():
         self.shape = shape
         self.dt = dt
         self.params = args
+        self.Re = 0.001
         self.device = torch.device('cuda:{}'.format(self.params.gpu) if torch.cuda.is_available() else 'cpu')
 
     def set_model(self, pred_model=FNO_ensemble, phys_model=state_mo):
@@ -78,7 +79,7 @@ class NSEModel():
             # put data to generate 4 loss
             loss1, loss2, loss3, loss4, loss6 = self.pred_loss(in_train, ctr_train, opt_train)
             mod = self.phys_model(in_train, ctr_train, out_train)
-            loss5 = ((Lpde(in_train, out_train, self.dt) + mod) ** 2).mean()
+            loss5 = ((Lpde(in_train, out_train, self.dt, Re = self.Re) + mod) ** 2).mean()
 
             self.train_step(loss1, loss2, loss3, loss4, loss5, loss6)
 
@@ -156,7 +157,7 @@ class NSEModel():
 
                 loss1, loss2, loss3, loss4, loss6 = self.pred_loss(in_test, ctr_test, opt_test)
                 mod = self.phys_model(in_test, ctr_test, out_test)
-                loss5 = ((Lpde(in_test, out_test, self.dt) + mod) ** 2).mean()
+                loss5 = ((Lpde(in_test, out_test, self.dt, Re = self.Re) + mod) ** 2).mean()
                 test_log.update([loss1.item(), loss2.item(), loss3.item(), loss4.item(), loss5.item(), loss6.item()])
             test_log.save_log(logs)
         
@@ -174,7 +175,7 @@ class NSEModel():
         loss2 = rel_error(ipt_rec, ipt).mean()
         loss3 = rel_error(ctr_rec, ctr).mean()
         loss4 = rel_error(trans_out, out_latent).mean()
-        loss6 = ((Lpde(ipt, out_pred, self.dt) + mod_pred) ** 2).mean()
+        loss6 = ((Lpde(ipt, out_pred, self.dt, Re = self.Re) + mod_pred) ** 2).mean()
 
         return loss1, loss2, loss3, loss4, loss6
 
@@ -307,6 +308,7 @@ class RBCModel(NSEModel):
     def __init__(self, shape, dt, args):
         super().__init__(shape, dt, args)
         self.set_model(FNO_ensemble_RBC, state_mo)
+        self.Re = 0.1
     
     def pred_loss(self, ipt, ctr, opt):
         out = opt[:, :, :, :3]
@@ -319,7 +321,7 @@ class RBCModel(NSEModel):
         loss2 = rel_error(ipt_rec, ipt).mean()
         loss3 = rel_error(ctr_rec, ctr).mean()
         loss4 = rel_error(trans_out, out_latent).mean()
-        loss6 = ((Lpde(ipt, out_pred, self.dt, Re = 0.1) + mod_pred) ** 2).mean()
+        loss6 = ((Lpde(ipt, out_pred, self.dt, Re = self.Re) + mod_pred) ** 2).mean()
 
         return loss1, loss2, loss3, loss4, loss6
 
@@ -344,10 +346,10 @@ class RBCModel(NSEModel):
             for k in range(nt):
                 t1 = default_timer()
                 out_nn[:, k], mod_pred, _, _, _ = self.model_step(obs[:, k], ctr[:, k])
-                Lpde_pred[:, k] = ((Lpde(obs[:, k], out_nn[:, k], self.dt, Re = 0.1) + mod_pred) ** 2)
+                Lpde_pred[:, k] = ((Lpde(obs[:, k], out_nn[:, k], self.dt, Re = self.Re) + mod_pred) ** 2)
 
                 mod_obs = self.phys_model(obs[:, k], ctr[:, k], obs[:, k+1])
-                Lpde_obs[:, k] = ((Lpde(obs[:, k], obs[:, k+1], self.dt, Re = 0.1) + mod_obs) ** 2)
+                Lpde_obs[:, k] = ((Lpde(obs[:, k], obs[:, k+1], self.dt, Re = self.Re) + mod_obs) ** 2)
                 
                 error_1step[:, k] = rel_error(out_nn[:, k], obs[:, k+1]) 
                 t2 = default_timer()
@@ -373,7 +375,7 @@ class RBCModel(NSEModel):
                 t1 = default_timer()
                 out_nn[:, k], mod_pred, _, _, _ = self.model_step(self.in_nn, ctr[:, k])
                 # print(pred.shape, mod_pred.shape, self.in_nn.shape)
-                Lpde_pred[:, k] = ((Lpde(self.in_nn, out_nn[:, k], self.dt, Re = 0.1) + mod_pred) ** 2)
+                Lpde_pred[:, k] = ((Lpde(self.in_nn, out_nn[:, k], self.dt, Re = self.Re) + mod_pred) ** 2)
                 self.in_nn = out_nn[:, k]
                 error_cul[:, k] = rel_error(out_nn[:, k], obs[:, k+1]) 
                 t2 = default_timer()
@@ -423,7 +425,7 @@ class RBCModel_FNO(RBCModel):
             out_pred = pred[:, :, :, :3]
             mod = self.phys_model(in_train, ctr_train, out_pred)
             # 多训练几次？  
-            loss = ((Lpde(in_train, out_pred, self.dt, Re = 0.1) + mod) ** 2).mean()
+            loss = ((Lpde(in_train, out_pred, self.dt, Re = self.Re) + mod) ** 2).mean()
             loss.backward()
             self.pred_optimizer.step()
             loss_pde.update(loss.item(), self.params.batch_size)
@@ -450,7 +452,7 @@ class RBCModel_FNO(RBCModel):
                 pred, _, _, _ = self.pred_model(in_new, ctr_new)
                 out_pred = pred[:, :, :, :3]
                 mod = self.phys_model(in_new, ctr_new, out_pred)
-                loss = ((Lpde(in_new, out_pred, self.dt, Re = 0.1) + mod) ** 2).mean()
+                loss = ((Lpde(in_new, out_pred, self.dt, Re = self.Re) + mod) ** 2).mean()
                 loss.backward()
                 # print(ctr_new.is_leaf, in_new.is_leaf)
                 dLf = ctr_new.grad

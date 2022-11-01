@@ -8,7 +8,7 @@ def get_args(argv=None):
     parser = argparse.ArgumentParser(description = 'Put your hyperparameters')
 
     parser.add_argument('-lf', '--logs_fname', default='test', type=str, help='logs file name')
-    parser.add_argument('-dr', '--data_rate', default=0.7, type=float, help='logs file name')
+    parser.add_argument('-dr', '--data_rate', default=0.5, type=float, help='logs file name')
     parser.add_argument('-dc', '--dict', default='rbc', type=str, help='dict name')
     
     parser.add_argument('-L', '--L', default=2, type=int, help='the number of layers')
@@ -18,7 +18,7 @@ def get_args(argv=None):
     parser.add_argument('--phys_gap', default=40, type=int, help = 'Number of gap of Phys')
     parser.add_argument('--phys_epochs', default=10, type=int, help = 'Number of Phys Epochs')
     parser.add_argument('--phys_steps', default=2, type=int, help = 'Number of Phys Steps')
-    parser.add_argument('--phys_scale', default=0.1, type=float, help = 'Number of Phys Scale')
+    parser.add_argument('--phys_scale', default=0.05, type=float, help = 'Number of Phys Scale')
     parser.add_argument('--phys_random_select', default=False, type=bool, help = 'Whether random select')
 
     parser.add_argument('--batch_size', default=64, type=int, help = 'batch size')
