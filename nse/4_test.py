@@ -4,7 +4,7 @@ scale = [0.1, 0.5, 1.0]
 tg = 5
 
 # test 
-log_list = ['data_based', 'phys_inc', 'no_random', 'random_select_0.001']
+log_list = ['phys_inc', 'no_random', 'random_select_0.001']
 data_path = 'data/test_data/nse_data_reg_dt_0.01_fb_0.0'
 data = LoadDataNSE(data_path)
 data.split(1, tg)

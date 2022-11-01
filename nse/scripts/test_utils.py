@@ -5,7 +5,7 @@ from scripts.nse_model import *
 def loss_log(data, file_name, test_rate = 0.2):
     N0, nt, nx, ny = data.get_params()
     shape = [nx, ny]
-    _, _, model_log = torch.load('logs/phase1_' + file_name + '_grid_pi')
+    _, _, model_log = torch.load('logs/phase1_' + file_name)
     args, pred_model, phys_model = model_log['args'], model_log['pred_model'], model_log['phys_model']
     epochs = len(pred_model)
 
@@ -41,7 +41,7 @@ def test_log(data, file_name, ex_name, model_loaded = NSEModel_FNO, dict = 'nse'
     N0, nt, nx, ny = data.get_params()
     shape = [nx, ny]
 
-    operator_path = f'logs/model_{dict}/phase1_{file_name}_grid_pi'
+    operator_path = f'logs/model_{dict}/phase1_{file_name}'
     
     print(operator_path)
     state_dict_pred, state_dict_phys, logs = torch.load(operator_path)
