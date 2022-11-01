@@ -22,9 +22,9 @@ nt = int(1 // dt) + 1
 print(f'N0: {N0}, nt: {nt}, nx: {nx}, ny: {ny}')
 
 temp , velo , p = np.zeros((N0, nt, nx, ny)), np.zeros((N0, nt, nx, ny, 2)), np.zeros((N0, nt, nx, ny))
-ctr1 = (2 * np.random.rand(int(N0//3)) - 1) * 1
-ctr2 = (2 * np.random.rand(int(N0//3)) - 1) * 2
-ctr3 = (2 * np.random.rand(int(N0//3)) - 1) * 3
+ctr1 = (2 * np.random.rand(int(N0//3)) - 1) * 0.5
+ctr2 = (2 * np.random.rand(int(N0//3)) - 1) * 1
+ctr3 = (2 * np.random.rand(int(N0//3)) - 1) * 2
 ctr = np.concatenate([ctr1, ctr2, ctr3])
 
 for k in range(N0):

@@ -14,8 +14,8 @@ class NSEModel():
         self.params = args
         self.device = torch.device('cuda:{}'.format(self.params.gpu) if torch.cuda.is_available() else 'cpu')
 
-    def set_model(self, pred_model=FNO_ensemble, phys_model=state_mo):
-
+    def set_model(self, pred_model=FNO_ensemble, phys_model=state_mo, phys_model_num = 5):
+        self.pmn = phys_model_num
         model_params = dict()
         model_params['modes'] = self.params.modes
         model_params['width'] = self.params.width
@@ -27,39 +27,48 @@ class NSEModel():
         self.pred_optimizer = torch.optim.Adam(self.pred_model.parameters(), lr=self.params.lr, weight_decay=self.params.wd)
         self.pred_scheduler = torch.optim.lr_scheduler.StepLR(self.pred_optimizer, step_size=self.params.step_size, gamma=self.params.gamma)
 
-        self.phys_model = phys_model(model_params).to(self.device)
-        self.phys_optimizer = torch.optim.Adam(self.phys_model.parameters(), lr=self.params.lr * 5, weight_decay=self.params.wd)
-        self.phys_scheduler = torch.optim.lr_scheduler.StepLR(self.phys_optimizer, step_size=self.params.step_size, gamma=self.params.gamma)
+        self.phys_model, self.phys_optimizer, self.phys_scheduler = [], [], []
+        for i in range(self.phys_model_num):
+            self.phys_model.append(phys_model(model_params).to(self.device))
+            self.phys_optimizer.append(torch.optim.Adam(self.phys_model[i].parameters(), lr=self.params.lr * 5, weight_decay=self.params.wd))
+            self.phys_scheduler.append(torch.optim.lr_scheduler.StepLR(self.phys_optimizer[i], step_size=self.params.step_size, gamma=self.params.gamma))
 
     def toCPU(self):
         self.pred_model.to('cpu')
-        self.phys_model.to('cpu')
+        for i in range(self.pmn):
+            self.phys_model[i].to('cpu')
 
     def count_params(self):
         c = 0
         for p in list(self.pred_model.parameters()):
             c += reduce(operator.mul, list(p.size()))
-        for p in list(self.phys_model.parameters()):
-            c += reduce(operator.mul, list(p.size()))
+        for model in self.phys_model:
+            for p in list(model.parameters()):
+                c += reduce(operator.mul, list(p.size()))
         return c
 
     def load_state(self, pred_log, phys_log):
         self.pred_model.load_state_dict(pred_log)
-        self.phys_model.load_state_dict(phys_log)
         self.pred_model.eval()
-        self.phys_model.eval()
+        for i in range(self.pmn):
+            self.phys_model[i].load_state_dict(phys_log[i])
+            self.phys_model.eval()
     
     def save_log(self, logs):
         with torch.no_grad():
             logs['pred_model'].append(copy.deepcopy(self.pred_model.state_dict()))
-            logs['phys_model'].append(copy.deepcopy(self.phys_model.state_dict()))
+            phys_model_list = []
+            for i in range(self.pmn):
+                phys_model_list.append(copy.deepcopy(self.phys_model[i].state_dict()))
+            logs['phys_model'].append(phys_model_list)
     
     def set_init(self, state_nn):
         self.in_nn = state_nn
 
     def data_train(self, epoch, train_loader):
         self.pred_model.train()
-        self.phys_model.train()
+        for i in range(self.pmn):
+            self.phys_model[i].train()
 
         t1 = default_timer()
         train_log = PredLog(length=self.params.batch_size)
@@ -484,3 +493,28 @@ class RBCModel_FNO_prev(RBCModel):
     def scheduler_step(self):
         self.pred_scheduler.step()
         self.phys_scheduler.step()
+
+
+class RBCModel_FNO_ensem(RBCModel):
+    def __init__(self, shape, dt, args):
+        super().__init__(shape, dt, args)
+        self.set_model(FNO_ensemble_RBC, state_mo)
+
+    def set_model(self, pred_model=FNO_ensemble, phys_model=state_mo, phys_model_num = 5):
+        self.phys_model_num = phys_model_num
+        model_params = dict()
+        model_params['modes'] = self.params.modes
+        model_params['width'] = self.params.width
+        model_params['L'] = self.params.L
+        model_params['shape'] = self.shape
+        model_params['f_channels'] = self.params.f_channels
+
+        self.pred_model = pred_model(model_params).to(self.device)
+        self.pred_optimizer = torch.optim.Adam(self.pred_model.parameters(), lr=self.params.lr, weight_decay=self.params.wd)
+        self.pred_scheduler = torch.optim.lr_scheduler.StepLR(self.pred_optimizer, step_size=self.params.step_size, gamma=self.params.gamma)
+
+        self.phys_model, self.phys_optimizer, self.phys_scheduler = [], [], []
+        for i in range(self.phys_model_num):
+            self.phys_model.append(phys_model(model_params).to(self.device))
+            self.phys_optimizer.append(torch.optim.Adam(self.phys_model[i].parameters(), lr=self.params.lr * 5, weight_decay=self.params.wd))
+            self.phys_scheduler.append(torch.optim.lr_scheduler.StepLR(self.phys_optimizer[i], step_size=self.params.step_size, gamma=self.params.gamma))

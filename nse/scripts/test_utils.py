@@ -37,7 +37,7 @@ def loss_log(data, file_name, test_rate = 0.2):
     data.unnormalize()
     torch.save(loss, 'logs/data/losslog/loss_log_' + file_name)
 
-def test_log(data, file_name, ex_name, model_loaded = NSEModel_FNO, dict = 'nse'):
+def test_log(data, file_name, ex_name, model_loaded = NSEModel_FNO, dict = 'nse', dt = 0.05):
     N0, nt, nx, ny = data.get_params()
     shape = [nx, ny]
 
@@ -47,7 +47,7 @@ def test_log(data, file_name, ex_name, model_loaded = NSEModel_FNO, dict = 'nse'
     state_dict_pred, state_dict_phys, logs = torch.load(operator_path)
     data.normalize('logs_unif', logs)
 
-    model = model_loaded(shape, 0.05, logs['args'])
+    model = model_loaded(shape, dt, logs['args'])
     model.load_state(state_dict_pred, state_dict_phys)
     model.toCPU()
     

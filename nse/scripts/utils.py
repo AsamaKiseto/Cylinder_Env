@@ -51,7 +51,7 @@ def count_params(model):
         c += reduce(operator.mul, list(p.size()))
     return c
 
-def Lpde(state_bf, state_af, dt):
+def Lpde(state_bf, state_af, dt, Re = 0.001):
     nx = state_bf.shape[1]
     ny = state_bf.shape[2]
     device = state_af.device
@@ -71,7 +71,7 @@ def Lpde(state_bf, state_af, dt):
     u_lap = uxx + uyy
     p_grad = torch.cat((px, py), -1)
     L_state = (u_af - u_bf) / dt + u_bf[..., 0].reshape(-1, nx, ny, 1) * ux + \
-              u_bf[..., 1].reshape(-1, nx, ny, 1) * uy - 0.001 * u_lap + p_grad
+              u_bf[..., 1].reshape(-1, nx, ny, 1) * uy - Re * u_lap + p_grad
 
     loss = (L_state ** 2).mean()
 
