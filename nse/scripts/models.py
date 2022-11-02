@@ -93,8 +93,8 @@ class NSEModel():
 
     def cal_1step(self, data):
         obs, Cd, Cl, ctr = data.get_data()
-        obs += (2 * torch.rand(obs.shape) - 1) * 0.01
-        ctr += (2 * torch.rand(ctr.shape) - 1) * 0.01
+        obs_ = obs + (2 * torch.rand(obs.shape) - 1) * 0.001
+        ctr_ = ctr + (2 * torch.rand(ctr.shape) - 1) * 0.001
         N0, nt = obs.shape[0], obs.shape[1] - 1
         nx, ny = self.shape
         out_nn, Lpde_obs, Lpde_pred = torch.zeros(N0, nt, nx, ny, 3), torch.zeros(N0, nt, nx, ny, 2), torch.zeros(N0, nt, nx, ny, 2)
@@ -103,8 +103,8 @@ class NSEModel():
         with torch.no_grad():
             for k in range(nt):
                 t1 = default_timer()
-                out_nn[:, k], Cd_nn[:, k], Cl_nn[:, k], mod_pred, _, _, _ = self.model_step(obs[:, k], ctr[:, k])
-                Lpde_pred[:, k] = ((Lpde(obs[:, k], out_nn[:, k], self.dt) + mod_pred) ** 2)
+                out_nn[:, k], Cd_nn[:, k], Cl_nn[:, k], mod_pred, _, _, _ = self.model_step(obs_[:, k], ctr_[:, k])
+                Lpde_pred[:, k] = ((Lpde(obs_[:, k], out_nn[:, k], self.dt) + mod_pred) ** 2)
 
                 mod_obs = self.phys_model(obs[:, k], ctr[:, k], obs[:, k+1])
                 Lpde_obs[:, k] = ((Lpde(obs[:, k], obs[:, k+1], self.dt) + mod_obs) ** 2)
@@ -518,3 +518,34 @@ class RBCModel_FNO_prev(RBCModel):
     def scheduler_step(self):
         self.pred_scheduler.step()
         self.phys_scheduler.step()
+
+
+class RBCModel_FNO_test(RBCModel):
+    def __init__(self, shape, dt, args):
+        super().__init__(shape, dt, args)
+        self.set_model(FNO_ensemble_RBC)
+    
+    def train_step(self, loss1, loss2, loss3, loss4, loss5, loss6):
+        lambda1, lambda2, lambda3, lambda4 = self.params.lambda1, self.params.lambda2, self.params.lambda3, self.params.lambda4
+        loss_pred = lambda1 * loss1 + lambda2 * loss2 + lambda3 * loss3 + lambda4 * loss4 + 0.1 * loss6
+
+        loss_pred.backward()
+        self.pred_optimizer.step()
+    
+    def scheduler_step(self):
+        self.pred_scheduler.step()
+
+    def pred_loss(self, ipt, ctr, opt):
+        out = opt[:, :, :, :3]
+        # latent items
+        out_latent = self.pred_model.stat_en(out)
+        # prediction & rec items
+        out_pred, mod_pred, ipt_rec, ctr_rec, trans_out = self.model_step(ipt, ctr)
+        
+        loss1 = rel_error(out_pred, out).mean()
+        loss2 = rel_error(ipt_rec, ipt).mean()
+        loss3 = rel_error(ctr_rec, ctr).mean()
+        loss4 = rel_error(trans_out, out_latent).mean()
+        loss6 = ((Lpde(ipt, out_pred, self.dt, Re = self.Re)) ** 2).mean()
+
+        return loss1, loss2, loss3, loss4, loss6

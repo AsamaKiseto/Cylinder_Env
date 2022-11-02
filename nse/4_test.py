@@ -5,12 +5,12 @@ tg = 5
 
 # test 
 log_list = ['data_based', 'phys_inc', 'no_random', 'random_select_0.001']
-data_path = 'data/test_data/nse_data_reg_dt_0.01_fb_0.0'
-data = LoadDataNSE(data_path)
-data.split(1, tg)
-for file_name in log_list:
-    test_log(data, file_name, 'fb_0.0', model_loaded = NSEModel_FNO, dict='nse')
-test_log(data, 'prev_phys', 'fb_0.0', model_loaded = NSEModel_FNO_prev, dict='nse')
+# data_path = 'data/test_data/nse_data_reg_dt_0.01_fb_0.0'
+# data = LoadDataNSE(data_path)
+# data.split(1, tg)
+# for file_name in log_list:
+#     test_log(data, file_name, 'fb_0.0', model_loaded = NSEModel_FNO, dict='nse')
+# test_log(data, 'prev_phys', 'fb_0.0', model_loaded = NSEModel_FNO_prev, dict='nse')
 
 data_path = 'data/test_data/nse_data_reg_dt_0.01_fb_0.0_1'
 data = LoadDataNSE(data_path)
