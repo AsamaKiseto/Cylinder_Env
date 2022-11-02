@@ -93,8 +93,8 @@ class NSEModel():
 
     def cal_1step(self, data):
         obs, Cd, Cl, ctr = data.get_data()
-        obs_ = obs + (2 * torch.rand(obs.shape) - 1) * 0.001
-        ctr_ = ctr + (2 * torch.rand(ctr.shape) - 1) * 0.001
+        obs_ = obs + (2 * torch.rand(obs.shape) - 1) * 0.00
+        ctr_ = ctr + (2 * torch.rand(ctr.shape) - 1) * 0.00
         N0, nt = obs.shape[0], obs.shape[1] - 1
         nx, ny = self.shape
         out_nn, Lpde_obs, Lpde_pred = torch.zeros(N0, nt, nx, ny, 3), torch.zeros(N0, nt, nx, ny, 2), torch.zeros(N0, nt, nx, ny, 2)
