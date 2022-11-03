@@ -114,7 +114,7 @@ class NSEModel():
                 error_Cl[:, k] = ((Cl_nn[:, k] - Cl[:, k]) ** 2)
                 t2 = default_timer()
                 if k % 5 == 0:
-                    print(f'# {k} | {t2 - t1:1.2f}: error_Cd: {error_Cd[:, k].mean():1.4f} | error_Cl: {error_Cl[:, k].mean():1.4f} | error_state: {error_1step[:, k].mean():1.4f}\
+                    print(f'# {k} | {t2 - t1:1.2f}: error_Cd: {error_Cd[:, k].mean():1.4f} | error_Cl: {error_Cl[:, k].mean():1.4f} | error_state: {error_1step[:, k].max():1.4f}\
                         | pred_Lpde: {Lpde_pred[:, k].mean():1.4f} | obs_Lpde: {Lpde_obs[:, k].mean():1.4f}')
 
         return error_1step, Lpde_obs, Lpde_pred
@@ -291,7 +291,7 @@ class NSEModel_FNO(NSEModel):
 class NSEModel_FNO_prev(NSEModel):
     def __init__(self, shape, dt, args):
         super().__init__(shape, dt, args)
-        self.set_model()
+        self.set_model(FNO_ensemble_test)
     
     def train_step(self, loss1, loss2, loss3, loss4, loss5, loss6):
         lambda1, lambda2, lambda3, lambda4 = self.params.lambda1, self.params.lambda2, self.params.lambda3, self.params.lambda4

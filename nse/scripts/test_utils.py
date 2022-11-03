@@ -56,8 +56,9 @@ def test_log(data, file_name, ex_name, model_loaded = NSEModel_FNO, dict = 'nse'
     error_1step, Lpde_obs, Lpde_pred = model.cal_1step(data)
     out_cul, Lpde_pred_cul = model.process(data)
     
-    error_cul = ((out_cul - obs[:, 1:]) ** 2).reshape(N0, nt, -1).mean(2)
-    error_cul /= (obs[:, 1:] ** 2).reshape(N0, nt, -1).mean(2)
+    error_cul = torch.zeros(N0, nt)
+    for k in range(nt):
+        error_cul[:, k] = rel_error(out_cul[:, k], obs[:, 1+k])
     # print(f'Lpde_nn: {Lpde_pred_cul[-1]}')
     
     data.unnormalize()

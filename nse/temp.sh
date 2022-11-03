@@ -8,3 +8,4 @@
 
 bash gen_data.sh
 python3 4_test.py
+python3 4_anime.py
