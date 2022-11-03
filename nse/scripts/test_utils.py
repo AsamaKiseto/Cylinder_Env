@@ -57,6 +57,7 @@ def test_log(data, file_name, ex_name, model_loaded = NSEModel_FNO, dict = 'nse'
     out_cul, Lpde_pred_cul = model.process(data)
     
     error_cul = ((out_cul - obs[:, 1:]) ** 2).reshape(N0, nt, -1).mean(2)
+    error_cul /= (obs[:, 1:] ** 2).reshape(N0, nt, -1).mean(2)
     # print(f'Lpde_nn: {Lpde_pred_cul[-1]}')
     
     data.unnormalize()

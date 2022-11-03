@@ -8,8 +8,8 @@ t_nn = (np.arange(80) + 1) * 0.05    ### %%%
 scale_k = [2]
 
 print('begin plot train method')
-log_list = ['data_based', 'phys_inc'] #, 'no_random', 'random_select_0.001', 'prev_phys']
-test_plot(t_nn, log_list, scale_k, ex_name='fb_0.0', fig_name='train_method', dict = 'nse')
+log_list = ['data_based', 'phys_inc']
+test_plot(t_nn, log_list, scale_k, ex_name='fb_0.0_1', fig_name='train_method', dict = 'nse')
 
 # print('begin plot data num')
 # # test_plot(t_nn, log_list, scale_k, ex_name='fb_0.0', fig_name='f_data')
@@ -55,23 +55,23 @@ test_plot(t_nn, log_list, scale_k, ex_name='fb_0.0', fig_name='train_method', di
 
 
 
-# t_nn = (np.arange(60) + 1) * 0.05   ### %%%
+t_nn = (np.arange(99) + 1) * 0.01   ### %%%
 
-# scale_k = [2]
+scale_k = [2]
 
-# print('begin plot train method')
-# # log_list = ['data_based', 'baseline', 'no_random', 'random_select_0.01', 'random_select_0.001', 'random_select_0.0001', 'pre_phys']
-# # test_plot(t_nn, log_list, scale_k, ex_name='fb_0.0', fig_name='train_method')
-# log_list = ['rbc_data_based', 'rbc_phys_inc', 'rbc_no_random', 'rbc_random_select_0.001', 'rbc_prev_phys']
-# test_plot(t_nn, log_list, scale_k, ex_name='rbc', fig_name='train_method', dict = 'rbc')
+print('begin plot train method')
+# log_list = ['data_based', 'baseline', 'no_random', 'random_select_0.01', 'random_select_0.001', 'random_select_0.0001', 'pre_phys']
+# test_plot(t_nn, log_list, scale_k, ex_name='fb_0.0', fig_name='train_method')
+log_list = ['data_based', 'phys_inc', 'no_random', 'random_select_0.001', 'prev_phys']
+test_plot(t_nn, log_list, scale_k, ex_name='rbc', fig_name='train_method', dict = 'rbc')
 
-# print('begin plot phys scales')
-# # # log_list = ['baseline', 'ps_0.01', 'ps_0.05', 'ps_0.2', 'ps_0.5']
-# # # test_plot(t_nn, log_list, scale_k, ex_name='fb_0.0', fig_name='f_ps')
-# log_list = ['rbc_phys_inc', 'rbc_ps_0.01', 'rbc_ps_0.05', 'rbc_ps_0.2']
-# test_plot(t_nn, log_list, scale_k, ex_name='rbc', fig_name='f_ps', dict = 'rbc')
+print('begin plot phys scales')
+# # log_list = ['baseline', 'ps_0.01', 'ps_0.05', 'ps_0.2', 'ps_0.5']
+# # test_plot(t_nn, log_list, scale_k, ex_name='fb_0.0', fig_name='f_ps')
+log_list = ['phys_inc', 'ps_0.01', 'ps_0.05', 'ps_0.2']
+test_plot(t_nn, log_list, scale_k, ex_name='rbc', fig_name='f_ps', dict = 'rbc')
 
-# print('begin plot phys epochs')
-# log_list = ['rbc_phys_inc', 'rbc_pe_5', 'rbc_pe_15']
-# # test_plot(t_nn, log_list, scale_k, ex_name='fb_0.0', fig_name='f_pe')
-# test_plot(t_nn, log_list, scale_k, ex_name='rbc', fig_name='f_pe', dict = 'rbc')
+print('begin plot phys epochs')
+log_list = ['phys_inc', 'pe_5', 'pe_15']
+# test_plot(t_nn, log_list, scale_k, ex_name='fb_0.0', fig_name='f_pe')
+test_plot(t_nn, log_list, scale_k, ex_name='rbc', fig_name='f_pe', dict = 'rbc')

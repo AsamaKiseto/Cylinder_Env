@@ -133,7 +133,7 @@ class NSEModel():
                 t1 = default_timer()
                 out_nn[:, k], Cd_nn[:, k], Cl_nn[:, k], mod_pred, _, _, _ = self.model_step(self.in_nn, ctr[:, k])
                 # print(pred.shape, mod_pred.shape, self.in_nn.shape)
-                Lpde_pred[:, k] = ((Lpde(self.in_nn, out_nn[:, k], self.dt) + mod_pred) ** 2)
+                Lpde_pred[:, k] = ((Lpde(self.in_nn, out_nn[:, k], self.dt, self.Re) + mod_pred) ** 2)
                 self.in_nn = out_nn[:, k]
                 error_cul[:, k] = rel_error(out_nn[:, k], obs[:, k+1]) 
                 error_Cd[:, k] = ((Cd_nn[:, k] - Cd[:, k]) ** 2)
@@ -375,7 +375,7 @@ class RBCModel(NSEModel):
         out_nn, Lpde_obs, Lpde_pred = torch.zeros(N0, nt, nx, ny, 3), torch.zeros(N0, nt, nx, ny, 2), torch.zeros(N0, nt, nx, ny, 2)
         error_1step = torch.zeros(N0, nt)
         with torch.no_grad():
-            for k in range(nt):
+            for k in range(5, nt):
                 t1 = default_timer()
                 out_nn[:, k], mod_pred, _, _, _ = self.model_step(obs[:, k], ctr[:, k])
                 Lpde_pred[:, k] = ((Lpde(obs[:, k], out_nn[:, k], self.dt, Re = self.Re) + mod_pred) ** 2)
@@ -389,7 +389,7 @@ class RBCModel(NSEModel):
                     print(f'# {k} | {t2 - t1:1.2f}: error_state: {error_1step[:, k].mean():1.4f}\
                         | pred_Lpde: {Lpde_pred[:, k].mean():1.4f} | obs_Lpde: {Lpde_obs[:, k].mean():1.4f}')
 
-        return out_nn, Lpde_obs, Lpde_pred
+        return error_1step, Lpde_obs, Lpde_pred
 
     def process(self, data):
         obs, temp, ctr = data.get_data()
@@ -397,13 +397,10 @@ class RBCModel(NSEModel):
         N0, nt = obs.shape[0], obs.shape[1] - 1
         nx, ny = self.shape
         print(f'N0: {N0}, nt: {nt}, nx: {nx}, ny: {ny}')
-        zeros = torch.zeros(N0, nt, nx, ny, 1)
-        temp = temp.reshape(N0, nt, nx, ny, 1)
-        temp = torch.cat((zeros, temp), -1)
         out_nn, Lpde_pred = torch.zeros(N0, nt, nx, ny, 3), torch.zeros(N0, nt, nx, ny, 2)
         error_cul = torch.zeros(N0, nt)
         with torch.no_grad():
-            for k in range(nt):
+            for k in range(5, nt):
                 t1 = default_timer()
                 out_nn[:, k], mod_pred, _, _, _ = self.model_step(self.in_nn, ctr[:, k])
                 # print(pred.shape, mod_pred.shape, self.in_nn.shape)
