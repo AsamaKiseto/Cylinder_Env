@@ -353,7 +353,7 @@ class RBCModel(NSEModel):
         loss2 = rel_error(ipt_rec, ipt).mean()
         loss3 = rel_error(ctr_rec, ctr).mean()
         loss4 = rel_error(trans_out, out_latent).mean()
-        loss6 = ((Lpde(ipt, out_pred, self.dt, Re = self.Re) + mod_pred) ** 2).mean()
+        loss6 = ((Lpde(ipt, out_pred, self.dt, Re = self.Re, Lx = 2.0, Ly = 2.0) + mod_pred) ** 2).mean()
 
         return loss1, loss2, loss3, loss4, loss6
 
@@ -378,10 +378,10 @@ class RBCModel(NSEModel):
             for k in range(5, nt):
                 t1 = default_timer()
                 out_nn[:, k], mod_pred, _, _, _ = self.model_step(obs[:, k], ctr[:, k])
-                Lpde_pred[:, k] = ((Lpde(obs[:, k], out_nn[:, k], self.dt, Re = self.Re) + mod_pred) ** 2)
+                Lpde_pred[:, k] = ((Lpde(obs[:, k], out_nn[:, k], self.dt, Re = self.Re, Lx = 2.0, Ly = 2.0) + mod_pred) ** 2)
 
                 mod_obs = self.phys_model(obs[:, k], ctr[:, k], obs[:, k+1])
-                Lpde_obs[:, k] = ((Lpde(obs[:, k], obs[:, k+1], self.dt, Re = self.Re) + mod_obs) ** 2)
+                Lpde_obs[:, k] = ((Lpde(obs[:, k], obs[:, k+1], self.dt, Re = self.Re, Lx = 2.0, Ly = 2.0) + mod_obs) ** 2)
                 
                 error_1step[:, k] = rel_error(out_nn[:, k], obs[:, k+1]) 
                 t2 = default_timer()
@@ -404,7 +404,7 @@ class RBCModel(NSEModel):
                 t1 = default_timer()
                 out_nn[:, k], mod_pred, _, _, _ = self.model_step(self.in_nn, ctr[:, k])
                 # print(pred.shape, mod_pred.shape, self.in_nn.shape)
-                Lpde_pred[:, k] = ((Lpde(self.in_nn, out_nn[:, k], self.dt, Re = self.Re) + mod_pred) ** 2)
+                Lpde_pred[:, k] = ((Lpde(self.in_nn, out_nn[:, k], self.dt, Re = self.Re, Lx = 2.0, Ly = 2.0) + mod_pred) ** 2)
                 self.in_nn = out_nn[:, k]
                 error_cul[:, k] = rel_error(out_nn[:, k], obs[:, k+1]) 
                 t2 = default_timer()

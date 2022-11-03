@@ -8,12 +8,17 @@ t_nn = (np.arange(80) + 1) * 0.05    ### %%%
 scale_k = [2]
 
 print('begin plot train method')
-log_list = ['data_based', 'phys_inc']
-test_plot1(t_nn, log_list, scale_k, ex_name='fb_0.0', fig_name='train_method1', dict = 'nse')
+# log_list = ['data_based']
+# test_plot1(t_nn, log_list, scale_k, ex_name='fb_0.0', fig_name='data_based', dict = 'nse')
 
-log_list = ['phys_inc', 'random_select_0.001', 'no_random']
-test_plot1(t_nn, log_list, scale_k, ex_name='fb_0.0', fig_name='train_method2', dict = 'nse')
+# log_list = ['phys_inc', 'data_based']
+# test_plot1(t_nn, log_list, scale_k, ex_name='fb_0.0', fig_name='train_method1', dict = 'nse')
 
+# log_list = ['phys_inc', 'data_based', 'random_select_0.001', 'no_random']
+# test_plot1(t_nn, log_list, scale_k, ex_name='fb_0.0', fig_name='train_method2', dict = 'nse')
+
+log_list = ['phys_inc', 'data_based']
+test_plot1(t_nn, log_list, scale_k, ex_name='fb_0.0_1', fig_name='train_method', dict = 'nse', zlim=0.5)
 
 # print('begin plot data num')
 # # test_plot(t_nn, log_list, scale_k, ex_name='fb_0.0', fig_name='f_data')

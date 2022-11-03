@@ -110,7 +110,7 @@ def test_plot(t_nn, log_list, scale_k, ex_name = 'fb_0.0', fig_name = 'test', di
     #     plt.savefig(f'logs/pics/error/phase1_culcoef_{fig_name}_{ex_name}.jpg')
 
 
-def test_plot1(t_nn, log_list, scale_k, ex_name = 'fb_0.0', fig_name = 'test', dict = 'nse'):
+def test_plot1(t_nn, log_list, scale_k, ex_name = 'fb_0.0', fig_name = 'test', dict = 'nse', zlim=0.1):
     # state error fig setting
     fig_num = 1
     fig, ax = plt.subplots(nrows=fig_num, ncols=1, figsize=(15,12), dpi=1000)
@@ -120,11 +120,11 @@ def test_plot1(t_nn, log_list, scale_k, ex_name = 'fb_0.0', fig_name = 'test', d
     # ax[i].set_xlim(0, t_nn[-1])
     # ax.set_yscale('log')
     
-    ax.set_ylim((0, 0.1))
+    ax.set_ylim((0, zlim))
         
-    ax.set_title("Cumul state error", fontsize=20)
-    ax.set_ylabel("relative error", fontsize=20)
-    ax.set_xlabel("t", fontsize=20)
+    ax.set_title("Cumulative state error", fontsize=40)
+    ax.set_ylabel("relative error", fontsize=40)
+    ax.set_xlabel("t", fontsize=40)
 
     for k in range(len(log_list)):
         data_list = torch.load(f'logs/data_{dict}/error/phase1_test_{log_list[k]}_{ex_name}')
@@ -135,7 +135,7 @@ def test_plot1(t_nn, log_list, scale_k, ex_name = 'fb_0.0', fig_name = 'test', d
         for j in range(len(scale_k)):
             ax.plot(t_nn, error_cul[scale_k[j]], label = f'{log_list[k]}')
             ax.fill_between(t_nn, error_cul_v[0][scale_k[j]], error_cul_v[1][scale_k[j]], alpha=0.2)
-            ax.legend()
+            ax.legend(fontsize=20)
     
     plt.savefig(f'logs/pics_{dict}/error/phase1_state_{fig_name}_{ex_name}.jpg')
 
@@ -251,7 +251,7 @@ def animate_field(data, xy_mesh, name, file_name, dict='nse'):
     
     x, y, xl, xh, yl, yh = xy_mesh
 
-    figsizer=10
+    figsizer=20
     fig, ax = plt.subplots(figsize=((xh - xl)*figsizer,(yh-yl)*figsizer))
     ax.axis('equal')
     ax.set(xlim=(xl, xh), ylim=(yl, yh))
@@ -266,7 +266,7 @@ def animate_field(data, xy_mesh, name, file_name, dict='nse'):
         ax.clear()
         ax.set_title(f'{name} {file_name}')
         ax.quiver(x, y, u[i], v[i], w[i])
-        ax.contourf(x, y, w[i])
+        # ax.contourf(x, y, w[i])
         # ax.plot_surface(x, y, Lpde_obs[i, :, :, 0])
         # ax.plot(x[i], y[i])
         
@@ -277,6 +277,7 @@ def animate_field(data, xy_mesh, name, file_name, dict='nse'):
     
 def animate2D(data, xy_mesh, name, file_name, dict='nse'):
     nt = data.shape[0]
+    print(data.shape)
     
     x, y, xl, xh, yl, yh = xy_mesh
 
@@ -295,7 +296,7 @@ def animate2D(data, xy_mesh, name, file_name, dict='nse'):
         # print(data[i].shape)
         # ax.quiver(x, y, u[i], v[i], w[i])
         ax.contourf(x, y, data[i], 200, cmap='jet')
-        # ax.colorbar()
+        # plt.colorbar()
         # ax.plot_surface(x, y, Lpde_obs[i, :, :, 0])
         # ax.plot(x[i], y[i])
         
@@ -308,22 +309,22 @@ def animate3D(data, xy_mesh, name, file_name, zlim = 100, dict = 'nse'):
     
     x, y, xl, xh, yl, yh = xy_mesh
 
-    # figsizer=10
+    figsizer=10
     # fig, ax = plt.subplots(figsize=((xh - xl)*figsizer,(yh-yl)*figsizer))
     # ax.axis('equal')
     # # ax.set(xlim=(0, 2.2), ylim=(0, 0.41))
     # ax.set(xlim=(xl, xh), ylim=(yl, yh))
 
-    fig = plt.figure(dpi=400)
+    fig = plt.figure(figsize = (16, 10))
     ax = plt.axes(projection='3d')
-    ax.get_proj = lambda: np.dot(Axes3D.get_proj(ax), np.diag([xh-xl, yh-yl, 1, 2]))
+    ax.get_proj = lambda: np.dot(Axes3D.get_proj(ax), np.diag([(xh - xl)*figsizer, (yh-yl)*figsizer*2, figsizer*1.2, figsizer*2]))
     
     u, v = [data[:, :, :, i] for i in range(2)]
-    w = u**2 + v**2
+    w = torch.sqrt(u**2 + v**2)
 
     def animate(i):
         ax.clear()
-        ax.set_title(f'{name} {file_name}')
+        # ax.set_title(f'{name} {file_name}')
         # ax.quiver(x, y, u[i], v[i], w[i])
         ax.set_zlim(0, zlim)
         ax.plot_surface(x, y, w[i], cmap='rainbow')
@@ -340,7 +341,7 @@ def animate2D_comp(obs, log_list, num_k, xy_mesh, name='comp1', dict='nse'):
     v = obs[..., 1]
     uv = u ** 2 + v ** 2
     p = obs[..., 2]
-    fontsize = 40
+    fontsize = 25
     
     nump = len(log_list)
     u_, v_, p_, uv_ = torch.zeros(nump, 30, nt, nx, ny), torch.zeros(nump, 30, nt, nx, ny), torch.zeros(nump, 30, nt, nx, ny), torch.zeros(nump, 30, nt, nx, ny)
@@ -352,7 +353,7 @@ def animate2D_comp(obs, log_list, num_k, xy_mesh, name='comp1', dict='nse'):
         p_[i] = out_cul[..., 2]
 
     figsizer=10
-    fig, ax = plt.subplots(nrows=nump+1, ncols=1, figsize=((xh - xl)*figsizer,(yh-yl)*figsizer*(nump+1.5)))
+    fig, ax = plt.subplots(nrows=nump+1, ncols=1, figsize=((xh - xl)*figsizer,(yh-yl)*figsizer*(nump+2)))
     ax = ax.flatten()
     for i in range(3):
         ax[i].axis('equal')
@@ -373,7 +374,7 @@ def animate2D_comp(obs, log_list, num_k, xy_mesh, name='comp1', dict='nse'):
     myAnimation.save(f'logs/pics_{dict}/output/u_{name}.gif')
 
     figsizer=10
-    fig, ax = plt.subplots(nrows=nump+1, ncols=1, figsize=((xh - xl)*figsizer,(yh-yl)*figsizer*(nump+1.5)))
+    fig, ax = plt.subplots(nrows=nump+1, ncols=1, figsize=((xh - xl)*figsizer,(yh-yl)*figsizer*(nump+2)))
     ax = ax.flatten()
     for i in range(3):
         ax[i].axis('equal')
@@ -394,7 +395,7 @@ def animate2D_comp(obs, log_list, num_k, xy_mesh, name='comp1', dict='nse'):
     myAnimation.save(f'logs/pics_{dict}/output/v_{name}.gif')
 
     figsizer=10
-    fig, ax = plt.subplots(nrows=nump+1, ncols=1, figsize=((xh - xl)*figsizer,(yh-yl)*figsizer*(nump+1.5)))
+    fig, ax = plt.subplots(nrows=nump+1, ncols=1, figsize=((xh - xl)*figsizer,(yh-yl)*figsizer*(nump+2)))
     ax = ax.flatten()
     for i in range(3):
         ax[i].axis('equal')

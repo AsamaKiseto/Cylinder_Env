@@ -21,7 +21,34 @@ print(ctr[num_k, 0])
 # animate2D(obs[num_k, ..., 1], xy_mesh, 'v', 'obs', 'rbc')
 # animate2D(obs[num_k, ..., 2], xy_mesh, 'p', 'obs', 'rbc')
 animate2D(temp[num_k, ..., 0], xy_mesh, 't', 'obs', 'rbc')
-# animate_field(obs[num_k, ..., :2], xy_mesh, 'state', 'obs', 'rbc')
+animate_field(obs[num_k, ..., :2], xy_mesh, 'state', 'obs', 'rbc')
+
+uv = obs[num_k, ..., :2]
+
+nt = obs.shape[0]
+
+figsizer=20
+fig, ax = plt.subplots(figsize=((xh - xl)*figsizer,(yh-yl)*figsizer))
+ax.axis('equal')
+ax.set(xlim=(xl, xh), ylim=(yl, yh))
+
+# fig = plt.figure()
+# ax = plt.axes(projection='3d')
+
+u, v = [uv[:, :, :, i] for i in range(2)]
+w = u**2 + v**2
+
+def animate(i):
+    ax.clear()
+    ax.quiver(x, y, u[i], v[i], w[i])
+    ax.contourf(x, y, temp[num_k, ..., 0])
+    # ax.plot_surface(x, y, Lpde_obs[i, :, :, 0])
+    # ax.plot(x[i], y[i])
+    
+print(f'generate anime state')
+myAnimation = animation.FuncAnimation(fig, animate, frames=np.arange(nt), interval=1, repeat=False)
+myAnimation.save(f'logs/pics_rbc/output/state_obs.gif')
+
 
 log_list = ['data_based', 'phys_inc', 'no_random', 'random_select_0.001', 'random_select_0.0001', 'prev_phys']
 # log_list = ['data_based', 'phys_inc']

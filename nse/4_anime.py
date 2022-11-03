@@ -10,13 +10,23 @@ yl, yh = np.min(y), np.max(y)
 xy_mesh = [x, y, xl, xh, yl, yh]
 
 tg = 5
+scale_k = 2
+num_k = -1
+
 obs, _, _, ctr = torch.load('data/test_data/nse_data_reg_dt_0.01_fb_0.0')
-obs = obs[:, ::tg][:, 1:][..., 2:]
+obs = obs[:, ::tg][..., 2:]
+obs_af = obs[num_k, 1:]
+obs_bf = obs[num_k, :-1]
+obs = obs[:, 1:]
 ctr = ctr[:, ::tg]
 
 nt, nx, ny = obs.shape[1], obs.shape[2], obs.shape[3]
-scale_k = 2
-num_k = -1
+
+Loss_pde = Lpde(obs_bf, obs_af, 0.05)
+loss = torch.sqrt(Loss_pde[..., 0]**2 + Loss_pde[..., 1]**2)
+# animate3D(Loss_pde, xy_mesh, 'obs_Loss', 'pde', zlim=100)
+
+animate_field(obs[num_k], xy_mesh, 'obs', 'state')
 
 # log_list = ['data_based', 'phys_inc', 'no_random', 'random_select_0.001']
 # for file_name in log_list:
@@ -40,8 +50,8 @@ num_k = -1
 
 #     # animate3D(error_cul, xy_mesh, 'error_cul', file_name, zlim=5)
 
-log_list = ['phys_inc', 'data_based']
-# animate2D_comp(obs, log_list, -1, xy_mesh, 'comp1')
+# log_list = ['phys_inc', 'data_based']
+# animate2D_comp(obs, log_list, num_k, xy_mesh, 'comp1')
 
-log_list = ['phys_inc', 'random_select_0.001', 'no_random']
-animate2D_comp(obs, log_list, -1, xy_mesh, 'comp2')
+# log_list = ['phys_inc', 'data_based', 'random_select_0.001', 'no_random']
+# animate2D_comp(obs, log_list, num_k, xy_mesh, 'comp2')
