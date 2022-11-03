@@ -418,6 +418,7 @@ class RBCModel_FNO(RBCModel):
     def __init__(self, shape, dt, args):
         super().__init__(shape, dt, args)
         self.set_model(FNO_ensemble_RBC, state_mo)
+        print('Re', self.Re)
     
     def train_step(self, loss1, loss2, loss3, loss4, loss5, loss6):
         lambda1, lambda2, lambda3, lambda4 = self.params.lambda1, self.params.lambda2, self.params.lambda3, self.params.lambda4
@@ -503,6 +504,7 @@ class RBCModel_FNO_prev(RBCModel):
     def __init__(self, shape, dt, args):
         super().__init__(shape, dt, args)
         self.set_model(FNO_ensemble_RBC)
+        print('Re', self.Re)
     
     def train_step(self, loss1, loss2, loss3, loss4, loss5, loss6):
         lambda1, lambda2, lambda3, lambda4 = self.params.lambda1, self.params.lambda2, self.params.lambda3, self.params.lambda4
@@ -521,6 +523,7 @@ class RBCModel_FNO_test(RBCModel):
     def __init__(self, shape, dt, args):
         super().__init__(shape, dt, args)
         self.set_model(FNO_ensemble_RBC)
+        print('Re', self.Re)
     
     def train_step(self, loss1, loss2, loss3, loss4, loss5, loss6):
         lambda1, lambda2, lambda3, lambda4 = self.params.lambda1, self.params.lambda2, self.params.lambda3, self.params.lambda4
