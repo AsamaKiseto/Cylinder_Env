@@ -455,7 +455,7 @@ class RBCModel_FNO(RBCModel):
             out_pred = pred[:, :, :, :3]
             mod = self.phys_model(in_train, ctr_train, out_pred)
             # 多训练几次？  
-            loss = ((Lpde(in_train, out_pred, self.dt, Re = self.Re) + mod) ** 2).mean()
+            loss = ((Lpde(in_train, out_pred, self.dt, Re = self.Re, Lx = 2.0, Ly = 2.0) + mod) ** 2).mean()
             loss.backward()
             self.pred_optimizer.step()
             loss_pde.update(loss.item(), self.params.batch_size)
@@ -482,7 +482,7 @@ class RBCModel_FNO(RBCModel):
                 pred, _, _, _ = self.pred_model(in_new, ctr_new)
                 out_pred = pred[:, :, :, :3]
                 mod = self.phys_model(in_new, ctr_new, out_pred)
-                loss = ((Lpde(in_new, out_pred, self.dt, Re = self.Re) + mod) ** 2).mean()
+                loss = ((Lpde(in_new, out_pred, self.dt, Re = self.Re, Lx = 2.0, Ly = 2.0) + mod) ** 2).mean()
                 loss.backward()
                 # print(ctr_new.is_leaf, in_new.is_leaf)
                 dLf = ctr_new.grad
@@ -546,6 +546,6 @@ class RBCModel_FNO_test(RBCModel):
         loss2 = rel_error(ipt_rec, ipt).mean()
         loss3 = rel_error(ctr_rec, ctr).mean()
         loss4 = rel_error(trans_out, out_latent).mean()
-        loss6 = ((Lpde(ipt, out_pred, self.dt, Re = self.Re)) ** 2).mean()
+        loss6 = ((Lpde(ipt, out_pred, self.dt, Re = self.Re, Lx = 2.0, Ly = 2.0)) ** 2).mean()
 
         return loss1, loss2, loss3, loss4, loss6

@@ -51,7 +51,7 @@ def count_params(model):
         c += reduce(operator.mul, list(p.size()))
     return c
 
-def Lpde(state_bf, state_af, dt, Re = 0.001):
+def Lpde(state_bf, state_af, dt, Re = 0.001, Lx = 2.2, Ly = 0.41):
     nx = state_bf.shape[1]
     ny = state_bf.shape[2]
     device = state_af.device
@@ -63,10 +63,10 @@ def Lpde(state_bf, state_af, dt, Re = 0.001):
     # ux, uy, u_lap = fftd2D(u_bf, device)
     # px, py, _ = fftd2D(p_bf, device)
 
-    ux, uy = fdmd2D(u_bf, device)
-    px, py = fdmd2D(p_bf, device)
-    uxx, _ = fdmd2D(ux, device)
-    _, uyy = fdmd2D(uy, device)
+    ux, uy = fdmd2D(u_bf, device, Lx, Ly)
+    px, py = fdmd2D(p_bf, device, Lx, Ly)
+    uxx, _ = fdmd2D(ux, device, Lx, Ly)
+    _, uyy = fdmd2D(uy, device, Lx, Ly)
 
     u_lap = uxx + uyy
     p_grad = torch.cat((px, py), -1)
@@ -77,13 +77,13 @@ def Lpde(state_bf, state_af, dt, Re = 0.001):
 
     return L_state
 
-def fdmd2D(u, device):
+def fdmd2D(u, device, Lx, Ly):
     bs = u.shape[0]
     nx = u.shape[-3]
     ny = u.shape[-2]
     dimu = u.shape[-1]
-    dx = 2.2 / nx
-    dy = 0.41 / ny
+    dx = Lx / nx
+    dy = Ly / ny
     ux = torch.zeros(bs, nx, ny, dimu).to(device)
     uy = torch.zeros(bs, nx, ny, dimu).to(device)
     for i in range(nx-1):
