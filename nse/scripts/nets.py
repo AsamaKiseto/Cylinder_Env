@@ -292,13 +292,15 @@ class trans_net(nn.Module):
 
 
 class state_mo(nn.Module):
-    def __init__(self, params):
+    def __init__(self, params, Lx=2.2, Ly=0.41):
         super(state_mo, self).__init__()
 
         modes1 = params['modes']
         modes2 = params['modes']
         width = params['width']
         L = params['L'] + 2
+        self.Lx = Lx
+        self.Ly = Ly
 
         # self.net = [ FNO_layer_trans(modes1, modes2, width, f_channels) ]
         self.net = [ FNO_layer(modes1, modes2, width) for i in range(L-1) ]
@@ -316,10 +318,10 @@ class state_mo(nn.Module):
         u_bf = x[..., :-1]   # 2
         p_bf = x[..., -1].reshape(-1, x.shape[1], x.shape[2], 1)
         u_af = x_next[..., :-1]  # 2
-        ux, uy = fdmd2D(u_bf, x.device)   # input 2 + 2
-        px, py = fdmd2D(p_bf, x.device)
-        uxx, _ = fdmd2D(ux, x.device)
-        _, uyy = fdmd2D(uy, x.device)
+        ux, uy = fdmd2D(u_bf, x.device, self.Lx, self.Ly)   # input 2 + 2
+        px, py = fdmd2D(p_bf, x.device, self.Lx, self.Ly)
+        uxx, _ = fdmd2D(ux, x.device, self.Lx, self.Ly)
+        _, uyy = fdmd2D(uy, x.device, self.Lx, self.Ly)
         u_lap = uxx + uyy   # input 2
         p_grad = torch.cat((px, py), -1)    # input 2
         ipt = torch.cat((grid, u_bf, ctr, u_af, ux, uy, p_grad, u_lap), -1)

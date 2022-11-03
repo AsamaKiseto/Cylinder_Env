@@ -339,8 +339,28 @@ class NSEModel_FNO_test(NSEModel):
 class RBCModel(NSEModel):
     def __init__(self, shape, dt, args):
         super().__init__(shape, dt, args)
+        self.Lx = 2.0
+        self.Ly = 2.0
         self.set_model(FNO_ensemble_RBC, state_mo)
         self.Re = 0.1
+
+    def set_model(self, pred_model=FNO_ensemble, phys_model=state_mo):
+
+        model_params = dict()
+        model_params['modes'] = self.params.modes
+        model_params['width'] = self.params.width
+        model_params['L'] = self.params.L
+        model_params['shape'] = self.shape
+        model_params['f_channels'] = self.params.f_channels
+
+        self.pred_model = pred_model(model_params).to(self.device)
+        self.pred_optimizer = torch.optim.Adam(self.pred_model.parameters(), lr=self.params.lr, weight_decay=self.params.wd)
+        self.pred_scheduler = torch.optim.lr_scheduler.StepLR(self.pred_optimizer, step_size=self.params.step_size, gamma=self.params.gamma)
+
+        print(self.Lx, self.Ly)
+        self.phys_model = phys_model(model_params, Lx=self.Lx, Ly=self.Ly).to(self.device)
+        self.phys_optimizer = torch.optim.Adam(self.phys_model.parameters(), lr=self.params.lr * 5, weight_decay=self.params.wd)
+        self.phys_scheduler = torch.optim.lr_scheduler.StepLR(self.phys_optimizer, step_size=self.params.step_size, gamma=self.params.gamma)
     
     def pred_loss(self, ipt, ctr, opt):
         out = opt[:, :, :, :3]
