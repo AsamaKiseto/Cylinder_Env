@@ -81,7 +81,7 @@ class NSEModel():
             # put data to generate 4 loss
             loss1, loss2, loss3, loss4, loss6 = self.pred_loss(in_train, ctr_train, opt_train)
             mod = self.phys_model(in_train, ctr_train, out_train)
-            loss5 = ((Lpde(in_train, out_train, self.dt, Re = self.Re) + mod) ** 2).mean()
+            loss5 = ((Lpde(in_train, out_train, self.dt, Re = self.Re, Lx = self.Lx, Ly = self.Ly) + mod) ** 2).mean()
 
             self.train_step(loss1, loss2, loss3, loss4, loss5, loss6)
 
