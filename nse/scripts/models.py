@@ -13,6 +13,8 @@ class NSEModel():
         self.dt = dt
         self.params = args
         self.Re = 0.001
+        self.Lx = 2.2
+        self.Ly = 0.41
         self.device = torch.device('cuda:{}'.format(self.params.gpu) if torch.cuda.is_available() else 'cpu')
 
     def set_model(self, pred_model=FNO_ensemble, phys_model=state_mo):
@@ -341,11 +343,10 @@ class RBCModel(NSEModel):
         super().__init__(shape, dt, args)
         self.Lx = 2.0
         self.Ly = 2.0
-        self.set_model(FNO_ensemble_RBC, state_mo)
         self.Re = 0.1
+        self.set_model(FNO_ensemble_RBC, state_mo)
 
     def set_model(self, pred_model=FNO_ensemble, phys_model=state_mo):
-
         model_params = dict()
         model_params['modes'] = self.params.modes
         model_params['width'] = self.params.width

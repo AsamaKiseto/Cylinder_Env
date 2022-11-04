@@ -51,7 +51,7 @@ def count_params(model):
         c += reduce(operator.mul, list(p.size()))
     return c
 
-def Lpde(state_bf, state_af, dt, Re = 0.001, Lx = 2.2, Ly = 0.41):
+def Lpde(state_bf, state_af, dt, Re = 0.001, Lx = 2.0, Ly = 2.0):
     nx = state_bf.shape[1]
     ny = state_bf.shape[2]
     device = state_af.device
@@ -79,8 +79,8 @@ def Lpde(state_bf, state_af, dt, Re = 0.001, Lx = 2.2, Ly = 0.41):
 
 def fdmd2D(u, device, Lx, Ly):
     bs = u.shape[0]
-    nx = u.shape[-3]
-    ny = u.shape[-2]
+    nx = u.shape[1]
+    ny = u.shape[2]
     dimu = u.shape[-1]
     dx = Lx / nx
     dy = Ly / ny
@@ -358,8 +358,8 @@ class LoadDataRBC(LoadData):
             data = data[length: length * 3 + 1]
             data = data[::Ng]
             self.data[i] = data
-        self.get_params()
         self.obs, self.temp, self.ctr = self.data
+        self.get_params()
         print(f'obs: {self.obs.shape}')
         return self.obs, self.temp, self.ctr
 

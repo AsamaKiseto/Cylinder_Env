@@ -9,13 +9,13 @@ xl, xh  = np.min(x), np.max(x)
 yl, yh = np.min(y), np.max(y)
 xy_mesh = [x, y, xl, xh, yl, yh]
 
-data_path = 'data/test_data/nse_data_reg_rbc'
-data_path = 'data/nse_data_reg_rbc'
+data_path = 'data/test_data/nse_data_reg_rbc_test'
+data_path = 'data/nse_data_reg_rbc_test'
 data = LoadDataRBC(data_path)
 obs, temp, ctr = data.get_data()
 
 scale_k = 2
-num_k = -30
+num_k = -1
 print(ctr[num_k, 0])
 # animate2D(obs[num_k, ..., 0], xy_mesh, 'u', 'obs', 'rbc')
 # animate2D(obs[num_k, ..., 1], xy_mesh, 'v', 'obs', 'rbc')

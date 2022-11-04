@@ -292,7 +292,7 @@ class trans_net(nn.Module):
 
 
 class state_mo(nn.Module):
-    def __init__(self, params, Lx=2.2, Ly=0.41):
+    def __init__(self, params, Lx=2.0, Ly=2.0):
         super(state_mo, self).__init__()
 
         modes1 = params['modes']
