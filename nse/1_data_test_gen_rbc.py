@@ -18,14 +18,17 @@ N0 = 30
 nx = simulator.params['dimx']
 ny = simulator.params['dimy']
 dt = simulator.params['dt']
-nt = int(3 // dt) + 1
+nt = int(2 // dt) + 2
 print(f'N0: {N0}, nt: {nt}, nx: {nx}, ny: {ny}')
 
 temp , velo , p = np.zeros((N0, nt, nx, ny)), np.zeros((N0, nt, nx, ny, 2)), np.zeros((N0, nt, nx, ny))
 ctr1 = np.random.rand(int(N0//3)) * 2 + 1
-ctr1 = (2 * np.random.rand(int(N0//3)) - 1) * 0.5 + 2
-ctr2 = (2 * np.random.rand(int(N0//3)) - 1) * 0.5 + 4
-ctr3 = (2 * np.random.rand(int(N0//3)) - 1) * 0.5 + 6
+# ctr1 = (2 * np.random.rand(int(N0//3)) - 1) * 0.5 + 2
+# ctr2 = (2 * np.random.rand(int(N0//3)) - 1) * 0.5 + 4
+# ctr3 = (2 * np.random.rand(int(N0//3)) - 1) * 0.5 + 6
+ctr1 = (2 * np.random.rand(int(N0//3)) - 1) * 2
+ctr2 = (2 * np.random.rand(int(N0//3)) - 1) * 2 + 4
+ctr3 = (2 * np.random.rand(int(N0//3)) - 1) * 2 + 6
 ctr = np.concatenate([ctr1, ctr2, ctr3])
 
 for k in range(N0):
@@ -50,4 +53,4 @@ ctr = torch.Tensor(ctr).reshape(N0, 1).repeat(1, nt)
 obs = torch.cat((velo, p), dim=-1)
 
 data = [obs, temp , ctr]
-torch.save(data, 'data/test_data/nse_data_reg_rbc_test')
+torch.save(data, 'data/test_data/nse_data_reg_rbc')

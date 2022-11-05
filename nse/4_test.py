@@ -24,10 +24,10 @@ tg = 5
 #         test_log(data, file_name, f'fb_0.0_scale_{scale}', model_loaded = NSEModel_FNO, dict='nse')
 
 
-log_list = ['data_based', 'phys_inc', 'no_random', 'random_select']
+log_list = ['data_based', 'phys_inc']
 # log_list = ['pe_5', 'pe_15', 'ps_0.01', 'ps_0.1']
-data_path = 'data/test_data/nse_data_reg_rbc_test'
-# data_path = 'data/nse_data_reg_rbc_test'
+# data_path = 'data/test_data/nse_data_reg_rbc_test'
+data_path = 'data/nse_data_reg_rbc_test'
 data = LoadDataRBC(data_path)
 # data.split()
 

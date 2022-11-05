@@ -110,11 +110,14 @@ def test_plot(t_nn, log_list, scale_k, ex_name = 'fb_0.0', fig_name = 'test', di
     #     plt.savefig(f'logs/pics/error/phase1_culcoef_{fig_name}_{ex_name}.jpg')
 
 
-def test_plot1(t_nn, log_list, scale_k, ex_name = 'fb_0.0', fig_name = 'test', dict = 'nse', zlim=0.1):
+def test_plot1(t_nn, log_list, scale_k, ex_name = 'fb_0.0', fig_name = 'test', dict = 'nse', zlim=0.1, label_list = None):
     # state error fig setting
     fig_num = 1
     fig, ax = plt.subplots(nrows=fig_num, ncols=1, figsize=(15,12), dpi=1000)
     
+    if label_list==None:
+        label_list = log_list
+
     ax = plt.subplot2grid((fig_num, 1), (0, 0))
     ax.grid(True, lw=0.4, ls="--", c=".50")
     # ax[i].set_xlim(0, t_nn[-1])
@@ -133,7 +136,7 @@ def test_plot1(t_nn, log_list, scale_k, ex_name = 'fb_0.0', fig_name = 'test', d
         error_1step_v, error_cul_v = calVar(data_list)
         
         for j in range(len(scale_k)):
-            ax.plot(t_nn, error_cul[scale_k[j]], label = f'{log_list[k]}')
+            ax.plot(t_nn, error_cul[scale_k[j]], label = f'{label_list[k]}')
             ax.fill_between(t_nn, error_cul_v[0][scale_k[j]], error_cul_v[1][scale_k[j]], alpha=0.2)
             ax.legend(fontsize=20)
     
@@ -334,7 +337,7 @@ def animate3D(data, xy_mesh, name, file_name, zlim = 100, dict = 'nse'):
     myAnimation = animation.FuncAnimation(fig, animate, frames=np.arange(nt), interval=1, repeat=False)
     myAnimation.save(f'logs/pics_{dict}/output/{file_name}_{name}.gif')
 
-def animate2D_comp(obs, log_list, num_k, xy_mesh, name='comp1', dict='nse'):
+def animate2D_comp(obs, log_list, num_k, xy_mesh, name='comp1', ex_name = 'fb_0.0', dict='nse'):
     x, y, xl, xh, yl, yh = xy_mesh
     nt, nx, ny = obs.shape[1], obs.shape[2], obs.shape[3]
     u = obs[..., 0]
@@ -346,7 +349,7 @@ def animate2D_comp(obs, log_list, num_k, xy_mesh, name='comp1', dict='nse'):
     nump = len(log_list)
     u_, v_, p_, uv_ = torch.zeros(nump, 30, nt, nx, ny), torch.zeros(nump, 30, nt, nx, ny), torch.zeros(nump, 30, nt, nx, ny), torch.zeros(nump, 30, nt, nx, ny)
     for i in range(nump):
-        out_cul, _, _, _ = torch.load(f'logs/data_nse/output/phase1_test_{log_list[i]}_fb_0.0')
+        out_cul, _, _, _ = torch.load(f'logs/data_{dict}/output/phase1_test_{log_list[i]}_{ex_name}')
         u_[i] = out_cul[..., 0]
         v_[i] = out_cul[..., 1]
         uv_[i] = u_[i] ** 2 + v_[i] ** 2

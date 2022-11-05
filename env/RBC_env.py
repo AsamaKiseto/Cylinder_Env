@@ -35,10 +35,10 @@ class RBC():
         if params is not None:
             self.params = params
         else:
-            self.params = {'dt':  0.05,
+            self.params = {'dt':  0.01,
                             'T':  0.01,
-                            'dimx': 40,
-                            'dimy': 40,
+                            'dimx': 64,
+                            'dimy': 64,
                             'min_x' : 0, 
                             'max_x' : 2.0, 
                             'min_y' : 0.0, 

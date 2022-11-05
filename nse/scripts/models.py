@@ -93,6 +93,27 @@ class NSEModel():
         print('# {} train: {:1.2f} | (pred): {:1.2e}  (rec) state: {:1.2e}  ctr: {:1.2e} (latent): {:1.2e} (pde) obs: {:1.2e} pred: {:1.2e}'
               .format(epoch, t2-t1, train_log.loss1.avg, train_log.loss2.avg, train_log.loss3.avg, train_log.loss4.avg, train_log.loss5.avg, train_log.loss6.avg))
 
+    def test(self, test_loader, logs):
+        self.pred_model.eval()
+        self.phys_model.eval()
+        test_log = PredLog(length=self.params.batch_size)
+        with torch.no_grad():
+            for x_test, y_test in test_loader:
+                x_test, y_test = x_test.to(self.device), y_test.to(self.device)
+                # split data read in test_loader
+                in_test, ctr_test = x_test[:, :, :, :-1], x_test[:, 0, 0, -1]
+                out_test = y_test[:, :, :, :3]
+                opt_test = y_test
+
+                loss1, loss2, loss3, loss4, loss6 = self.pred_loss(in_test, ctr_test, opt_test)
+                mod = self.phys_model(in_test, ctr_test, out_test)
+                loss5 = ((Lpde(in_test, out_test, self.dt, Re = self.Re, Lx = self.Lx, Ly = self.Ly) + mod) ** 2).mean()
+                test_log.update([loss1.item(), loss2.item(), loss3.item(), loss4.item(), loss5.item(), loss6.item()])
+            test_log.save_log(logs)
+        
+        print('--test | (pred): {:1.2e}  (rec) state: {:1.2e}  ctr: {:1.2e} (latent): {:1.2e} (pde) obs: {:1.2e} pred: {:1.2e}'
+              .format(test_log.loss1.avg, test_log.loss2.avg, test_log.loss3.avg, test_log.loss4.avg, test_log.loss5.avg, test_log.loss6.avg))
+
     def cal_1step(self, data):
         obs, Cd, Cl, ctr = data.get_data()
         obs_ = obs + (2 * torch.rand(obs.shape) - 1) * 0.00
@@ -106,10 +127,10 @@ class NSEModel():
             for k in range(nt):
                 t1 = default_timer()
                 out_nn[:, k], Cd_nn[:, k], Cl_nn[:, k], mod_pred, _, _, _ = self.model_step(obs_[:, k], ctr_[:, k])
-                Lpde_pred[:, k] = ((Lpde(obs_[:, k], out_nn[:, k], self.dt) + mod_pred) ** 2)
+                Lpde_pred[:, k] = ((Lpde(obs_[:, k], out_nn[:, k], self.dt, Lx = self.Lx, Ly = self.Ly) + mod_pred) ** 2)
 
                 mod_obs = self.phys_model(obs[:, k], ctr[:, k], obs[:, k+1])
-                Lpde_obs[:, k] = ((Lpde(obs[:, k], obs[:, k+1], self.dt) + mod_obs) ** 2)
+                Lpde_obs[:, k] = ((Lpde(obs[:, k], obs[:, k+1], self.dt, Lx = self.Lx, Ly = self.Ly) + mod_obs) ** 2)
                 
                 error_1step[:, k] = rel_error(out_nn[:, k], obs[:, k+1]) 
                 error_Cd[:, k] = ((Cd_nn[:, k] - Cd[:, k]) ** 2)
@@ -146,27 +167,6 @@ class NSEModel():
                             error_state: {error_cul[:, k].mean():1.4f}| cul_Lpde: {Lpde_pred[:, k].mean():1.4f}')
 
         return out_nn, Lpde_pred
-
-    def test(self, test_loader, logs):
-        self.pred_model.eval()
-        self.phys_model.eval()
-        test_log = PredLog(length=self.params.batch_size)
-        with torch.no_grad():
-            for x_test, y_test in test_loader:
-                x_test, y_test = x_test.to(self.device), y_test.to(self.device)
-                # split data read in test_loader
-                in_test, ctr_test = x_test[:, :, :, :-1], x_test[:, 0, 0, -1]
-                out_test = y_test[:, :, :, :3]
-                opt_test = y_test
-
-                loss1, loss2, loss3, loss4, loss6 = self.pred_loss(in_test, ctr_test, opt_test)
-                mod = self.phys_model(in_test, ctr_test, out_test)
-                loss5 = ((Lpde(in_test, out_test, self.dt, Re = self.Re) + mod) ** 2).mean()
-                test_log.update([loss1.item(), loss2.item(), loss3.item(), loss4.item(), loss5.item(), loss6.item()])
-            test_log.save_log(logs)
-        
-        print('--test | (pred): {:1.2e}  (rec) state: {:1.2e}  ctr: {:1.2e} (latent): {:1.2e} (pde) obs: {:1.2e} pred: {:1.2e}'
-              .format(test_log.loss1.avg, test_log.loss2.avg, test_log.loss3.avg, test_log.loss4.avg, test_log.loss5.avg, test_log.loss6.avg))
 
     def pred_loss(self, ipt, ctr, opt):
         out, Cd, Cl = opt[:, :, :, :3], opt[:, 0, 0, -2], opt[:, 0, 0, -1]
