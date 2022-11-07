@@ -51,7 +51,7 @@ if __name__=='__main__':
     logs_fname = f'logs/model_{args.dict}/phase1_{args.logs_fname}'
 
     # load data
-    data_path = 'data/nse_data_reg_rbc_test'
+    data_path = 'data/nse_data_reg_rbc'
     tg = args.tg     # sample evrey 5 timestamps
     Ng = args.Ng
     data = LoadDataRBC(data_path)
@@ -77,7 +77,7 @@ if __name__=='__main__':
     train_loader, test_loader = data.trans2TrainingSet(args.batch_size, args.data_rate)
 
     # model setting
-    nse_model = RBCModel_FNO_test(shape, 0.05, args)
+    nse_model = RBCModel_FNO_test(shape, 0.01, args)
     params_num = nse_model.count_params()
 
     print('N0: {}, nt: {}, nx: {}, ny: {}, device: {}'.format(N0, nt, nx, ny, nse_model.device))
