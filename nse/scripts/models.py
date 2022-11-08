@@ -379,8 +379,6 @@ class NSEModel_FNO_trivial(NSEModel_FNO):
         print('----phys training: # {} {:1.2f} (pde) pred: {:1.2e} | '.format(phys_epoch, t4-t3, loss_pde.avg))
 
 
-    
-
 class RBCModel(NSEModel):
     def __init__(self, shape, dt, args):
         super().__init__(shape, dt, args)
