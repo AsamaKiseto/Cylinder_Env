@@ -308,29 +308,38 @@ class state_mo(nn.Module):
         self.net += [ FNO_layer(modes1, modes2, width, last=True) ]
         self.net = nn.Sequential(*self.net)
 
-        self.fc0 = nn.Linear(15, width)  # (dim_u = 2 + dim_grad_u = 4 + dim_grad_p = 2 + dim_laplace_u = 2 + dim_u_next = 2 + dim_grid = 2 + dim_f = 1 = 15)
+        self.fc0 = nn.Linear(13, width)  # (dim_u = 2 + dim_grad_u = 4 + dim_grad_p = 2 + dim_laplace_u = 2 + dim_u_next = 2 + dim_grid = 2 + dim_f = 1 = 15)
         self.fc1 = nn.Linear(width, 128)
         # self.fc2 = nn.Linear(128, 3)
         self.fc2 = nn.Linear(128, 2)
 
-    def forward(self, x, ctr, x_next):
+    def forward(self, x, ctr):
         grid = self.get_grid(x.shape, x.device) # 2
         ctr = ctr.reshape(ctr.shape[0], 1, 1, 1).repeat(1, x.shape[1], x.shape[2], 1) # 1
         u_bf = x[..., :-1]   # 2
         p_bf = x[..., -1].reshape(-1, x.shape[1], x.shape[2], 1)
-        u_af = x_next[..., :-1]  # 2
         ux, uy = fdmd2D(u_bf, x.device, self.Lx, self.Ly)   # input 2 + 2
         px, py = fdmd2D(p_bf, x.device, self.Lx, self.Ly)
         uxx, _ = fdmd2D(ux, x.device, self.Lx, self.Ly)
         _, uyy = fdmd2D(uy, x.device, self.Lx, self.Ly)
         u_lap = uxx + uyy   # input 2
         p_grad = torch.cat((px, py), -1)    # input 2
-        ipt = torch.cat((grid, u_bf, ctr, u_af, ux, uy, p_grad, u_lap), -1)
+        ipt = torch.cat((grid, u_bf, ctr, ux, uy, p_grad, u_lap), -1)
         opt = self.fc0(ipt).permute(0, 3, 1, 2)
         opt = self.net(opt).permute(0, 2, 3, 1)
         opt = self.fc1(opt)
         opt = F.gelu(opt)
         opt = self.fc2(opt)
+        
+        # x = torch.cat((x, grid), dim=-1)    # [batch_size, nx, ny, 5]
+        # x = torch.cat((x, f), dim=-1)  
+        # x = self.fc0(x)
+        # x = x.permute(0, 3, 1, 2)
+        # x = self.net(x)
+        # x = x.permute(0, 2, 3, 1)
+        # x = self.fc1(x)
+        # x = F.gelu(x)
+        # x = self.fc2(x)
 
         return opt    # [batch_size, nx, ny, 5]
 
@@ -374,10 +383,9 @@ class FNO_ensemble(nn.Module):
         L = params['L']
         shape = params['shape']
         f_channels = params['f_channels']
-        Lx, Ly = params['Lxy']
         nx, ny = shape[0], shape[1]
 
-        self.stat_en = state_en(modes1, modes2, width, L, Lx, Ly)
+        self.stat_en = state_en(modes1, modes2, width, L)
         self.stat_de = state_de(modes1, modes2, width, L)
         # self.state_mo = state_mo(modes1, modes2, width, L+2)
 
