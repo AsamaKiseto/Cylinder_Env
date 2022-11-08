@@ -62,9 +62,6 @@ class NSEModel():
         self.in_nn = state_nn
 
     def data_train(self, epoch, train_loader):
-        print(self.dt)
-        print(self.Lx, self.Ly)
-        print(self.Re)
         self.pred_model.train()
         self.phys_model.train()
 
@@ -84,7 +81,7 @@ class NSEModel():
 
             # put data to generate 4 loss
             loss1, loss2, loss3, loss4, loss6 = self.pred_loss(in_train, ctr_train, opt_train)
-            mod = self.phys_model(in_train, ctr_train, out_train)
+            mod = self.phys_model(in_train, ctr_train)
             loss5 = ((Lpde(in_train, out_train, self.dt, Re = self.Re, Lx = self.Lx, Ly = self.Ly) + mod) ** 2).mean()
 
             self.train_step(loss1, loss2, loss3, loss4, loss5, loss6)
@@ -110,7 +107,7 @@ class NSEModel():
                 opt_test = y_test
 
                 loss1, loss2, loss3, loss4, loss6 = self.pred_loss(in_test, ctr_test, opt_test)
-                mod = self.phys_model(in_test, ctr_test, out_test)
+                mod = self.phys_model(in_test, ctr_test)
                 loss5 = ((Lpde(in_test, out_test, self.dt, Re = self.Re, Lx = self.Lx, Ly = self.Ly) + mod) ** 2).mean()
                 test_log.update([loss1.item(), loss2.item(), loss3.item(), loss4.item(), loss5.item(), loss6.item()])
             test_log.save_log(logs)
@@ -133,7 +130,7 @@ class NSEModel():
                 out_nn[:, k], Cd_nn[:, k], Cl_nn[:, k], mod_pred, _, _, _ = self.model_step(obs_[:, k], ctr_[:, k])
                 Lpde_pred[:, k] = ((Lpde(obs_[:, k], out_nn[:, k], self.dt, self.Re, Lx = self.Lx, Ly = self.Ly) + mod_pred) ** 2)
 
-                mod_obs = self.phys_model(obs[:, k], ctr[:, k], obs[:, k+1])
+                mod_obs = self.phys_model(obs[:, k], ctr[:, k])
                 Lpde_obs[:, k] = ((Lpde(obs[:, k], obs[:, k+1], self.dt, self.Re, Lx = self.Lx, Ly = self.Ly) + mod_obs) ** 2)
                 
                 error_1step[:, k] = rel_error(out_nn[:, k], obs[:, k+1]) 
@@ -193,7 +190,7 @@ class NSEModel():
         out_pred = pred[:, :, :, :3]
         Cd_pred = torch.mean(pred[:, :, :, -2].reshape(pred.shape[0], -1), 1)
         Cl_pred = torch.mean(pred[:, :, :, -1].reshape(pred.shape[0], -1), 1)
-        mod_pred = self.phys_model(ipt, ctr, out_pred)
+        mod_pred = self.phys_model(ipt, ctr)
         return out_pred, Cd_pred, Cl_pred, mod_pred, ipt_rec, ctr_rec, trans_out
 
     def train_step(self, loss1, loss2, loss3, loss4, loss5, loss6):
@@ -244,7 +241,7 @@ class NSEModel_FNO(NSEModel):
 
             pred, _, _, _ = self.pred_model(in_train, ctr_train)
             out_pred = pred[:, :, :, :3]
-            mod = self.phys_model(in_train, ctr_train, out_pred)
+            mod = self.phys_model(in_train, ctr_train)
             # 多训练几次？  
             loss = ((Lpde(in_train, out_pred, self.dt) + mod) ** 2).mean()
             loss.backward()
@@ -272,7 +269,7 @@ class NSEModel_FNO(NSEModel):
                 in_new = in_new.requires_grad_(True)
                 pred, _, _, _ = self.pred_model(in_new, ctr_new)
                 out_pred = pred[:, :, :, :3]
-                mod = self.phys_model(in_new, ctr_new, out_pred)
+                mod = self.phys_model(in_new, ctr_new)
                 loss = ((Lpde(in_new, out_pred, self.dt) + mod) ** 2).mean()
                 loss.backward()
                 # print(ctr_new.is_leaf, in_new.is_leaf)
@@ -292,24 +289,6 @@ class NSEModel_FNO(NSEModel):
             param.requires_grad = True
 
         return in_train, ctr_train
-
-
-class NSEModel_FNO_prev(NSEModel):
-    def __init__(self, shape, dt, args):
-        super().__init__(shape, dt, args)
-        self.set_model(FNO_ensemble_test)
-    
-    def train_step(self, loss1, loss2, loss3, loss4, loss5, loss6):
-        lambda1, lambda2, lambda3, lambda4 = self.params.lambda1, self.params.lambda2, self.params.lambda3, self.params.lambda4
-        loss_pred = lambda1 * loss1 + lambda2 * loss2 + lambda3 * loss3 + lambda4 * loss4 + 0.1 * loss6
-
-        loss_pred.backward()
-        self.pred_optimizer.step()
-        self.phys_optimizer.step()
-    
-    def scheduler_step(self):
-        self.pred_scheduler.step()
-        self.phys_scheduler.step()
         
         
 class NSEModel_FNO_test(NSEModel):
@@ -342,5 +321,3 @@ class NSEModel_FNO_test(NSEModel):
 
         return loss1, loss2, loss3, loss4, loss6
 
-
-    

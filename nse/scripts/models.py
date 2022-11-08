@@ -62,9 +62,6 @@ class NSEModel():
         self.in_nn = state_nn
 
     def data_train(self, epoch, train_loader):
-        print(self.dt)
-        print(self.Lx, self.Ly)
-        print(self.Re)
         self.pred_model.train()
         self.phys_model.train()
 
