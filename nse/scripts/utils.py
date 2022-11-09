@@ -52,6 +52,7 @@ def count_params(model):
     return c
 
 def Lpde(state_bf, state_af, dt, Re = 0.001, Lx = 2.2, Ly = 0.41):
+    # print(dt, Re, Lx, Ly)
     nx = state_bf.shape[1]
     ny = state_bf.shape[2]
     device = state_af.device
@@ -74,6 +75,7 @@ def Lpde(state_bf, state_af, dt, Re = 0.001, Lx = 2.2, Ly = 0.41):
               u_bf[..., 1].reshape(-1, nx, ny, 1) * uy - Re * u_lap + p_grad
 
     loss = (L_state ** 2).mean()
+    # print(loss)
 
     return L_state
 
@@ -351,7 +353,6 @@ class LoadDataRBC(LoadData):
 
     def split(self, Ng = 2):
         self.Ng = Ng
-        self.dt = 0.05
         for i in range(len(self.data)):
             data = self.data[i]
             length = int(data.shape[0]//4)

@@ -18,11 +18,14 @@ N0 = 100 + 1
 nx = simulator.params['dimx']
 ny = simulator.params['dimy']
 dt = simulator.params['dt']
-nt = int(2 // dt) + 2
+nt = int(1 // dt) + 2
 print(f'N0: {N0}, nt: {nt}, nx: {nx}, ny: {ny}')
 
+N0 = 3
 temp , velo , p = np.zeros((N0, nt, nx, ny)), np.zeros((N0, nt, nx, ny, 2)), np.zeros((N0, nt, nx, ny))
-ctr = np.linspace(-2, 2, N0)
+ctr = np.linspace(-1, 1, N0)
+# ctr = np.zeros(N0)
+ctr = np.array([0, 1, 2])
 
 for k in range(N0):
     print(f'start # {k}')
@@ -46,4 +49,4 @@ ctr = torch.Tensor(ctr).reshape(N0, 1).repeat(1, nt)
 obs = torch.cat((velo, p), dim=-1)
 
 data = [obs, temp , ctr]
-torch.save(data, 'data/nse_data_reg_rbc')
+torch.save(data, 'data/nse_data_reg_rbc_test')
