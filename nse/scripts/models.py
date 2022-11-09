@@ -281,7 +281,6 @@ class NSEModel_FNO(NSEModel):
                 scale = torch.sqrt(loss.data) / torch.sqrt((dLf ** 2).sum() + (dLu ** 2).sum()) * phys_scale
                 ctr_new = ctr_new.data + scale * dLf    # use .data to generate new leaf tensor
                 in_new = in_new.data + scale * dLu
-                print(f'ctr_comp : {dLf.max()} | in_comp : {dLu.max()} | scale: {scale}')
         
         in_train, ctr_train = in_new.data, ctr_new.data
         
