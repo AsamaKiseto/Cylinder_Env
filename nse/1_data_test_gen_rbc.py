@@ -26,9 +26,9 @@ ctr1 = np.random.rand(int(N0//3)) * 2 + 1
 # ctr1 = (2 * np.random.rand(int(N0//3)) - 1) * 0.5 + 2
 # ctr2 = (2 * np.random.rand(int(N0//3)) - 1) * 0.5 + 4
 # ctr3 = (2 * np.random.rand(int(N0//3)) - 1) * 0.5 + 6
-ctr1 = (2 * np.random.rand(int(N0//3)) - 1) * 2 + 2
-ctr2 = (2 * np.random.rand(int(N0//3)) - 1) * 2 + 4
-ctr3 = (2 * np.random.rand(int(N0//3)) - 1) * 2 + 6
+ctr1 = (2 * np.random.rand(int(N0//3)) - 1) * 0.5 + 2
+ctr2 = (2 * np.random.rand(int(N0//3)) - 1) * 0.5 + 3
+ctr3 = (2 * np.random.rand(int(N0//3)) - 1) * 0.5 + 4
 ctr = np.concatenate([ctr1, ctr2, ctr3])
 
 for k in range(N0):
