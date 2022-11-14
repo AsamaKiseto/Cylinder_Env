@@ -59,7 +59,7 @@ class MyFunctionSpace:
         self.params = params
     
     def generate(self, params=None):
-        self.V = VectorElement("P",self.geometry.mesh.ufl_cell(), degree = 2,dim = 2)
+        self.V = VectorElement("P",self.geometry.mesh.ufl_cell(), degree = 2, dim = 2)
         self.P = FiniteElement( "P",self.geometry.mesh.ufl_cell(), degree = 1)
         self.T = FiniteElement( "P",self.geometry.mesh.ufl_cell(), degree = 1)
         self.W = FunctionSpace(self.geometry.mesh, MixedElement([self.V, self.P, self.T]))
@@ -96,7 +96,7 @@ class MySolver:
         self.const = const
         self.amp = self.const * 0.5
         self.u_0  = Expression(('0.0','0.0','0.0', f'{self.const / 2}'), degree = 2)
-        self.bc_bottom = Expression('a+b*sin(2*pi*x[0])',a = self.const,b = self.amp,pi = np.pi, degree = 2)
+        self.bc_bottom = Expression('a+b*sin(2*pi*x[0])', a = self.const, b = self.amp, pi = np.pi, degree = 2)
         self.bc_top = Expression('0.0',degree = 2)
         self.noslip = Constant((0, 0))
         self.u_top = Constant((ctr, 0))
@@ -106,11 +106,11 @@ class MySolver:
         self.bcv_r = DirichletBC(self.W.sub(0), self.noslip, self.bndry, 2)
 
         self.bct_b = DirichletBC(self.W.sub(2), self.bc_bottom, self.bndry, 4)
-        self.bct_t = DirichletBC(self.W.sub(2), self.bc_top, self.bndry, 4)
+        self.bct_t = DirichletBC(self.W.sub(2), self.bc_top, self.bndry, 3)
 
         self.bcp_t = DirichletBC(self.W.sub(1), Constant(0), self.bndry, 3)
         #self.bcp_b = DirichletBC(self.W.sub(1), self.bc_top, self.bndry, 3)
-        self.bcs = [self.bcv_t, self.bcv_b, self.bcv_l, self.bcv_r, self.bcp_t, self.bct_b]# ,self.bcp_t,self.bcp_b
+        self.bcs = [self.bcv_t, self.bcv_b, self.bcv_l, self.bcv_r, self.bcp_t, self.bct_b, self.bct_t]# ,self.bcp_t,self.bcp_b
 
     def generate_solver(self):
         (self.v_, self.p_, self.t_) = TestFunctions(self.W)
@@ -209,6 +209,8 @@ class MySolver:
     def plot_all(self):
         temp, velo, p = self.get_obs()
         # print(f'velo: {velo.mean()} | p: {p.mean()} | temp: {temp.mean()}')
+        # norm = np.sqrt(velo[:,:,0]**2 + velo[:,:,1]**2) 
+        norm = velo[:,:,0]**2 + velo[:,:,1]**2
 
         fig = plt.figure()
         plt.axis('equal')
@@ -232,7 +234,7 @@ class MySolver:
         # fig, ax = plt.figure()
         plt.axis('equal')
         # plt.set(xlim=(xl, xh), ylim=(yl, yh))
-        plt.quiver(self.meshgrid[0],self.meshgrid[1], velo[:,:,0],velo[:,:,1] , np.sqrt(velo[:,:,0]**2 + velo[:,:,1]**2))
+        plt.quiver(self.meshgrid[0],self.meshgrid[1], velo[:,:,0],velo[:,:,1], norm, scale = 1.0)
         
         plt.contourf(self.meshgrid[0],self.meshgrid[1], temp, alpha=0.5, cmap=cm.viridis)  
         plt.colorbar()

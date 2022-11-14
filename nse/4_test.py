@@ -4,13 +4,16 @@ scale = [0.1, 0.5, 1.0]
 tg = 5
 
 # test 
-# log_list = ['data_based', 'phys_inc', 'no_random', 'random_select_0.001']
 # data_path = 'data/test_data/nse_data_reg_dt_0.01_fb_0.0'
 # data = LoadDataNSE(data_path)
 # data.split(1, tg)
+# log_list = ['data_based', 'phys_inc', 'no_random', 'random_select_0.001']
 # for file_name in log_list:
 #     test_log(data, file_name, 'fb_0.0', model_loaded = NSEModel_FNO, dict='nse')
-# test_log(data, 'phys_bak', 'fb_0.0', model_loaded = NSEModel_FNO_prev, dict='nse')
+
+# test_log(data, 'trivial', 'fb_0.0', model_loaded = NSEModel_FNO_trivial, dict='nse')
+
+# test_log(data, 'test1', 'fb_0.0', model_loaded = NSEModel_FNO, dict='nse')
 
 # log_list = ['data_based', 'phys_inc']
 # scale_list = ['2.0', '4.0', '6.0', '8.0', '10.0']
@@ -26,7 +29,7 @@ tg = 5
 
 log_list = ['data_based', 'phys_inc', 'no_random', 'random_select', 'pe_5', 'pe_15', 'ps_0.1', 'ps_0.01']
 # log_list = ['pe_5', 'pe_15', 'ps_0.01', 'ps_0.1']
-data_path = 'data/test_data/nse_data_reg_rbc_test'
+data_path = 'data/test_data/nse_data_reg_rbc'
 # data_path = 'data/nse_data_reg_rbc'
 data = LoadDataRBC(data_path)
 # data.split()

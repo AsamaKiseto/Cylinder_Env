@@ -11,8 +11,8 @@ print('begin plot train method')
 # log_list = ['data_based']
 # test_plot1(t_nn, log_list, scale_k, ex_name='fb_0.0', fig_name='data_based', dict = 'nse')
 
-# log_list = ['phys_inc', 'data_based']
-# test_plot1(t_nn, log_list, scale_k, ex_name='fb_0.0', fig_name='train_method1', dict = 'nse', label_list=['ours', 'data-based'])
+log_list = ['phys_inc', 'data_based', 'trivial', 'test1']
+# test_plot1(t_nn, log_list, scale_k, ex_name='fb_0.0', fig_name='train_method1', dict = 'nse', label_list=['ours', 'data-based', 'trivial', 'test1'])
 
 # log_list = ['phys_inc', 'data_based', 'random_select_0.001', 'no_random']
 # test_plot1(t_nn, log_list, scale_k, ex_name='fb_0.0', fig_name='train_method2', dict = 'nse', label_list=['ours', 'data-based', 'random select', 'no random'])
@@ -61,14 +61,14 @@ print('begin plot train method')
 # _, Cd, Cl, _ = data.get_data()
 # coef_plot(t_nn, scale_k, [Cd, Cl], test_data_name)
 
-t_nn = (np.arange(59) + 1) * 0.05   ### %%%
+t_nn = (np.arange(200) + 1) * 0.01   ### %%%
 
 scale_k = [0]
 
 print('begin plot train method')
 log_list = ['phys_inc', 'data_based']
-# # test_plot(t_nn, log_list, scale_k, ex_name='fb_0.0', fig_name='train_method')
-# log_list = ['data_based', 'phys_inc', 'no_random', 'random_select_0.001', 'prev_phys']
+# test_plot(t_nn, log_list, scale_k, ex_name='fb_0.0', fig_name='train_method')
+log_list = ['data_based', 'phys_inc', 'no_random', 'random_select', 'pe_5', 'pe_15', 'ps_0.1', 'ps_0.01']
 test_plot1(t_nn, log_list, scale_k, ex_name='rbc', fig_name='train_method1', dict = 'rbc')
 
 # print('begin plot phys scales')
@@ -108,6 +108,38 @@ test_plot1(t_nn, log_list, scale_k, ex_name='rbc', fig_name='train_method1', dic
 # x = range(len(scale_list))
 # rects1 = plt.bar(x = x, height=error2, width=0.4, alpha=0.8,  label='ours')
 # rects2 = plt.bar(x = [i+0.4 for i in x], height=error1, width=0.4, label='data-based')
+# # plt.ylim(0, 0.3)
+# plt.ylabel('error', fontsize=15)
+# plt.xticks([i + 0.2 for i in x], scale_list)
+# plt.xlabel('random scale of test data', fontsize=15)
+# plt.title('error in diffenrent test data', fontsize=20)
+# plt.legend()
+# plt.savefig('logs/test.jpg')   
+
+# scale_list = ['1.0', '2.0', '4.0']
+# log_list = ['data_based', 'phys_inc']
+# error1, error2 = [], []
+# log_path = f'logs/data_nse/error/phase1_test_data_based_fb_0.0'
+# error, _ = torch.load(log_path)
+# error1.append(error.mean())
+# log_path = f'logs/data_nse/output/phase1_test_data_based_fb_0.0'
+# _, loss, _, _ = torch.load(log_path)
+# error2.append(torch.sqrt(loss[..., 0] ** 2 + loss[..., 1] ** 2).mean())
+
+# for i in range(1, len(scale_list)):
+#     scale = scale_list[i]
+#     log_path = f'logs/data_nse/error/phase1_test_data_based_fb_0.0_scale_{scale}'
+#     error, _ = torch.load(log_path)
+#     error1.append(error.mean())
+#     log_path = f'logs/data_nse/output/phase1_test_data_based_fb_0.0_scale_{scale}'
+#     _, loss, _, _ = torch.load(log_path)
+#     error2.append(torch.sqrt(loss[..., 0] ** 2 + loss[..., 1] ** 2).mean())
+
+# print(error1, error2)
+
+# x = range(len(scale_list))
+# rects1 = plt.bar(x = x, height=error1, width=0.4, alpha=0.8,  label='pred loss')
+# rects2 = plt.bar(x = [i+0.4 for i in x], height=error2, width=0.4, label='phys loss')
 # # plt.ylim(0, 0.3)
 # plt.ylabel('error', fontsize=15)
 # plt.xticks([i + 0.2 for i in x], scale_list)
