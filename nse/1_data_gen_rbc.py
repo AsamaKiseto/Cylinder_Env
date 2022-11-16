@@ -25,6 +25,7 @@ temp , velo , p = np.zeros((N0, nt, nx, ny)), np.zeros((N0, nt, nx, ny, 2)), np.
 # ctr = np.linspace(-1, 1, N0)
 # ctr = np.zeros(N0)
 ctr = np.linspace(1, 3, N0)
+# ctr = np.linspace(-3, 3, N0) 
 
 for k in range(N0):
     print(f'start # {k}')

@@ -179,8 +179,8 @@ class MySolver:
         self.solver.solve()
         self.w_old.assign(self.w)
         temp, velo, p = self.get_obs()
-        if self.epoch % 5 == 0:
-            self.plot_all()
+        # if self.epoch % 5 == 0:
+        #     self.plot_all()
         return temp , velo , p 
 
     def _get_done(self):
