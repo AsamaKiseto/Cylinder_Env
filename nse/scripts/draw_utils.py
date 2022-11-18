@@ -33,7 +33,10 @@ def loss_plot(log_list, fig_name = 'test'):
     plt.savefig(f'logs/loss_plot_{fig_name}.jpg')
 
 
-def test_plot(t_nn, log_list, scale_k, ex_name = 'fb_0.0', fig_name = 'test', dict = 'nse'):
+def test_plot(t_nn, log_list, scale_k, ex_name = 'fb_0.0', fig_name = 'test', dict = 'nse', label_list = None):
+    if label_list==None:
+        label_list = log_list
+        
     # state error fig setting
     fig_num = 2
     fig, ax = plt.subplots(nrows=fig_num, ncols=1, figsize=(15,12), dpi=1000)
@@ -60,8 +63,8 @@ def test_plot(t_nn, log_list, scale_k, ex_name = 'fb_0.0', fig_name = 'test', di
         error_1step_v, error_cul_v = calVar(data_list)
         
         for j in range(len(scale_k)):
-            ax[0].plot(t_nn, error_1step[scale_k[j]], label = f'{log_list[k]}')
-            ax[1].plot(t_nn, error_cul[scale_k[j]], label = f'{log_list[k]}')
+            ax[0].plot(t_nn, error_1step[scale_k[j]], label = f'{label_list[k]}')
+            ax[1].plot(t_nn, error_cul[scale_k[j]], label = f'{label_list[k]}')
 
             ax[0].fill_between(t_nn, error_1step_v[0][scale_k[j]], error_1step_v[1][scale_k[j]], alpha=0.2)
             ax[1].fill_between(t_nn, error_cul_v[0][scale_k[j]], error_cul_v[1][scale_k[j]], alpha=0.2)
@@ -110,7 +113,7 @@ def test_plot(t_nn, log_list, scale_k, ex_name = 'fb_0.0', fig_name = 'test', di
     #     plt.savefig(f'logs/pics/error/phase1_culcoef_{fig_name}_{ex_name}.jpg')
 
 
-def test_plot1(t_nn, log_list, scale_k, ex_name = 'fb_0.0', fig_name = 'test', dict = 'nse', zlim=0.1, label_list = None):
+def test_plot1(t_nn, log_list, scale_k, ex_name = 'fb_0.0', fig_name = 'test', dict = 'nse', zlim=1, label_list = None):
     # state error fig setting
     fig_num = 1
     fig, ax = plt.subplots(nrows=fig_num, ncols=1, figsize=(15,12), dpi=1000)

@@ -14,7 +14,7 @@ from env.RBC_env import RBC
 
 simulator = RBC()
 
-N0 = 100 + 1
+N0 = 200 + 1
 nx = simulator.params['dimx']
 ny = simulator.params['dimy']
 dt = simulator.params['dt']
@@ -49,4 +49,4 @@ ctr = torch.Tensor(ctr).reshape(N0, 1).repeat(1, nt)
 obs = torch.cat((velo, p), dim=-1)
 
 data = [obs, temp , ctr]
-torch.save(data, 'data/nse_data_reg_rbc')
+torch.save(data, 'data/nse_data_reg_rbc_test')
