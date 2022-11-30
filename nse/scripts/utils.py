@@ -368,6 +368,55 @@ class LoadDataRBC(LoadData):
         self.get_params()
         print(f'obs: {self.obs.shape}')
         return self.obs, self.temp, self.ctr
+    
+
+class LoadDataRBC1(LoadData):
+    def __init__(self, data_path):
+        super().__init__(data_path)
+        self.data_set = RBC_Dataset
+
+    def init_set(self):
+        self.obs, self.temp = self.data
+        self.ctr = torch.zeros(self.temp.shape[0], self.temp.shape[1])
+        self.ctr = self.ctr[:, :-1]
+        self.temp = self.temp[:, 1:]
+        # self.end = 40
+        # self.obs = self.obs[:, 2:-self.end + 3]
+        # self.temp = self.temp[:, 2:-self.end + 3]
+        # self.ctr = self.ctr[:, 2:-self.end + 3]
+        self.data = [self.obs, self.temp, self.ctr]
+
+        self.nx, self.ny = self.obs.shape[-3], self.obs.shape[-2]
+        self.get_params()
+
+    def get_data(self):
+        return self.obs, self.temp, self.ctr
+    
+    def get_params(self):
+        self.nt = self.ctr.shape[1]
+        self.N0 = self.ctr.shape[0]
+        self.Ndata = self.N0 * self.nt
+        
+        return self.N0, self.nt, self.nx, self.ny
+    
+    def toGPU(self):
+        self.obs = self.obs.cuda()
+        self.temp = self.temp.cuda()
+        self.ctr = self.ctr.cuda()
+
+    def split(self, Ng = 1):
+        self.Ng = Ng
+        for i in range(len(self.data)):
+            data = self.data[i]
+            length = int(data.shape[0]//4)
+            # data = data[length: length * 3 + 1]
+            data = data[45:55]
+            data = data[::Ng]
+            self.data[i] = data
+        self.obs, self.temp, self.ctr = self.data
+        self.get_params()
+        print(f'obs: {self.obs.shape}')
+        return self.obs, self.temp, self.ctr
 
 
 class NSE_Dataset(Dataset):

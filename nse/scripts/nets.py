@@ -293,15 +293,14 @@ class trans_net(nn.Module):
 
 
 class state_mo(nn.Module):
-    def __init__(self, params, Lx=2.2, Ly=0.41):
+    def __init__(self, params):
         super(state_mo, self).__init__()
 
         modes1 = params['modes']
         modes2 = params['modes']
         width = params['width']
         L = params['L'] + 2
-        self.Lx = Lx
-        self.Ly = Ly
+        self.Lx, self.Ly = params['Lxy']
 
         # self.net = [ FNO_layer_trans(modes1, modes2, width, f_channels) ]
         self.net = [ FNO_layer(modes1, modes2, width) for i in range(L-1) ]
@@ -363,6 +362,7 @@ class state_mo_prev(nn.Module):
         x = self.fc2(x)
 
         return x
+
 
 class FNO_ensemble(nn.Module):
     def __init__(self, params):
@@ -450,9 +450,10 @@ class FNO_ensemble_RBC(nn.Module):
         L = params['L']
         shape = params['shape']
         f_channels = params['f_channels']
+        Lx, Ly = params['Lxy']
         nx, ny = shape[0], shape[1]
 
-        self.stat_en = state_en(modes1, modes2, width, L)
+        self.stat_en = state_en(modes1, modes2, width, L, Lx, Ly)
         self.stat_de = state_de_rbc(modes1, modes2, width, L)
         # self.state_mo = state_mo(modes1, modes2, width, L+2)
 
@@ -475,6 +476,34 @@ class FNO_ensemble_RBC(nn.Module):
         
         return pred, x_rec, ctr_rec, trans_out #, mod
 
+
+class FNO_ensemble_RBC1(nn.Module):
+    def __init__(self, params):
+        super(FNO_ensemble_RBC1, self).__init__()
+        modes1 = params['modes']
+        modes2 = params['modes']
+        width = params['width']
+        L = params['L']
+        shape = params['shape']
+        f_channels = params['f_channels']
+        Lx, Ly = params['Lxy']
+        nx, ny = shape[0], shape[1]
+
+        self.stat_en = state_en(modes1, modes2, width, L, Lx, Ly)
+        self.stat_de = state_de_rbc(modes1, modes2, width, L)
+
+        self.trans = trans_net(modes1, modes2, width, L, f_channels)
+
+    # def forward(self, x, f, modify=True):
+    def forward(self, x, ctr):
+        # x: [batch_size, nx, ny, 3]; f: [1]
+        x_latent = self.stat_en(x)
+        x_rec = self.stat_de(x_latent)
+        
+        ctr_rec = ctr.reshape(ctr.shape[0], 1, 1, 1).repeat(1, 1, 64, 64)
+        trans_out = self.trans(x_latent, ctr_rec)
+        pred = self.stat_de(trans_out)
+        return pred, x_rec, ctr_rec, trans_out
 
 class FNO_ensemble_test_RBC(nn.Module):
     def __init__(self, params):

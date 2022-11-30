@@ -7,9 +7,9 @@ from scripts.models import *
 def get_args(argv=None):
     parser = argparse.ArgumentParser(description = 'Put your hyperparameters')
 
-    parser.add_argument('-dp', '--data_path', default='dt_0.01_fr_1.0', type=str, help='data path name')
+    parser.add_argument('-dp', '--data_path', default='rbc', type=str, help='data path name')
     parser.add_argument('-lf', '--logs_fname', default='test', type=str, help='logs file name')
-    parser.add_argument('-dc', '--dict', default='nse', type=str, help='dict name')
+    parser.add_argument('-dc', '--dict', default='rbc', type=str, help='dict name')
     parser.add_argument('-dr', '--data_rate', default=0.7, type=float, help='logs file name')
     
     parser.add_argument('-L', '--L', default=2, type=int, help='the number of layers')
@@ -19,10 +19,10 @@ def get_args(argv=None):
     parser.add_argument('--phys_gap', default=40, type=int, help = 'Number of gap of Phys')
     parser.add_argument('--phys_epochs', default=10, type=int, help = 'Number of Phys Epochs')
     parser.add_argument('--phys_steps', default=2, type=int, help = 'Number of Phys Steps')
-    parser.add_argument('--phys_scale', default=0.1, type=float, help = 'Number of Phys Scale')
+    parser.add_argument('--phys_scale', default=0.05, type=float, help = 'Number of Phys Scale')
     parser.add_argument('--phys_random_select', default=False, type=bool, help = 'Whether random select')
 
-    parser.add_argument('--batch_size', default=32, type=int, help = 'batch size')
+    parser.add_argument('--batch_size', default=64, type=int, help = 'batch size')
     parser.add_argument('--epochs', default=500, type=int, help = 'Number of Epochs')
     parser.add_argument('--lr', default=1e-3, type=float, help='learning rate')
     parser.add_argument('--wd', default=1e-4, type=float, help='weight decay')
@@ -30,8 +30,8 @@ def get_args(argv=None):
     parser.add_argument('--gamma', default=0.5, type=float, help='scheduler factor')
     parser.add_argument('--gpu', default=0, type=int, help='device number')
 
-    parser.add_argument('-tg', '--tg', default=5, type=int, help = 'time gap')
-    parser.add_argument('-Ng', '--Ng', default=1, type=int, help = 'N gap')
+    parser.add_argument('-tg', '--tg', default=1, type=int, help = 'time gap')
+    parser.add_argument('-Ng', '--Ng', default=2, type=int, help = 'N gap')
     parser.add_argument('-l1', '--lambda1', default=1, type=float, help='weight of losses1')
     parser.add_argument('-l2', '--lambda2', default=0.1, type=float, help='weight of losses2')
     parser.add_argument('-l3', '--lambda3', default=0.05, type=float, help='weight of losses3')
@@ -52,12 +52,15 @@ if __name__=='__main__':
     logs_fname = f'logs/model_{args.dict}/phase1_{args.logs_fname}'
 
     # load data
-    data_path = 'data/nse_data_reg_' + args.data_path
+    data_path = f'data/nse_data_reg_{args.data_path}'
     tg = args.tg     # sample evrey 5 timestamps
     Ng = args.Ng
-    data = LoadDataNSE(data_path)
-    obs, Cd, Cl, ctr = data.split(Ng, tg)
-    logs['data_norm'] = data.normalize('unif')   # unif: min, range  norm: mean, var
+    data = LoadDataRBC1(data_path)
+    obs, temp, ctr = data.get_data()
+    print('obs: ', obs.shape, 'obs.mean: ', obs.mean())
+    print('temp: ', temp.shape, 'temp.mean: ', temp.mean())
+    print('ctr: ', ctr.shape, 'ctr.mean: ', ctr.mean())
+
     logs['pred_model'] = []
     logs['phys_model'] = []
 
@@ -72,18 +75,15 @@ if __name__=='__main__':
     N0, nt, nx, ny = data.get_params()
     shape = [nx, ny]
 
-    # loader
     train_loader, test_loader = data.trans2TrainingSet(args.batch_size, args.data_rate)
 
     # model setting
-    nse_model = NSEModel_FNO(shape, data.dt, args)
+    nse_model = RBCModel_FNO1(shape, 0.01, args)
     params_num = nse_model.count_params()
 
     print('N0: {}, nt: {}, nx: {}, ny: {}, device: {}'.format(N0, nt, nx, ny, nse_model.device))
-    print(f'Cd: {logs["data_norm"]["Cd"]}')
-    print(f'Cl: {logs["data_norm"]["Cl"]}')
-    print(f'ctr: {logs["data_norm"]["ctr"]}')
-    print(f'obs: {logs["data_norm"]["obs"]}')
+    # print(f'ctr: {logs["data_norm"]["ctr"]}')
+    # print(f'obs: {logs["data_norm"]["obs"]}')
     print(f'param numbers of the model: {params_num}')
 
     # train process
@@ -97,7 +97,7 @@ if __name__=='__main__':
                 nse_model.phys_train(phys_epoch, train_loader, random=args.phys_random_select)          
             for param in list(nse_model.phys_model.parameters()):
                 param.requires_grad = True
-        if epoch % 100 == 0:
+        if epoch % 5 == 0:
             nse_model.save_log(logs)
             nse_model.test(test_loader, logs)
 
