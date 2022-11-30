@@ -577,6 +577,36 @@ class RBCModel_FNO1(RBCModel):
 
         return loss1, loss2, loss3, loss4, loss6
     
+    def phys_train(self, phys_epoch, train_loader, random=False):
+        loss_pde = AverageMeter()
+        t3 = default_timer()
+
+        for x_train, _ in train_loader:
+            x_train = x_train.to(self.device)
+
+            # split data read in train_loader
+            in_new, ctr_new = x_train[:, :, :, :-1], x_train[:, 0, 0, -1]
+
+            self.phys_model.eval()
+
+            in_train, ctr_train = self.gen_new_data(in_new, ctr_new, random)
+            
+            self.pred_model.train()
+            self.pred_optimizer.zero_grad()
+
+            pred, _, _, _ = self.pred_model(in_train, ctr_train)
+            out_pred = pred[:, :, :, :3]
+            mod = self.phys_model(in_train, ctr_train, out_pred)
+            # 多训练几次？  
+            loss = ((Lpde(in_train, out_pred, self.dt, Re = self.Re, Lx = self.Lx, Ly = self.Ly) + mod) ** 2).mean()
+            loss.backward()
+            self.pred_optimizer.step()
+            loss_pde.update(loss.item(), self.params.batch_size)
+        
+        self.phys_scheduler.step()
+        t4 = default_timer()
+        print('----phys training: # {} {:1.2f} (pde) pred: {:1.2e} | '.format(phys_epoch, t4-t3, loss_pde.avg))
+    
     def gen_new_data(self, in_new, ctr_new, random=False):
         if random == True:
             in_train = in_new + torch.rand(in_new.shape).cuda() * self.params.phys_scale
