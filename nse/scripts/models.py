@@ -117,18 +117,17 @@ class NSEModel():
 
     def cal_1step(self, data):
         obs, Cd, Cl, ctr = data.get_data()
-        obs_ = obs + (2 * torch.rand(obs.shape) - 1) * 0.00
-        ctr_ = ctr + (2 * torch.rand(ctr.shape) - 1) * 0.00
+        init_k = 0
         N0, nt = obs.shape[0], obs.shape[1] - 1
         nx, ny = self.shape
         out_nn, Lpde_obs, Lpde_pred = torch.zeros(N0, nt, nx, ny, 3), torch.zeros(N0, nt, nx, ny, 2), torch.zeros(N0, nt, nx, ny, 2)
         Cd_nn, Cl_nn = torch.zeros(N0, nt), torch.zeros(N0, nt)
         error_1step, error_Cd, error_Cl = torch.zeros(N0, nt), torch.zeros(N0, nt), torch.zeros(N0, nt)
         with torch.no_grad():
-            for k in range(nt):
+            for k in range(init_k, nt):
                 t1 = default_timer()
-                out_nn[:, k], Cd_nn[:, k], Cl_nn[:, k], mod_pred, _, _, _ = self.model_step(obs_[:, k], ctr_[:, k])
-                Lpde_pred[:, k] = ((Lpde(obs_[:, k], out_nn[:, k], self.dt, Lx = self.Lx, Ly = self.Ly) + mod_pred) ** 2)
+                out_nn[:, k], Cd_nn[:, k], Cl_nn[:, k], mod_pred, _, _, _ = self.model_step(obs[:, k], ctr[:, k])
+                Lpde_pred[:, k] = ((Lpde(obs[:, k], out_nn[:, k], self.dt, Lx = self.Lx, Ly = self.Ly) + mod_pred) ** 2)
 
                 mod_obs = self.phys_model(obs[:, k], ctr[:, k], obs[:, k+1])
                 Lpde_obs[:, k] = ((Lpde(obs[:, k], obs[:, k+1], self.dt, Lx = self.Lx, Ly = self.Ly) + mod_obs) ** 2)
@@ -145,7 +144,8 @@ class NSEModel():
 
     def process(self, data):
         obs, Cd, Cl, ctr = data.get_data()
-        self.set_init(obs[:, 0])
+        init_k = 0
+        self.set_init(obs[:, init_k])
         N0, nt = obs.shape[0], obs.shape[1] - 1
         nx, ny = self.shape
         print(f'N0: {N0}, nt: {nt}, nx: {nx}, ny: {ny}')
@@ -153,7 +153,7 @@ class NSEModel():
         Cd_nn, Cl_nn = torch.zeros(N0, nt), torch.zeros(N0, nt)
         error_cul, error_Cd, error_Cl = torch.zeros(N0, nt), torch.zeros(N0, nt), torch.zeros(N0, nt)
         with torch.no_grad():
-            for k in range(nt):
+            for k in range(init_k, nt):
                 t1 = default_timer()
                 out_nn[:, k], Cd_nn[:, k], Cl_nn[:, k], mod_pred, _, _, _ = self.model_step(self.in_nn, ctr[:, k])
                 # print(pred.shape, mod_pred.shape, self.in_nn.shape)
@@ -434,7 +434,8 @@ class RBCModel(NSEModel):
 
     def process(self, data):
         obs, temp, ctr = data.get_data()
-        self.set_init(obs[:, 0])
+        init_k = 10
+        self.set_init(obs[:, init_k])
         print(f'obs: {obs.shape}', f'ctr: {ctr.shape}')
         N0, nt = obs.shape[0], obs.shape[1] - 1
         nx, ny = self.shape
@@ -442,7 +443,7 @@ class RBCModel(NSEModel):
         out_nn, Lpde_pred = torch.zeros(N0, nt, nx, ny, 3), torch.zeros(N0, nt, nx, ny, 2)
         error_cul = torch.zeros(N0, nt)
         with torch.no_grad():
-            for k in range(nt):
+            for k in range(init_k, nt):
                 t1 = default_timer()
                 out_nn[:, k], mod_pred, _, _, _ = self.model_step(self.in_nn, ctr[:, k])
                 # print(pred.shape, mod_pred.shape, self.in_nn.shape)

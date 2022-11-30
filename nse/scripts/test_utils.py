@@ -65,5 +65,5 @@ def test_log(data, file_name, ex_name, model_loaded = NSEModel_FNO, dict = 'nse'
     log_data = [out_cul, Lpde_obs, Lpde_pred, Lpde_pred_cul]
     log_error = [error_1step, error_cul]
     
-    torch.save(d, f'logs/data_{dict}/output/phase1_test_{file_name}_{ex_name}')
+    torch.save(log_data, f'logs/data_{dict}/output/phase1_test_{file_name}_{ex_name}')
     torch.save(log_error, f'logs/data_{dict}/error/phase1_test_{file_name}_{ex_name}')
