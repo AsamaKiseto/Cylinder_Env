@@ -64,12 +64,12 @@ log_list = ['phys_inc', 'data_based', 'trivial', 'test1']
 t_nn = (np.arange(100) + 1) * 0.01   ### %%%
 t_nn = (np.arange(50) + 1) * 0.01   ### %%%
 
-scale_k = [0]
+scale_k = [2]
 
 print('begin plot train method')
 log_list = ['phys_inc', 'data_based']
 # test_plot(t_nn, log_list, scale_k, ex_name='fb_0.0', fig_name='train_method')
-log_list = ['data_based', 'phys_inc', 'no_random', 'random_select', 'ps_0.1', 'ps_0.01', 'ps_0.005']
+log_list = ['data_based', 'phys_inc', 'no_random', 'ps_0.1', 'ps_0.01']
 test_plot(t_nn, log_list, scale_k, ex_name='rbc', fig_name='train_method0', dict = 'rbc')
 
 # print('begin plot phys scales')

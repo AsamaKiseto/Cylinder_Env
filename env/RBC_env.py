@@ -12,6 +12,7 @@ import math
 import torch.nn as nn
 
 from rbc_tools_test import *
+# from rbc_tools import *
 import time
 set_log_level(30)
 
@@ -48,6 +49,10 @@ class RBC():
     def reset(self, ctr=1.0, const=2.0):
         self.solver.init_solve(ctr, const)
         print('init now')
+    
+    def set(self, ctr=1.0, const=2.0):
+        self.solver.set_control(ctr, const)
+        print('set control')
 
     def solve(self):
         self.solver.direct_solve(epoch = 100)

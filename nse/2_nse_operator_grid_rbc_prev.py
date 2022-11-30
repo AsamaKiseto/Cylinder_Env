@@ -7,6 +7,7 @@ from scripts.models import *
 def get_args(argv=None):
     parser = argparse.ArgumentParser(description = 'Put your hyperparameters')
 
+    parser.add_argument('-dp', '--data_path', default='rbc', type=str, help='data path name')
     parser.add_argument('-lf', '--logs_fname', default='test', type=str, help='logs file name')
     parser.add_argument('-dr', '--data_rate', default=0.7, type=float, help='logs file name')
     parser.add_argument('-dc', '--dict', default='rbc', type=str, help='dict name')
@@ -51,7 +52,7 @@ if __name__=='__main__':
     logs_fname = f'logs/model_{args.dict}/phase1_{args.logs_fname}'
 
     # load data
-    data_path = 'data/nse_data_reg_rbc_test'
+    data_path = f'data/nse_data_reg_{args.data_path}'
     tg = args.tg     # sample evrey 5 timestamps
     Ng = args.Ng
     data = LoadDataRBC(data_path)

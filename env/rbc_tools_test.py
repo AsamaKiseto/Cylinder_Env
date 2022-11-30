@@ -164,6 +164,10 @@ class MySolver:
         self.generate_grid()
         self.time = 0 
         
+    def set_control(self, ctr=1.0, const=2.0):
+        self.generate_bc(ctr, const)
+        self.generate_solver()
+
     def direct_solve(self,epoch):
         for i in range(epoch):
             print(f'# {i}')
@@ -179,7 +183,7 @@ class MySolver:
         self.solver.solve()
         self.w_old.assign(self.w)
         temp, velo, p = self.get_obs()
-        # if self.epoch % 5 == 0:
+        # if self.epoch % 10 == 0:
         #     self.plot_all()
         return temp , velo , p 
 

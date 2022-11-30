@@ -1,4 +1,3 @@
-from asyncio import constants
 from fenics import *
 import numpy as np
 import matplotlib.pyplot as plt
@@ -32,7 +31,7 @@ class MyGeometry:
     
     def generate(self, params=None):
         self.n = 64
-        self.mesh = RectangleMesh(Point(self.min_x,self.min_y),Point(self.max_x,self.max_y),self.n,self.n)
+        self.mesh = RectangleMesh(Point(self.min_x,self.min_y),Point(self.max_x,self.max_y),2*self.n,self.n)
 
         bndry = MeshFunction("size_t", self.mesh, self.mesh.topology().dim()-1)
         for f in facets(self.mesh):
@@ -51,15 +50,27 @@ class MyGeometry:
         self.num_vertices = self.mesh.num_vertices()
         print('num of vertices',self.num_vertices)
 
+class PeriodicBoundary(SubDomain):
+
+    # Left boundary is "target domain" G
+    def inside(self, x, on_boundary):
+        return bool(x[0] < 0.0000000000001 and x[0] > -0.000000000001 and on_boundary)
+    def map(self, x, y):
+        y[0] = x[0] - 2.0
+        y[1] = x[1] 
+
 class MyFunctionSpace:
     def __init__(self, geometry, params=None):
         self.geometry = geometry
         self.params = params
     
     def generate(self, params=None):
-        self.V = VectorElement("P",self.geometry.mesh.ufl_cell(), degree = 2,dim = 2)
-        self.P = FiniteElement( "P",self.geometry.mesh.ufl_cell(), degree = 1)
-        self.W = FunctionSpace(self.geometry.mesh, MixedElement([self.V, self.P]))
+        self.pbc = PeriodicBoundary()
+        self.V = VectorElement("CG",self.geometry.mesh.ufl_cell(), 1,dim = 2)
+        self.P = FiniteElement( "CG",self.geometry.mesh.ufl_cell(), 1)
+        self.E = FiniteElement( "CG",self.geometry.mesh.ufl_cell(), 1)
+        self.W = FunctionSpace(self.geometry.mesh, MixedElement([self.V, self.P,self.E]),constrained_domain = self.pbc)
+
 
 class MySolver:
     def __init__(self, geometry, function_space, params=None):
@@ -73,63 +84,73 @@ class MySolver:
         self.theta = 0.5
         self.pr = 1
         self.Ra = 2E6
-        self.nu = 0.1
-        self.u_0  = Expression(('0.0','0.0','0.0'),degree = 2)
+        self.u_0  = Expression(('0','0','0','1.0'),degree = 2)
         self.device = "cuda:0" if torch.cuda.is_available() else "cpu"
         self.R_star = (self.pr/self.Ra)**(1/2)
         self.P_star = (self.pr*self.Ra)**(-1/2)
 
+        
+
+        
     def generate_variable(self):
         self.geometry.generate()
         self.function_space.generate()
         self.V = self.function_space.V
         self.P = self.function_space.P
+        self.E = self.function_space.E
         self.W = self.function_space.W
+       
+        
 
-    def generate_bc(self, ctr=1.0):
+
+    def generate_bc(self, ctr, const):
         self.bndry = self.geometry.bndry
         
-        # self.const = np.random.rand(1)*0.4 + 1.8
-        # self.amp = np.random.rand(1)*0.1
-        # self.bc_bottom = Expression('a+b*sin(2*pi*x[0])',a = self.const[0],b = self.amp[0],pi = np.pi,degree = 2)
+        self.const = np.random.rand(1)*0.4 + 1.8
+        self.amp = np.random.rand(1)*0.1
+        self.bc_bottom = Expression('a+b*sin(2*pi*x[0])',a = self.const[0],b = self.amp[0],pi = np.pi,degree = 2)
         self.bc_top = Expression('0.0',degree = 2)
-        self.noslip = Constant((0, 0))
-        self.u_top = Constant((ctr, 0))
-        self.bcv_t = DirichletBC(self.W.sub(0), self.u_top, self.bndry, 3)
-        self.bcv_b = DirichletBC(self.W.sub(0), self.noslip, self.bndry, 4)
-        self.bcv_l = DirichletBC(self.W.sub(0), self.noslip, self.bndry, 1)
-        self.bcv_r = DirichletBC(self.W.sub(0), self.noslip, self.bndry, 2)
         
-        self.bcp_t = DirichletBC(self.W.sub(1), Constant(0), self.bndry, 3)
-        #self.bcp_b = DirichletBC(self.W.sub(1), self.bc_top, self.bndry, 3)
-        self.bcs = [self.bcv_t, self.bcv_b, self.bcv_l, self.bcv_r, self.bcp_t]# ,self.bcp_t,self.bcp_b
+        self.noslip = Constant((0, 0))
+        self.bcv_t = DirichletBC(self.W.sub(0), self.noslip, self.bndry, 3)
+        self.bcv_b = DirichletBC(self.W.sub(0), self.noslip, self.bndry, 4)
+        self.bct_t = DirichletBC(self.W.sub(2), self.bc_top, self.bndry, 3)
+        self.bct_b = DirichletBC(self.W.sub(2), self.bc_bottom, self.bndry, 4)
+        self.bcp_t = DirichletBC(self.W.sub(1), self.bc_top, self.bndry, 3)
+        self.bcp_b = DirichletBC(self.W.sub(1), self.bc_top, self.bndry, 4)
+        self.bcs = [self.bcv_t, self.bcv_b, self.bct_t, self.bct_b]# ,self.bcp_t,self.bcp_b
 
     
 
     def generate_solver(self):
-        (self.v_, self.p_) = TestFunctions(self.W)
+        (self.v_, self.p_, self.e_) = TestFunctions(self.W)
         self.w = Function(self.W)
         self.w.interpolate(self.u_0)
-        (self.v, self.p) = split(self.w)
+        (self.v, self.p, self.e) = split(self.w)
 
 
         self.w_old = Function(self.W)
         self.w_old.interpolate(self.u_0)
-        (self.v_old, self.p_old) = split(self.w_old)
-        def a(v,u) :
+        (self.v_old, self.p_old, self.e_old) = split(self.w_old)
+        def a(v,u,e) :
             D = sym(grad(v))
-            return (inner(grad(v)*v, u) +self.nu* inner(2*D, 2*sym(grad(u))))*dx
+            return (inner(grad(v)*v, u) +self.R_star* inner(2*D, grad(u))-inner(e,u[1]))*dx
 
         def b(q,v) :
             return inner(div(v),q)*dx
 
-        self.F0_eq1 = a(self.v_old,self.v_) + b(self.p,self.v_)
+        def c(v,e,g) :
+            return ( self.P_star*inner(grad(e),grad(g)) + inner(v,grad(e))*g )*dx
+
+        self.F0_eq1 = a(self.v_old,self.v_,self.e_old) + b(self.p,self.v_)
         self.F0_eq2 = b(self.p_,self.v)
-        self.F0 = self.F0_eq1 + self.F0_eq2 
-        self.F1_eq1 = a(self.v,self.v_) + b(self.p,self.v_)
+        self.F0_eq3 = c(self.v_old,self.e_old,self.e_)
+        self.F0 = self.F0_eq1 + self.F0_eq2 + self.F0_eq3
+        self.F1_eq1 = a(self.v,self.v_,self.e) + b(self.p,self.v_)
         self.F1_eq2 = b(self.p_,self.v)
-        self.F1 = self.F1_eq1 + self.F1_eq2 
-        self.F = (inner((self.v-self.v_old),self.v_)/self.dt)*dx + (1.0-self.theta)*self.F0 + self.theta*self.F1
+        self.F1_eq3 = c(self.v,self.e,self.e_)
+        self.F1 = self.F1_eq1 + self.F1_eq2 + self.F1_eq3
+        self.F = (inner((self.v-self.v_old),self.v_)/self.dt + inner((self.e-self.e_old),self.e_)/self.dt)*dx + (1.0-self.theta)*self.F0 + self.theta*self.F1
         self.J = derivative(self.F, self.w)
         self.problem =  NonlinearVariationalProblem(self.F, self.w, self.bcs, self.J)
         self.solver = NonlinearVariationalSolver(self.problem)
@@ -138,16 +159,16 @@ class MySolver:
         self.prm['nonlinear_solver'] = 'newton'
         self.prm['newton_solver']['absolute_tolerance'] = 1E-10
         self.prm['newton_solver']['relative_tolerance'] = 1e-10
-        self.prm['newton_solver']['maximum_iterations'] = 10
+        self.prm['newton_solver']['maximum_iterations'] = 30
         self.prm['newton_solver']['linear_solver'] = 'mumps'
 
-    def init_solve(self, ctr):
+    def init_solve(self, ctr, const):
         self.generate_variable()
-        self.generate_bc(ctr)
+        self.generate_bc(ctr, const)
         self.generate_solver()
         self.generate_grid()
         self.time = 0 
-        
+
     def direct_solve(self,epoch):
         for i in range(epoch):
             self.time += self.dt
@@ -156,17 +177,21 @@ class MySolver:
             self.w_old.assign(self.w)
             self.plot_all()
 
+
     def step_forward(self):
         self.time += self.dt
         self.epoch +=1
         self.solver.solve()
         self.w_old.assign(self.w)
-        temp, velo, p ,const , amp= self.get_obs()
+        temp, velo, p ,a1 , b1= self.get_obs()
         #self.plot_all()
-        return temp , velo , p , const , amp 
+        return temp , velo , p
+
 
     def _get_done(self):
         return self.time > self.T  
+
+
 
     def generate_grid(self):
         gsx = self.params['dimx'] #30
@@ -178,28 +203,109 @@ class MySolver:
         self.grids = grids
         self.meshgrid = [mx, my]
             
+
+        
+
     def get_obs(self):
         nu = self.params['dimy']*self.params['dimx']
         shape = [self.params['dimy'],self.params['dimx'] ]
-        
+        temp = np.array(self.w.compute_vertex_values()[3*nu:].reshape(shape))
         p = np.array(self.w.compute_vertex_values()[2*nu:3*nu].reshape(shape))
         u =  np.array(self.w.compute_vertex_values()[:1*nu].reshape(shape))
         v =  np.array(self.w.compute_vertex_values()[1*nu:2*nu].reshape(shape))
         velo = np.concatenate([np.expand_dims(u,axis = -1),np.expand_dims(v,axis = -1)],axis = -1)
-        return  velo, p 
-
+        return temp, velo, p ,self.const , self.amp
+    
     def plot_all(self):
-        velo, p  = self.get_obs()
+        temp, velo, p ,_ , _  = self.get_obs()
         fig = plt.figure()
         plt.axis('equal')
-        plt.contourf(self.meshgrid[0],self.meshgrid[1], p, 200, cmap='jet')
+        plt.contourf(self.meshgrid[0],self.meshgrid[1],temp, 200, cmap='jet')
         plt.colorbar()
-        plt.savefig('pics/img_pressure/pic-{}.png'.format(self.epoch))
+        plt.savefig('./pics/img_temp/pic-{}.png'.format(self.epoch))
+
+        fig = plt.figure()
+        plt.axis('equal')
+        plt.contourf(self.meshgrid[0],self.meshgrid[1],p, 200, cmap='jet')
+        plt.colorbar()
+        plt.savefig('./pics/img_pressure/pic-{}.png'.format(self.epoch))
         xl, xh  = self.geometry.min_x, self.geometry.max_x
         yl, yh = self.geometry.min_y, self.geometry.max_y
+        
         fig, ax = plt.subplots(figsize=(12,9))
-        # fig, ax = plt.figure()
         ax.axis('equal')
+        
         ax.set(xlim=(xl, xh), ylim=(yl, yh))
-        ax.quiver(self.meshgrid[0],self.meshgrid[1], velo[:,:,0],velo[:,:,1] , np.sqrt(velo[:,:,0]**2+velo[:,:,1]**2))
-        plt.savefig('pics/img_velo/pic-{}.png'.format(self.epoch))
+        ax.quiver(self.meshgrid[0],self.meshgrid[1], velo[:,:,0],velo[:,:,1] , temp)
+        plt.savefig('./pics/img_velo/pic-{}.png'.format(self.epoch))
+
+
+    
+
+    def forward(self,w_tn, w_tnp1,a1,b1):
+        self.generate_variable()
+        
+        self.generate_bc(a1=a1[0],b1 = b1[0])
+        self.generate_solver(w_tn =w_tn , w_tnp1 = w_tnp1,data = 0)
+        
+        #self.w.vector()[:] = w_tn.reshape(-1)[dof_to_vertex_map(self.W)[:-4*(self.geometry.n+1)].astype('int32')].clone().detach().cpu().numpy()
+        #self.w_old.vector()[:] = w_tn.reshape(-1)[dof_to_vertex_map(self.W)[:-4*(self.geometry.n+1)].astype('int32')].clone().detach().cpu().numpy()
+        #self.w_data = Function(self.W)
+        #self.w_data.vector()[:] = w_tnp1.reshape(-1)[dof_to_vertex_map(self.W)[:-4*(self.geometry.n+1)].astype('int32')].clone().detach().cpu().numpy()
+        
+        
+        temp, velo, p ,top , bottom = self.step_forward()
+        print('J = ',J)
+        print('loss',np.max(np.abs(self.w_data.vector()[:] - self.w.vector()[:])))
+        print('lossu',np.max(np.abs(self.w_data.vector()[:][vertex_to_dof_map(self.W)].reshape(33,65,4)[:,:,0] - self.w.vector()[:][vertex_to_dof_map(self.W)].reshape(33,65,4)[:,:,0])))
+        print('lossv',np.max(np.abs(self.w_data.vector()[:][vertex_to_dof_map(self.W)].reshape(33,65,4)[:,:,1] - self.w.vector()[:][vertex_to_dof_map(self.W)].reshape(33,65,4)[:,:,1])))
+        print('lossp',np.max(np.abs(self.w_data.vector()[:][vertex_to_dof_map(self.W)].reshape(33,65,4)[:,:,2] - self.w.vector()[:][vertex_to_dof_map(self.W)].reshape(33,65,4)[:,:,2])))
+        print('losst',np.max(np.abs(self.w_data.vector()[:][vertex_to_dof_map(self.W)].reshape(33,65,4)[:,:,3] - self.w.vector()[:][vertex_to_dof_map(self.W)].reshape(33,65,4)[:,:,3])))
+        # self.loss = (self.w - self.w_data)**2*dx
+        # J = assemble(self.loss)
+        # print(J)
+        
+        #return self.w.vector()[:][vertex_to_dof_map(self.W)].reshape(51,151,4)[:,:,3],self.w_data.vector()[:][vertex_to_dof_map(self.W)].reshape(51,151,4)[:,:,3],w_tn[:,:,3].detach().cpu().numpy(),w_tnp1[:,:,3].detach().cpu().numpy(),self.meshgrid
+        return self.w_data.vector()[:][vertex_to_dof_map(self.W)].reshape(33,65,4)[:,:,2] - self.w.vector()[:][vertex_to_dof_map(self.W)].reshape(33,65,4)[:,:,2],self.meshgrid
+    
+    def backward(self,w_tn, w_tnp1,a1,b1):
+        self.generate_variable()
+        
+        self.generate_bc(a1=a1[0],b1 = b1[0])
+        self.generate_solver(w_tn =w_tn , w_tnp1 = w_tnp1,data = 1)
+        
+        temp, velo, p ,top , bottom = self.step_forward()
+        self.loss = (self.w.sub(0) - self.w_data.sub(0))**2*dx+(self.w.sub(2) - self.w_data.sub(2))**2*dx+ 0.0001*(self.w.sub(1) - self.w_data.sub(1))**2*dx
+        J = assemble(self.loss)
+        print('J = ', J)
+        grad_en, grad_enp1 = compute_gradient(J,[self.w_c,self.w_c1])
+        print('loss',np.max(np.abs(self.w_data.vector()[:] - self.w.vector()[:])))
+        print('lossu',np.max(np.abs(self.w_data.vector()[:][vertex_to_dof_map(self.W)].reshape(33,65,4)[:,:,0] - self.w.vector()[:][vertex_to_dof_map(self.W)].reshape(33,65,4)[:,:,0])))
+        print('lossv',np.max(np.abs(self.w_data.vector()[:][vertex_to_dof_map(self.W)].reshape(33,65,4)[:,:,1] - self.w.vector()[:][vertex_to_dof_map(self.W)].reshape(33,65,4)[:,:,1])))
+        print('lossp',np.max(np.abs(self.w_data.vector()[:][vertex_to_dof_map(self.W)].reshape(33,65,4)[:,:,2] - self.w.vector()[:][vertex_to_dof_map(self.W)].reshape(33,65,4)[:,:,2])))
+        print('losst',np.max(np.abs(self.w_data.vector()[:][vertex_to_dof_map(self.W)].reshape(33,65,4)[:,:,3] - self.w.vector()[:][vertex_to_dof_map(self.W)].reshape(33,65,4)[:,:,3])))
+        # self.loss = (self.w - self.w_data)**2*dx
+        # J = assemble(self.loss)
+        # print(J)
+        
+        #return self.w.vector()[:][vertex_to_dof_map(self.W)].reshape(51,151,4)[:,:,3],self.w_data.vector()[:][vertex_to_dof_map(self.W)].reshape(51,151,4)[:,:,3],w_tn[:,:,3].detach().cpu().numpy(),w_tnp1[:,:,3].detach().cpu().numpy(),self.meshgrid
+        return grad_en,grad_enp1,self.meshgrid
+    def RBC_step(self,w_tn, w_tnp1,a1,b1):
+    
+        self.batch_size1 = w_tn.shape[0]
+        self.grad_wn = torch.zeros_like(w_tn)
+        self.grad_wnp1 = torch.zeros_like(w_tn)
+        #self.generate_variable()
+        for epoch in range(self.batch_size1):
+            self.generate_bc(a1[epoch,0],b1[epoch,0])
+            self.generate_solver(w_tn =w_tn , w_tnp1 = w_tnp1,data = 1)
+            self.step_forward()
+            self.loss = (self.w.sub(0) - self.w_data.sub(0))**2*dx+(self.w.sub(2) - self.w_data.sub(2))**2*dx+ 0.0001*(self.w.sub(1) - self.w_data.sub(1))**2*dx
+            self.J1 = assemble(self.loss)
+            self.grad_en, self.grad_enp1 = compute_gradient(self.J1,[self.w_c,self.w_c1])
+            #grad_e = torch.Tensor(self.compute_loss().vector()[:]).to(self.device)
+            
+            self.grad_wn[epoch] = torch.Tensor(self.grad_en.vector()[:][vertex_to_dof_map(self.W)].reshape(w_tn.shape[1:])).to(self.device)
+            self.grad_wnp1[epoch] = torch.Tensor(self.grad_enp1.vector()[:][vertex_to_dof_map(self.W)].reshape(w_tn.shape[1:])).to(self.device)
+        return self.grad_wn,self.grad_wnp1,self.J1
+        

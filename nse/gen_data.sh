@@ -5,4 +5,5 @@
 # done
 
 python3 1_data_gen_rbc.py
-python3 1_data_test_gen_rbc.py
+python3 1_data_gen_rbc1.py
+# python3 1_data_test_gen_rbc.py

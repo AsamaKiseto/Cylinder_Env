@@ -8,5 +8,5 @@ import math
 import torch.nn as nn
 from RBC_env import RBC
 simulator = RBC()
-simulator.reset(ctr=0.1, const=1.0)
+simulator.reset(ctr=0.0, const=1.0)
 simulator.solve()

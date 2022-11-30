@@ -323,7 +323,7 @@ def animate3D(data, xy_mesh, name, file_name, zlim = 100, dict = 'nse'):
 
     fig = plt.figure(figsize = (16, 10))
     ax = plt.axes(projection='3d')
-    ax.get_proj = lambda: np.dot(Axes3D.get_proj(ax), np.diag([(xh - xl)*figsizer, (yh-yl)*figsizer*2, figsizer*1.2, figsizer*2]))
+    ax.get_proj = lambda: np.dot(Axes3D.get_proj(ax), np.diag([(xh - xl)*figsizer, (yh-yl)*figsizer, figsizer*1.2, figsizer*2]))
     
     u, v = [data[:, :, :, i] for i in range(2)]
     w = torch.sqrt(u**2 + v**2)
@@ -332,6 +332,7 @@ def animate3D(data, xy_mesh, name, file_name, zlim = 100, dict = 'nse'):
         ax.clear()
         # ax.set_title(f'{name} {file_name}')
         # ax.quiver(x, y, u[i], v[i], w[i])
+        # ax.set_zlim(-zlim, zlim)
         ax.set_zlim(0, zlim)
         ax.plot_surface(x, y, w[i], cmap='rainbow')
         # ax.plot(x[i], y[i])

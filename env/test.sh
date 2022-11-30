@@ -6,4 +6,3 @@ mkdir img_velo
 mkdir img_temp
 mkdir img_pressure
 cd ..
-python3 test.py

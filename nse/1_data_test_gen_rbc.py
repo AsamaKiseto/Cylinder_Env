@@ -31,6 +31,10 @@ ctr2 = (2 * np.random.rand(int(N0//3)) - 1) * 0.5 + 3
 ctr3 = (2 * np.random.rand(int(N0//3)) - 1) * 0.5 + 4
 ctr = np.concatenate([ctr1, ctr2, ctr3])
 
+N0 = 1
+ctr = np.array([0.0])
+temp , velo , p = np.zeros((N0, nt, ny, nx)), np.zeros((N0, nt, ny, nx, 2)), np.zeros((N0, nt, ny, nx))
+
 for k in range(N0):
     print(f'start # {k}')
     t1 = default_timer()
@@ -45,12 +49,12 @@ for k in range(N0):
     t2 = default_timer()
     print(f'# {k} finish | {t2 - t1}')
 
-temp = torch.Tensor(temp).reshape(N0, nt, nx, ny, 1)
+temp = torch.Tensor(temp).unsqueeze(-1)
 velo = torch.Tensor(velo)
-p = torch.Tensor(p).reshape(N0, nt, nx, ny, 1)
+p = torch.Tensor(p).unsqueeze(-1)
 ctr = torch.Tensor(ctr).reshape(N0, 1).repeat(1, nt)
 
 obs = torch.cat((velo, p), dim=-1)
 
 data = [obs, temp , ctr]
-torch.save(data, 'data/test_data/nse_data_reg_rbc')
+torch.save(data, 'data/test_data/rbc_test')

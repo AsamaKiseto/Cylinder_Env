@@ -20,7 +20,7 @@ from functools import partial
 
 
 class MyGeometry:
-    def __init__(self,  min_x = 0.0, max_x =1.0 , min_y = 0.0, max_y = 1.0, params=None):
+    def __init__(self,  min_x = 0.0, max_x =2.0 , min_y = 0.0, max_y = 1.0, params=None):
         self.min_x = min_x
         self.max_x = max_x
         self.min_y = min_y
@@ -64,15 +64,15 @@ class MyFunctionSpace:
         self.params = params
     
     def generate(self, params=None):
-        # self.pbc = PeriodicBoundary()
-        # self.V = VectorElement("CG",self.geometry.mesh.ufl_cell(), 2,dim = 2)
-        # self.P = FiniteElement( "CG",self.geometry.mesh.ufl_cell(), 2)
-        # self.E = FiniteElement( "CG",self.geometry.mesh.ufl_cell(), 2)
-        # self.W = FunctionSpace(self.geometry.mesh, MixedElement([self.V, self.P,self.E]),constrained_domain = self.pbc)
-        self.V = VectorElement("CG",self.geometry.mesh.ufl_cell(), degree = 2,dim = 2)
-        self.P = FiniteElement("CG",self.geometry.mesh.ufl_cell(), degree = 2)
-        self.E = FiniteElement("CG",self.geometry.mesh.ufl_cell(), degree = 2)
-        self.W = FunctionSpace(self.geometry.mesh, MixedElement([self.V, self.P,self.E]))
+        self.pbc = PeriodicBoundary()
+        self.V = VectorElement("CG",self.geometry.mesh.ufl_cell(), 2,dim = 2)
+        self.P = FiniteElement( "CG",self.geometry.mesh.ufl_cell(), 2)
+        self.E = FiniteElement( "CG",self.geometry.mesh.ufl_cell(), 2)
+        self.W = FunctionSpace(self.geometry.mesh, MixedElement([self.V, self.P,self.E]),constrained_domain = self.pbc)
+        # self.V = VectorElement("CG",self.geometry.mesh.ufl_cell(), degree = 2,dim = 2)
+        # self.P = FiniteElement("CG",self.geometry.mesh.ufl_cell(), degree = 2)
+        # self.E = FiniteElement("CG",self.geometry.mesh.ufl_cell(), degree = 2)
+        # self.W = FunctionSpace(self.geometry.mesh, MixedElement([self.V, self.P,self.E]))
 
 
 class MySolver:
@@ -100,11 +100,11 @@ class MySolver:
         self.E = self.function_space.E
         self.W = self.function_space.W
 
-    def generate_bc(self, ctr = 0.0):
+    def generate_bc(self, ctr = 0.0, const = 2.0):
         self.bndry = self.geometry.bndry
         
-        self.const = 0.0
-        self.amp = 0.0
+        self.const = const
+        self.amp = const / 2
         self.ctr = ctr
         self.bc_bottom = Expression('a+b*sin(2*pi*x[0])',a = self.const,b = self.amp, pi = np.pi, degree = 2)
         
@@ -167,9 +167,9 @@ class MySolver:
         self.prm['newton_solver']['maximum_iterations'] = 30
         self.prm['newton_solver']['linear_solver'] = 'mumps'
 
-    def init_solve(self, ctr=0.0):
+    def init_solve(self, ctr=0.0, const=2.0):
         self.generate_variable()
-        self.generate_bc(ctr)
+        self.generate_bc(ctr, const)
         self.generate_solver()
         self.generate_grid()
         self.time = 0 

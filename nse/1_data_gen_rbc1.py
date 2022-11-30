@@ -12,7 +12,7 @@ import math
 import torch.nn as nn
 from env.RBC_env import RBC
 
-params = {'dt':  0.01, 'T':  0.01, 'dimx': 64, 'dimy': 64, 'min_x' : 0, 'max_x' : 2.0, 'min_y' : 0.0, 'max_y' : 2.0 ,'Ra':1E2}
+params = {'dt':  0.01, 'T':  0.01, 'dimx': 64, 'dimy': 64, 'min_x' : 0, 'max_x' : 2.0, 'min_y' : 0.0, 'max_y' : 2.0 ,'Ra':1E6}
 simulator = RBC(params)
 
 # N0 = 400 + 1
@@ -52,4 +52,4 @@ obs = torch.cat((velo, p), dim=-1)
 
 # data = [obs, temp, ctr]
 data = [obs, temp]
-torch.save(data, 'data/nse_data_reg_rbc')
+torch.save(data, 'data/nse_data_reg_rbc1')
