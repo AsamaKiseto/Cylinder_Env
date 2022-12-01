@@ -321,7 +321,7 @@ class state_mo(nn.Module):
         ux, uy = fdmd2D(u_bf, x.device, self.Lx, self.Ly)   # input 2 + 2
         px, py = fdmd2D(p_bf, x.device, self.Lx, self.Ly)
         uxx, _ = fdmd2D(ux, x.device, self.Lx, self.Ly)
-        _, uyy = fdmd2D(uy, x.device, self.Lx, self.Ly)
+        _, uyy = fdmd2D(uy, x.device, self.Lx, self.Ly) 
         u_lap = uxx + uyy   # input 2
         p_grad = torch.cat((px, py), -1)    # input 2
         ipt = torch.cat((grid, u_bf, ctr, u_af, ux, uy, p_grad, u_lap), -1)

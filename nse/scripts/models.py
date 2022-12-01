@@ -427,8 +427,8 @@ class RBCModel(NSEModel):
                 error_1step[:, k] = rel_error(out_nn[:, k], obs[:, k+1]) 
                 t2 = default_timer()
                 if k % 10 == 0:
-                    print(f'# {k} | {t2 - t1:1.2f}: error_state: {error_1step[:, k].min():1.4f} {error_1step[:, k].max():1.4f}\
-                        | pred_Lpde: {Lpde_pred[:, k].min():1.4f} {Lpde_pred[:, k].max():1.4f} | obs_Lpde: {Lpde_obs[:, k].min():1.4f} {Lpde_obs[:, k].max():1.4f}')
+                    print(f'# {k} | {t2 - t1:1.2f}: error_state: {error_1step[:, k].min():1.4f} {error_1step[:, k].max():1.4f} |\
+                            pred_Lpde: {Lpde_pred[:, k].max():1.4f} | obs_Lpde: {Lpde_obs[:, k].max():1.4f}')
 
         return error_1step, Lpde_obs, Lpde_pred
 
@@ -452,7 +452,8 @@ class RBCModel(NSEModel):
                 error_cul[:, k] = rel_error(out_nn[:, k], obs[:, k+1]) 
                 t2 = default_timer()
                 if k % 10 == 0:
-                    print(f'# {k} | {t2 - t1:1.2f}: error_state: {error_cul[:, k].min():1.4f} {error_cul[:, k].max():1.4f}| cul_Lpde: {Lpde_pred[:, k].min():1.4f} {Lpde_pred[:, k].max():1.4f}')
+                    print(f'# {k} | {t2 - t1:1.2f}: error_state: {error_cul[:, k].min():1.4f} {error_cul[:, k].max():1.4f} |\
+                            cul_Lpde: {Lpde_pred[:, k].max():1.4f}')
 
         return out_nn, Lpde_pred
 
@@ -546,6 +547,7 @@ class RBCModel_FNO(RBCModel):
 class RBCModel_FNO1(RBCModel):
     def __init__(self, shape, dt, args):
         super().__init__(shape, dt, args)
+        self.Re = 0.001
         self.set_model(FNO_ensemble_RBC1, state_mo)
         print('Re', self.Re)
 

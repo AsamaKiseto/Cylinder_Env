@@ -36,14 +36,14 @@ class RBC():
         if params is not None:
             self.params = params
         else:
-            self.params = {'dt':  0.01,
+            self.params = {'dt':  0.001,
                             'T':  0.01,
                             'dimx': 64,
                             'dimy': 64,
                             'min_x' : 0, 
                             'max_x' : 2.0, 
                             'min_y' : 0.0, 
-                            'max_y' : 2.0 ,'Ra':1E2
+                            'max_y' : 2.0 ,'Ra':1E6
                             }
         
     def reset(self, ctr=1.0, const=2.0):
