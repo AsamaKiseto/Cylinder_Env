@@ -12,39 +12,30 @@ xl, xh  = np.min(x), np.max(x)
 yl, yh = np.min(y), np.max(y)
 xy_mesh = [x, y, xl, xh, yl, yh]
 
-data_path = 'data/test_data/nse_data_reg_rbc_test'
-# data_path = 'data/nse_data_reg_rbc_test'
-data = LoadDataRBC(data_path)
-obs, temp, ctr = data.get_data()
-temp = torch.cat((temp, torch.zeros(temp.shape)), dim=-1)
-# temp = torch.cat((torch.zeros(temp.shape), temp), dim=-1)
-print(obs.shape, temp.shape)
+# data_path = 'data/test_data/nse_data_reg_rbc_test'
+# data = LoadDataRBC(data_path)
+# obs, temp, ctr = data.get_data()
+# temp = torch.cat((temp, torch.zeros(temp.shape)), dim=-1)
+# # temp = torch.cat((torch.zeros(temp.shape), temp), dim=-1)
+# print(obs.shape, temp.shape)
 
-obs_bf = obs[:, :-1]
-obs_af = obs[:, 1:]
-num = obs.shape[0]
-res = torch.zeros(temp.shape)
-for i in range(num):
-    res[i] = Lpde(obs_bf[i], obs_af[i], 0.01, 0.1, 2.0, 2.0)
+# obs_bf = obs[:, :-1]
+# obs_af = obs[:, 1:]
+# num = obs.shape[0]
+# res = torch.zeros(temp.shape)
+# for i in range(num):
+#     res[i] = Lpde(obs_bf[i], obs_af[i], 0.01, 0.1, 2.0, 2.0)
 
-print(res[..., 0].mean(), res[..., 1].mean())
-print(((res[..., 0] - res[..., 0].mean())**2).mean(), ((res[..., 1] - res[..., 1].mean())**2).mean())
-print(res.mean(), temp.mean())
+# print(res[..., 0].mean(), res[..., 1].mean())
+# print(((res[..., 0] - res[..., 0].mean())**2).mean(), ((res[..., 1] - res[..., 1].mean())**2).mean())
+# print(res.mean(), temp.mean())
 
-res = res + temp
-res = res[10*scale_k : 10*(scale_k+1)].mean(0)
+# res = res + temp
+# res = res[10*scale_k : 10*(scale_k+1)].mean(0)
 # animate3D(res, xy_mesh, 'Lpde_obs', 'obs_e1', zlim=10, dict='rbc')
 
-x = np.arange(129) / 129 * 2.0
-y = np.arange(65) / 65 * 1.0
-x, y = np.meshgrid(x, y)
-xl, xh  = np.min(x), np.max(x)
-yl, yh = np.min(y), np.max(y)
-xy_mesh = [x, y, xl, xh, yl, yh]
-
-data_path = 'data/test_data/nse_data_reg_rbc_test'
-data_path = 'data/test_data/rbc_test'
-data = LoadDataRBC(data_path)
+data_path = 'data/nse_data_reg_rbc2'
+data = LoadDataRBC1(data_path)
 obs, temp, ctr = data.get_data()
 temp = torch.cat((temp, torch.zeros(temp.shape)), dim=-1)
 # temp = torch.cat((torch.zeros(temp.shape), temp), dim=-1)
@@ -55,24 +46,24 @@ obs_af = obs[:, 1:]
 num = obs.shape[0]
 res = torch.zeros(temp.shape)
 for i in range(num):
-    res[i] = Lpde(obs_bf[i], obs_af[i], 0.01, 0.001, 1.0, 2.0)
+    res[i] = Lpde(obs_bf[i], obs_af[i], 0.01, 0.001, 2.0, 2.0)
 
 print(res[..., 0].mean(), res[..., 1].mean())
 print(((res[..., 0] - res[..., 0].mean())**2).mean(), ((res[..., 1] - res[..., 1].mean())**2).mean())
 print(res.mean(), temp.mean())
 res = res + temp
 res = res[10*scale_k : 10*(scale_k+1)].mean(0)
-animate3D(res, xy_mesh, 'rbc', 'obs_e2', zlim=10, dict='rbc')
+# animate3D(res, xy_mesh, 'rbc', 'obs_e2', zlim=10, dict='rbc')
 
-# num_k = 0
+num_k = 0
 # animate2D(obs[num_k, ..., 0], xy_mesh, 'u', 'obs', 'rbc')
 # animate2D(obs[num_k, ..., 1], xy_mesh, 'v', 'obs', 'rbc')
 # animate2D(obs[num_k, ..., 2], xy_mesh, 'p', 'obs', 'rbc')
 # animate2D(temp[num_k, ..., 1], xy_mesh, 't', 'obs', 'rbc')
-# animate_field(obs[num_k, ..., :2], xy_mesh, 'state', 'obs', 'rbc')
+animate_field(obs[num_k, ..., :2], xy_mesh, f'state_{num_k}', 'obs', 'rbc')
 
 # anime observation
-''''
+'''
 num_k = 1
 print(ctr[num_k, 0])
 # animate2D(obs[num_k, ..., 0], xy_mesh, 'u', 'obs', 'rbc')

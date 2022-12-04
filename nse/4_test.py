@@ -35,20 +35,20 @@ tg = 5
 # for file_name in log_list:
 #     test_log(data, file_name,  'rbc', model_loaded = RBCModel_FNO,  dict = 'rbc', dt = 0.01)
 
-log_list = ['data_based', 'phys_inc', 'no_random', 'random_select', 'ps_0.01', 'ps_0.1', 'pe_5', 'pe_15']
-log_list = ['random_select_0.0001']
-data_path = 'data/nse_data_reg_rbc1'
-print(data_path)
-data = LoadDataRBC1(data_path)
-for file_name in log_list:
-    file_name = file_name + '_1'
-    test_log(data, file_name,  'rbc', model_loaded = RBCModel_FNO1,  dict = 'rbc', dt = 0.01)
-
-
-# data_path = 'data/nse_data_reg_rbc2'
+log_list = ['data_based', 'phys_inc', 'no_random', 'random_select', 'random_select_0.0001', 'ps_0.01', 'ps_0.1', 'pe_5', 'pe_15', 'psp_1', 'psp_3']
+# log_list = ['random_select_0.0001']
+# data_path = 'data/nse_data_reg_rbc1'
 # print(data_path)
 # data = LoadDataRBC1(data_path)
 # for file_name in log_list:
-#     file_name = file_name + '_2'
+#     file_name = file_name + '_1'
 #     test_log(data, file_name,  'rbc', model_loaded = RBCModel_FNO1,  dict = 'rbc', dt = 0.01)
+
+
+data_path = 'data/nse_data_reg_rbc2_test'
+print(data_path)
+data = LoadDataRBC1(data_path)
+for file_name in log_list:
+    file_name = file_name + '_2'
+    test_log(data, file_name,  'rbc', model_loaded = RBCModel_FNO1,  dict = 'rbc', dt = 0.01)
 

@@ -271,7 +271,7 @@ def animate_field(data, xy_mesh, name, file_name, dict='nse'):
     def animate(i):
         ax.clear()
         ax.set_title(f'{name} {file_name}')
-        ax.quiver(x, y, u[i], v[i], w[i])
+        ax.quiver(x, y, u[i], v[i], w[i], scale = 1.0)
         # ax.contourf(x, y, w[i])
         # ax.plot_surface(x, y, Lpde_obs[i, :, :, 0])
         # ax.plot(x[i], y[i])

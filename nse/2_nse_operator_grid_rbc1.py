@@ -56,6 +56,7 @@ if __name__=='__main__':
     tg = args.tg     # sample evrey 5 timestamps
     Ng = args.Ng
     data = LoadDataRBC1(data_path)
+    data.split()
     obs, temp, ctr = data.get_data()
     print('obs: ', obs.shape, 'obs.mean: ', obs.mean())
     print('temp: ', temp.shape, 'temp.mean: ', temp.mean())
