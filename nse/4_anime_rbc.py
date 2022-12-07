@@ -34,7 +34,7 @@ xy_mesh = [x, y, xl, xh, yl, yh]
 # res = res[10*scale_k : 10*(scale_k+1)].mean(0)
 # animate3D(res, xy_mesh, 'Lpde_obs', 'obs_e1', zlim=10, dict='rbc')
 
-data_path = 'data/nse_data_reg_rbc2'
+data_path = 'data/nse_data_reg_rbc2_test'
 data = LoadDataRBC1(data_path)
 obs, temp, ctr = data.get_data()
 temp = torch.cat((temp, torch.zeros(temp.shape)), dim=-1)
@@ -43,6 +43,8 @@ print(obs.shape, temp.shape)
 
 obs_bf = obs[:, :-1]
 obs_af = obs[:, 1:]
+error = rel_error(obs_bf.reshape(-1, 64, 64, 3), obs_af.reshape(-1, 64, 64, 3))
+print(error.mean())
 num = obs.shape[0]
 res = torch.zeros(temp.shape)
 for i in range(num):

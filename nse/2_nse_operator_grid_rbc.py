@@ -78,7 +78,7 @@ if __name__=='__main__':
     train_loader, test_loader = data.trans2TrainingSet(args.batch_size, args.data_rate)
 
     # model setting
-    nse_model = RBCModel_FNO(shape, 0.01, args)
+    nse_model = RBCModel_FNO(shape, 0.05, args)
     params_num = nse_model.count_params()
 
     print('N0: {}, nt: {}, nx: {}, ny: {}, device: {}'.format(N0, nt, nx, ny, nse_model.device))
@@ -97,7 +97,7 @@ if __name__=='__main__':
                 nse_model.phys_train(phys_epoch, train_loader, random=args.phys_random_select)          
             for param in list(nse_model.phys_model.parameters()):
                 param.requires_grad = True
-        if epoch % 5 == 0:
+        if epoch % 10 == 0:
             nse_model.save_log(logs)
             nse_model.test(test_loader, logs)
 

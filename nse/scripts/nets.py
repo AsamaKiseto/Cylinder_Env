@@ -505,6 +505,36 @@ class FNO_ensemble_RBC1(nn.Module):
         pred = self.stat_de(trans_out)
         return pred, x_rec, ctr_rec, trans_out
 
+
+class FNO_ensemble_RBC2(nn.Module):
+    def __init__(self, params):
+        super(FNO_ensemble_RBC1, self).__init__()
+        modes1 = params['modes']
+        modes2 = params['modes']
+        width = params['width']
+        L = params['L']
+        shape = params['shape']
+        f_channels = params['f_channels']
+        Lx, Ly = params['Lxy']
+        nx, ny = shape[0], shape[1]
+
+        self.stat_en = state_en(modes1, modes2, width, L, Lx, Ly)
+        self.stat_de = state_de_rbc(modes1, modes2, width, L)
+
+        self.trans = trans_net(modes1, modes2, width, L, f_channels)
+
+    # def forward(self, x, f, modify=True):
+    def forward(self, x, ctr):
+        # x: [batch_size, nx, ny, 3]; f: [1]
+        x_latent = self.stat_en(x)
+        x_rec = self.stat_de(x_latent)
+        
+        ctr_rec = ctr.reshape(ctr.shape[0], 1, 1, 1).repeat(1, 1, 64, 64)
+        trans_out = self.trans(x_latent, ctr_rec)
+        pred = self.stat_de(trans_out)
+        return pred, x_rec, ctr_rec, trans_out
+
+
 class FNO_ensemble_test_RBC(nn.Module):
     def __init__(self, params):
         super(FNO_ensemble_test_RBC, self).__init__()

@@ -48,11 +48,11 @@ class RBC():
         
     def reset(self, ctr=1.0, const=2.0):
         self.solver.init_solve(ctr, const)
-        print('init now')
+        print(f'reset now: ctr={ctr:1.3f}, const={const}')
     
     def set(self, ctr=1.0, const=2.0):
         self.solver.set_control(ctr, const)
-        print('set control')
+        print(f'set control: ctr={ctr:1.3f}, const={const}')
 
     def solve(self):
         self.solver.direct_solve(epoch = 100)

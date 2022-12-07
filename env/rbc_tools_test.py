@@ -112,7 +112,7 @@ class MySolver:
         #self.bcp_b = DirichletBC(self.W.sub(1), self.bc_top, self.bndry, 3)
         self.bcs = [self.bcv_t, self.bcv_b, self.bcv_l, self.bcv_r, self.bcp_t, self.bct_b, self.bct_t]# ,self.bcp_t,self.bcp_b
 
-    def generate_solver(self):
+    def generate_sol_var(self):
         (self.v_, self.p_, self.t_) = TestFunctions(self.W)
         self.w = Function(self.W)
         self.w.interpolate(self.u_0)
@@ -147,9 +147,11 @@ class MySolver:
         self.F1 = self.F1_eq1 + self.F1_eq2 + self.F1_eq3
         self.F = (inner((self.v-self.v_old),self.v_)/self.dt + inner((self.t-self.t_old), self.t_)/self.dt)*dx + (1.0-self.theta)*self.F0 + self.theta*self.F1
         self.J = derivative(self.F, self.w)
+
+    def generate_solver(self):
         self.problem =  NonlinearVariationalProblem(self.F, self.w, self.bcs, self.J)
         self.solver = NonlinearVariationalSolver(self.problem)
-        self.prm =self. solver.parameters
+        self.prm =self.solver.parameters
         #info(prm,True)  #get full info on the parameters
         self.prm['nonlinear_solver'] = 'newton'
         self.prm['newton_solver']['absolute_tolerance'] = 1E-10
@@ -160,6 +162,7 @@ class MySolver:
     def init_solve(self, ctr=1.0, const=2.0):
         self.generate_variable()
         self.generate_bc(ctr, const)
+        self.generate_sol_var()
         self.generate_solver()
         self.generate_grid()
         self.time = 0 

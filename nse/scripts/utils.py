@@ -79,6 +79,36 @@ def Lpde(state_bf, state_af, dt, Re = 0.001, Lx = 2.2, Ly = 0.41):
 
     return L_state
 
+def Lpde_rbc(state_bf, state_af, temp, dt, Re = 0.001, Lx = 2.0, Ly = 2.0):
+    # print(dt, Re, Lx, Ly)
+    nx = state_bf.shape[1]
+    ny = state_bf.shape[2]
+    device = state_af.device
+    zeros = torch.zeros(temp.shape)
+    temp = torch.cat((zeros, temp), dim=-1)
+
+    u_bf = state_bf[..., :2]
+    p_bf = state_bf[..., -1].reshape(-1, nx, ny, 1)
+    u_af = state_af[..., :2]
+
+    # ux, uy, u_lap = fftd2D(u_bf, device)
+    # px, py, _ = fftd2D(p_bf, device)
+
+    ux, uy = fdmd2D(u_bf, device, Lx, Ly)
+    px, py = fdmd2D(p_bf, device, Lx, Ly)
+    uxx, _ = fdmd2D(ux, device, Lx, Ly)
+    _, uyy = fdmd2D(uy, device, Lx, Ly)
+
+    u_lap = uxx + uyy
+    p_grad = torch.cat((px, py), -1)
+    L_state = (u_af - u_bf) / dt + u_bf[..., 0].reshape(-1, nx, ny, 1) * ux + \
+              u_bf[..., 1].reshape(-1, nx, ny, 1) * uy - Re * u_lap + p_grad - temp
+
+    loss = (L_state ** 2).mean()
+    # print(loss)
+
+    return L_state
+
 def fdmd2D(u, device, Lx, Ly):
     bs = u.shape[0]
     nx = u.shape[1]
