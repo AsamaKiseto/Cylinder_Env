@@ -434,7 +434,7 @@ class RBCModel(NSEModel):
 
     def process(self, data):
         obs, temp, ctr = data.get_data()
-        init_k = 50
+        init_k = 10
         self.set_init(obs[:, init_k])
         print(f'obs: {obs.shape}', f'ctr: {ctr.shape}')
         N0, nt = obs.shape[0], obs.shape[1] - 1

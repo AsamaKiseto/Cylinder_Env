@@ -29,7 +29,7 @@ tg = 5
 
 log_list = ['data_based', 'phys_inc', 'no_random', 'random_select_0.0001', 'ps_0.01', 'pe_5', 'pe_15']
 data_path = 'data/test_data/nse_data_reg_rbc_test'
-data_path = 'data/nse_data_reg_rbc'
+# data_path = 'data/nse_data_reg_rbc'
 print(data_path)
 data = LoadDataRBC(data_path)
 for file_name in log_list:

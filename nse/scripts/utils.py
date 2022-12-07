@@ -359,7 +359,6 @@ class LoadDataRBC(LoadData):
 
     def init_set(self):
         self.obs, self.temp, self.ctr = self.data
-        self.ctr = self.ctr[:, :-1]
         self.temp = self.temp[:, 1:]
         # self.end = 40
         # self.obs = self.obs[:, 2:-self.end + 3]
