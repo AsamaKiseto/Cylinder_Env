@@ -17,17 +17,17 @@ simulator = RBC(params)
 
 # N0 = 400 + 1
 N0 = 100
-N0 = 20
+N0 = 1
 nx = simulator.params['dimx']
 ny = simulator.params['dimy']
 dt = simulator.params['dt']
 nt = int(4.0 // dt) + 2
-nlt = int(1.0 // dt) + 1
-nc = int(4.0 // 1.0)
+nlt = int(2.0 // dt) + 1
+nc = int(4.0 // 2.0)
 print(f'N0: {N0}, nt: {nt}, nx: {nx}, ny: {ny}, nlt: {nlt}, nc: {nc}')
 
 temp , velo , p = np.zeros((N0, nt, nx, ny)), np.zeros((N0, nt, nx, ny, 2)), np.zeros((N0, nt, nx, ny))
-ctr = np.linspace(1, 3, N0).reshape(N0, 1).repeat(nc, 1) + (np.random.rand(N0, nc) * 2 - 1) * 1.0
+ctr = np.linspace(1, 3, N0).reshape(N0, 1).repeat(nc, 1) + (np.random.rand(N0, nc) * 2 - 1) * 0.5
 # ctr = (np.random.rand(N0, nc) * 2 - 1)
 print(ctr.shape, ctr)
 
@@ -57,24 +57,24 @@ print(ctr.shape, obs.shape)
 
 data = [obs, temp, ctr]
 # data = [obs, temp]
-torch.save(data, 'data/test_data/nse_data_reg_rbc_test')
+torch.save(data, 'data/nse_data_reg_rbc_test')
 # torch.save(data, 'data/nse_data_reg_rbc')
 
 
-# # evaluate
-# from scripts.draw_utils import *
+# evaluate
+from scripts.draw_utils import *
 
-# data_path = 'data/nse_data_reg_rbc'
-# data = LoadDataRBC(data_path)
-# obs, temp, ctr = data.get_data()
-# temp = torch.cat((temp, torch.zeros(temp.shape)), dim=-1)
-# # temp = torch.cat((torch.zeros(temp.shape), temp), dim=-1)
-# print(obs.shape, temp.shape)
+data_path = 'data/nse_data_reg_rbc_test'
+data = LoadDataRBC(data_path)
+obs, temp, ctr = data.get_data()
+temp = torch.cat((temp, torch.zeros(temp.shape)), dim=-1)
+# temp = torch.cat((torch.zeros(temp.shape), temp), dim=-1)
+print(obs.shape, temp.shape)
 
-# obs_bf = obs[:, :-1]
-# obs_af = obs[:, 1:]
-# error = rel_error(obs_bf.reshape(-1, 64, 64, 3), obs_af.reshape(-1, 64, 64, 3))
-# print(error.mean())
+obs_bf = obs[:, :-1]
+obs_af = obs[:, 1:]
+error = rel_error(obs_bf.reshape(-1, 64, 64, 3), obs_af.reshape(-1, 64, 64, 3))
+print(error.mean())
 
 # x = np.arange(64) / 64 * 2.0
 # y = np.arange(64) / 64 * 2.0

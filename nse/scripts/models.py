@@ -383,7 +383,7 @@ class RBCModel(NSEModel):
         super().__init__(shape, dt, args)
         self.Lx = 2.0
         self.Ly = 2.0
-        self.Re = 0.1
+        self.Re = 0.001
         self.set_model(FNO_ensemble_RBC, state_mo)
     
     def pred_loss(self, ipt, ctr, opt):
