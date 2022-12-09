@@ -96,7 +96,7 @@ class MySolver:
         self.const = const
         self.amp = self.const * 0.5
         self.u_0  = Expression(('0.0','0.0','0.0', f'{self.const / 2}'), degree = 2)
-        self.bc_bottom = Expression('a+b*sin(2*pi*x[0])', a = self.const, b = self.amp, pi = np.pi, degree = 2)
+        self.bc_bottom = Expression('a+b*cos(2*pi*x[0])', a = self.const, b = self.amp, pi = np.pi, degree = 2)
         self.bc_top = Expression('0.0',degree = 2)
         self.noslip = Constant((0, 0))
         self.u_top = Constant((ctr, 0))
