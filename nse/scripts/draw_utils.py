@@ -266,7 +266,7 @@ def animate_field(data, xy_mesh, name, file_name, dict='nse'):
     # ax = plt.axes(projection='3d')
 
     u, v = [data[:, :, :, i] for i in range(2)]
-    w = u**2 + v**2
+    w = torch.sqrt(u**2 + v**2)
 
     def animate(i):
         ax.clear()

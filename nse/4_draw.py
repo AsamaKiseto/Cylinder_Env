@@ -61,10 +61,10 @@ log_list = ['phys_inc', 'data_based', 'trivial', 'test1']
 # _, Cd, Cl, _ = data.get_data()
 # coef_plot(t_nn, scale_k, [Cd, Cl], test_data_name)
 
-t_nn = (np.arange(50) + 1) * 0.01   ### %%%
+t_nn = (np.arange(80) + 1) * 0.05   ### %%%
 print('begin plot train method')
-log_list = ['data_based', 'phys_inc', 'no_random', 'random_select_0.0001', 'ps_0.01', 'pe_5', 'pe_15']
-# test_plot(t_nn, log_list, scale_k, ex_name='rbc', fig_name='train_method1_0', dict = 'rbc')
+log_list = ['data_based', 'phys_inc', 'no_random', 'random_select_0.0001', 'ps_0.01', 'pe_5', 'pe_15', 'psp_1', 'psp_3']
+test_plot(t_nn, log_list, scale_k, ex_name='rbc', fig_name='train_method1_0', dict = 'rbc')
 
 t_nn = (np.arange(100) + 1) * 0.01   ### %%%
 
@@ -78,7 +78,7 @@ log_list = ['data_based_1', 'phys_inc_1', 'no_random_1', 'random_select_1', 'ran
 t_nn = (np.arange(80) + 1) * 0.05   ### %%%
 print('begin plot train method')
 log_list = ['data_based_2', 'phys_inc_2', 'no_random_2', 'random_select_2', 'random_select_0.0001_2', 'ps_0.1_2', 'ps_0.01_2', 'pe_5_2', 'pe_15_2', 'psp_1_2', 'psp_3_2']
-test_plot(t_nn, log_list, scale_k, ex_name='rbc', fig_name='train_method1_2', dict = 'rbc_bak')
+# test_plot(t_nn, log_list, scale_k, ex_name='rbc', fig_name='train_method1_2', dict = 'rbc_bak')
 
 # print('begin plot phys scales')
 # # # log_list = ['baseline', 'ps_0.01', 'ps_0.05', 'ps_0.2', 'ps_0.5']

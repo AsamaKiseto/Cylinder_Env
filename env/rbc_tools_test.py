@@ -198,14 +198,14 @@ class MySolver:
         gsy = self.params['dimy'] #30
         xs = np.linspace(self.geometry.min_x, self.geometry.max_x, gsx)
         ys = np.linspace(self.geometry.min_y, self.geometry.max_y, gsy)
-        mx, my = np.meshgrid(xs, ys)
+        my, mx = np.meshgrid(ys, xs)
         grids = np.stack((mx, my), 2)
         self.grids = grids
         self.meshgrid = [mx, my]
             
     def get_obs(self):
         nu = self.params['dimy']*self.params['dimx']
-        shape = [self.params['dimy'],self.params['dimx'] ]
+        shape = [self.params['dimx'],self.params['dimy'] ]
         temp = np.array(self.w.compute_vertex_values()[3*nu:].reshape(shape))
         p = np.array(self.w.compute_vertex_values()[2*nu:3*nu].reshape(shape))
         u =  np.array(self.w.compute_vertex_values()[:1*nu].reshape(shape))
