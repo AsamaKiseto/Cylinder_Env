@@ -487,7 +487,7 @@ class FNO_ensemble_RBC1(nn.Module):
         shape = params['shape']
         f_channels = params['f_channels']
         Lx, Ly = params['Lxy']
-        nx, ny = shape[0], shape[1]
+        self.nx, self.ny = shape[0], shape[1]
 
         self.stat_en = state_en(modes1, modes2, width, L, Lx, Ly)
         self.stat_de = state_de_rbc(modes1, modes2, width, L)
@@ -500,7 +500,7 @@ class FNO_ensemble_RBC1(nn.Module):
         x_latent = self.stat_en(x)
         x_rec = self.stat_de(x_latent)
         
-        ctr_rec = ctr.reshape(ctr.shape[0], 1, 1, 1).repeat(1, 1, 64, 64)
+        ctr_rec = ctr.reshape(ctr.shape[0], 1, 1, 1).repeat(1, 1, self.nx, self.ny)
         trans_out = self.trans(x_latent, ctr_rec)
         pred = self.stat_de(trans_out)
         return pred, x_rec, ctr_rec, trans_out
