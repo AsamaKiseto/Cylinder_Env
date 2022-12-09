@@ -503,7 +503,7 @@ class FNO_ensemble_RBC1(nn.Module):
         ctr_rec = ctr.reshape(ctr.shape[0], 1, 1, 1).repeat(1, 1, self.nx, self.ny)
         trans_out = self.trans(x_latent, ctr_rec)
         pred = self.stat_de(trans_out)
-        return pred, x_rec, ctr_rec, trans_out
+        return pred, x_rec, ctr, trans_out
 
 
 class FNO_ensemble_RBC2(nn.Module):
