@@ -17,6 +17,7 @@ simulator = RBC(params)
 
 # N0 = 400 + 1
 N0 = 100
+# N0 = 1
 nx = simulator.params['dimx']
 ny = simulator.params['dimy']
 dt = simulator.params['dt']
@@ -45,6 +46,8 @@ for k in range(N0):
         simulator.step()
     
     simulator.set(ctr=0.1, const=2.0)
+    for i in range(int(nlt//2)):
+        simulator.step()
     
     for i in range(nt):
         temp[k, i], velo[k, i], p[k, i], _  = simulator.step()
@@ -67,7 +70,7 @@ torch.save([obs, temp, ctr], 'data/nse_data_reg_rbc_orig1')
 torch.save([obs, temp], 'data/nse_data_reg_rbc1')
 
 # # evaluate
-# from scripts.draw_utils import *
+from scripts.draw_utils import *
 
 # data_path = 'data/nse_data_reg_rbc_test'
 # data = LoadDataRBC1(data_path)

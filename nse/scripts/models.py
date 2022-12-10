@@ -9,6 +9,7 @@ from scripts.utils import *
 
 class NSEModel():
     def __init__(self, shape, dt, args):
+        print(f'dt: {dt}')
         self.shape = shape
         self.dt = dt
         self.params = args
