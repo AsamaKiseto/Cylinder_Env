@@ -2,19 +2,18 @@ import torch
 import numpy as np
 from scripts.draw_utils import *
 
-log_list = ['data_based', 'phys_inc']
+log_list = ['data_based_6', 'phys_inc_6']
 scale_k = 0
 
 x = np.arange(64) / 64 * 2.0
-y = np.arange(64) / 64 * 2.0
+y = np.arange(32) / 32 * 1.0
 x, y = np.meshgrid(x, y)
 xl, xh  = np.min(x), np.max(x)
 yl, yh = np.min(y), np.max(y)
 xy_mesh = [x, y, xl, xh, yl, yh]
 
-data_path = 'data/nse_data_reg_rbc2'
+data_path = 'data/test_data/nse_data_reg_rbc6'
 data = LoadDataRBC1(data_path)
-data.split()
 obs, temp, ctr = data.get_data()
 temp = torch.cat((temp, torch.zeros(temp.shape)), dim=-1)
 # temp = torch.cat((torch.zeros(temp.shape), temp), dim=-1)
@@ -41,7 +40,7 @@ print(obs.shape, temp.shape)
 # # animate2D(obs[num_k, ..., 1], xy_mesh, 'v', 'obs', 'rbc')
 # # animate2D(obs[num_k, ..., 2], xy_mesh, 'p', 'obs', 'rbc')
 # # animate2D(temp[num_k, ..., 1], xy_mesh, 't', 'obs', 'rbc')
-animate_field(obs[0, ..., :2], xy_mesh, f'state_0', 'obs', 'rbc')
+animate_field(obs[0, ..., :2], xy_mesh, f'state_6', 'obs', 'rbc')
 
 # anime observation
 
@@ -53,7 +52,7 @@ for file_name in log_list:
     # Lpde_pred = Lpde_pred[10*scale_k : 10*(scale_k+1)].mean(0)
     # Lpde_pred_cul = Lpde_pred_cul[10*scale_k : 10*(scale_k+1)].mean(0)
 
-    animate_field(out_cul[0, ..., :2], xy_mesh, 'state_0', f'{file_name}', 'rbc')
+    animate_field(out_cul[0, ..., :2], xy_mesh, 'state_6', f'{file_name}', 'rbc')
     # animate2D(out_cul[0, ..., 0], xy_mesh, 'u', file_name)
     # animate2D(out_cul[0, ..., 1], xy_mesh, 'v', file_name)
     # animate2D(out_cul[0, ..., 2], xy_mesh, 'p', file_name)

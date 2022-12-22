@@ -19,7 +19,6 @@ class NSEModel():
         self.device = torch.device('cuda:{}'.format(self.params.gpu) if torch.cuda.is_available() else 'cpu')
 
     def set_model(self, pred_model=FNO_ensemble, phys_model=state_mo):
-
         model_params = dict()
         model_params['modes'] = self.params.modes
         model_params['width'] = self.params.width
@@ -393,17 +392,20 @@ class RBCModel(NSEModel):
         out_latent = self.pred_model.stat_en(out)
         # prediction & rec items
         out_pred, mod_pred, ipt_rec, ctr_rec, trans_out = self.model_step(ipt, ctr)
+        # print((out**2).mean())
+        # print(out_pred.max(), out.max())
         
         loss1 = rel_error(out_pred, out).mean()
         loss2 = rel_error(ipt_rec, ipt).mean()
         loss3 = rel_error(ctr_rec, ctr).mean()
         loss4 = rel_error(trans_out, out_latent).mean()
         loss6 = ((Lpde(ipt, out_pred, self.dt, Re = self.Re, Lx = self.Lx, Ly = self.Ly) + mod_pred) ** 2).mean()
-
+        # print(loss1, loss2, loss3, loss4, loss6)
         return loss1, loss2, loss3, loss4, loss6
 
     def model_step(self, ipt, ctr):
         pred, x_rec, ctr_rec, trans_out = self.pred_model(ipt, ctr)
+        print(pred.max(), x_rec.max(), ctr_rec.max(), trans_out.max())
         ipt_rec = x_rec[:, :, :, :3]
         out_pred = pred[:, :, :, :3]
         mod_pred = self.phys_model(ipt, ctr, out_pred)
@@ -462,6 +464,9 @@ class RBCModel(NSEModel):
 class RBCModel_FNO(RBCModel):
     def __init__(self, shape, dt, args):
         super().__init__(shape, dt, args)
+        self.Lx = 2.0
+        self.Ly = 1.0
+        self.Re = 0.001
         self.set_model(FNO_ensemble_RBC, state_mo)
         print(f'Lx: {self.Lx}, Ly: {self.Ly}, Re: {self.Re}')
     
