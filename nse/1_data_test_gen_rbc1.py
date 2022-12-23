@@ -15,7 +15,7 @@ from env.RBC_env import RBC
 params = {'dt':  0.01, 'T':  0.01, 'dimx': 64, 'dimy': 32, 'min_x' : 0, 'max_x' : 2.0, 'min_y' : 0.0, 'max_y' : 1.0 ,'Ra':1E2}
 simulator = RBC(params)
 
-Nf = 20 + 1
+Nf = 10
 # Nf = 1
 N0 = Nf ** 2
 nx = simulator.params['dimx']
@@ -28,10 +28,8 @@ nt = 2 * nlt + 1
 print(f'N0: {N0}, nt: {nt}, nx: {nx}, ny: {ny}, nlt: {nlt}')
 
 temp, velo, p = np.zeros((N0, nt, nx, ny)), np.zeros((N0, nt, nx, ny, 2)), np.zeros((N0, nt, nx, ny))
-ctr1 = np.linspace(1.0, 5.0, Nf)
-ctr2 = np.linspace(1.0, 5.0, Nf)
-# ctr1 = np.random.rand(Nf) + 1
-# ctr2 = np.random.rand(Nf) - 2
+ctr1 = np.random.rand(Nf) * 4 + 1
+ctr2 = np.random.rand(Nf) * 4 + 1
 ctr1_ = ctr1.reshape(Nf, 1).repeat(Nf, 1).reshape(N0, 1).repeat(nlt, 1)
 ctr2_ = ctr2.reshape(1, Nf).repeat(Nf, 0).reshape(N0, 1).repeat(nlt, 1)
 ctr = np.concatenate((ctr1_, ctr2_), -1)
@@ -73,13 +71,13 @@ print(ctr.shape, obs.shape)
 # torch.save([obs, temp], 'data/nse_data_reg_rbc_test')
 
 # torch.save([obs, temp, ctr], 'data/nse_data_reg_rbc_orig5')
-torch.save([obs, temp, ctr], 'data/nse_data_reg_rbc7')
+torch.save([obs, temp, ctr], 'data/test_data/nse_data_reg_rbc7')
 # torch.save([obs, temp], 'data/test_data/nse_data_reg_rbc7')
 
 # evaluate
 from scripts.draw_utils import *
 
-data_path = 'data/nse_data_reg_rbc7'
+data_path = 'data/test_data/nse_data_reg_rbc7'
 data = LoadDataRBC(data_path)
 obs, temp, ctr = data.get_data()
 temp = torch.cat((temp, torch.zeros(temp.shape)), dim=-1)

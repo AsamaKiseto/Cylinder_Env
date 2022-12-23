@@ -382,7 +382,7 @@ class RBCModel(NSEModel):
     def __init__(self, shape, dt, args):
         super().__init__(shape, dt, args)
         self.Lx = 2.0
-        self.Ly = 2.0
+        self.Ly = 1.0
         self.Re = 0.001
         self.set_model(FNO_ensemble_RBC, state_mo)
     
@@ -405,7 +405,7 @@ class RBCModel(NSEModel):
 
     def model_step(self, ipt, ctr):
         pred, x_rec, ctr_rec, trans_out = self.pred_model(ipt, ctr)
-        print(pred.max(), x_rec.max(), ctr_rec.max(), trans_out.max())
+        # print(pred.max(), x_rec.max(), ctr_rec.max(), trans_out.max())
         ipt_rec = x_rec[:, :, :, :3]
         out_pred = pred[:, :, :, :3]
         mod_pred = self.phys_model(ipt, ctr, out_pred)

@@ -380,18 +380,13 @@ class LoadDataRBC(LoadData):
         self.temp = self.temp.cuda()
         self.ctr = self.ctr.cuda()
 
-    def split(self, Ng = 1):
-        self.Ng = Ng
-        for i in range(len(self.data)):
-            data = self.data[i]
-            length = int(data.shape[0]//4)
-            # data = data[length: length * 3 + 1]
-            data = data[45:55]
-            data = data[::Ng]
-            self.data[i] = data
-        self.obs, self.temp, self.ctr = self.data
+    def split(self, tg = 5):
+        self.tg = tg
+        self.dt = tg * 0.01
+        self.obs = self.obs[:, ::tg]
+        self.temp = self.temp[:, ::tg]
+        self.ctr = self.ctr[:, ::tg]
         self.get_params()
-        print(f'obs: {self.obs.shape}')
         return self.obs, self.temp, self.ctr
     
 
