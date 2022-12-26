@@ -16,8 +16,8 @@ def get_args(argv=None):
     parser.add_argument('-m', '--modes', default=16, type=int, help='the number of modes of Fourier layer')
     parser.add_argument('-w', '--width', default=32, type=int, help='the number of width of FNO layer')
     
-    parser.add_argument('--phys_gap', default=1, type=int, help = 'Number of gap of Phys')
-    parser.add_argument('--phys_epochs', default=1, type=int, help = 'Number of Phys Epochs')
+    parser.add_argument('--phys_gap', default=40, type=int, help = 'Number of gap of Phys')
+    parser.add_argument('--phys_epochs', default=10, type=int, help = 'Number of Phys Epochs')
     parser.add_argument('--phys_steps', default=2, type=int, help = 'Number of Phys Steps')
     parser.add_argument('--phys_scale', default=0.05, type=float, help = 'Number of Phys Scale')
     parser.add_argument('--phys_random_select', default=False, type=bool, help = 'Whether random select')
