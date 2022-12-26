@@ -359,6 +359,7 @@ class LoadDataRBC(LoadData):
 
     def init_set(self):
         self.obs, self.temp, self.ctr = self.data
+        self.ctr = self.ctr.reshape(self.ctr.shape[0], self.ctr.shape[1], 1, 1, 1).repeat(1, 1, self.obs.shape[2], self.obs.shape[3], 1)
         self.temp = self.temp[:, 1:]
         self.data = [self.obs, self.temp, self.ctr]
 
@@ -390,50 +391,32 @@ class LoadDataRBC(LoadData):
         return self.obs, self.temp, self.ctr
     
 
-class LoadDataRBC1(LoadData):
+class LoadDataRBC1(LoadDataRBC):
     def __init__(self, data_path):
         super().__init__(data_path)
-        self.data_set = RBC_Dataset
 
     def init_set(self):
         self.obs, self.temp = self.data
-        self.ctr = torch.zeros(self.temp.shape[0], self.temp.shape[1])
-        self.ctr = self.ctr[:, :-1]
+        self.ctr = torch.ones(self.temp[:, :-1].shape)
         self.temp = self.temp[:, 1:]
-        # self.end = 40
-        # self.obs = self.obs[:, 2:-self.end + 3]
-        # self.temp = self.temp[:, 2:-self.end + 3]
-        # self.ctr = self.ctr[:, 2:-self.end + 3]
         self.data = [self.obs, self.temp, self.ctr]
 
         self.nx, self.ny = self.obs.shape[-3], self.obs.shape[-2]
         self.get_params()
 
-    def get_data(self):
-        return self.obs, self.temp, self.ctr
-    
-    def get_params(self):
-        self.nt = self.ctr.shape[1]
-        self.N0 = self.ctr.shape[0]
-        self.Ndata = self.N0 * self.nt
-        
-        return self.N0, self.nt, self.nx, self.ny
-    
-    def toGPU(self):
-        self.obs = self.obs.cuda()
-        self.temp = self.temp.cuda()
-        self.ctr = self.ctr.cuda()
 
-    def split(self, tg=5):
-        self.tg = tg
-        for i in range(len(self.data)):
-            data = self.data[i]
-            data = data[:, ::tg]
-            self.data[i] = data
-        self.obs, self.temp, self.ctr = self.data
+class LoadDataRBC2(LoadDataRBC):
+    def __init__(self, data_path):
+        super().__init__(data_path)
+
+    def init_set(self):
+        self.obs, self.temp = self.data
+        self.ctr = self.temp[:, :-1]
+        self.temp = self.temp[:, 1:]
+        self.data = [self.obs, self.temp, self.ctr]
+
+        self.nx, self.ny = self.obs.shape[-3], self.obs.shape[-2]
         self.get_params()
-        print(f'obs: {self.obs.shape}')
-        return self.obs, self.temp, self.ctr
 
 
 class NSE_Dataset(Dataset):
@@ -474,7 +457,7 @@ class RBC_Dataset(Dataset):
         N0, nt, nx, ny = data.get_params()
         obs, temp, ctr = data.get_data()
         self.Ndata = N0 * nt
-        ctr = ctr.reshape(N0, nt, 1, 1, 1).repeat([1, 1, nx, ny, 1]).reshape(-1, nx, ny, 1)
+        ctr = ctr.reshape(-1, nx, ny, 1)
         input_data = obs[:, :-1].reshape(-1, nx, ny, 3)
         output_data = obs[:, 1:].reshape(-1, nx, ny, 3)     #- input_data
 

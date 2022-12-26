@@ -55,7 +55,7 @@ if __name__=='__main__':
     data_path = f'data/nse_data_reg_{args.data_path}'
     tg = args.tg     # sample evrey 5 timestamps
     Ng = args.Ng
-    data = LoadDataRBC1(data_path)
+    data = LoadDataRBC2(data_path)
     # data.split()
     obs, temp, ctr = data.get_data()
     print('obs: ', obs.shape, 'obs.mean: ', obs.mean())
@@ -79,7 +79,7 @@ if __name__=='__main__':
     train_loader, test_loader = data.trans2TrainingSet(args.batch_size, args.data_rate)
 
     # model setting
-    nse_model = RBCModel_FNO1(shape, 0.05, args)
+    nse_model = RBCModel_FNO(shape, 0.05, args)
     params_num = nse_model.count_params()
 
     print('N0: {}, nt: {}, nx: {}, ny: {}, device: {}'.format(N0, nt, nx, ny, nse_model.device))

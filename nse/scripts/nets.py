@@ -233,9 +233,8 @@ class state_de_rbc(nn.Module):
 
 
 class control_en(nn.Module):
-    def __init__(self, nx, ny, out_channels, width=5):
+    def __init__(self, out_channels, width=5):
         super(control_en, self).__init__()
-        self.nx, self.ny = nx, ny
         self.out_channels = out_channels
         self.net = nn.Sequential(
             nn.Conv2d(1, 64, width, padding=2),
@@ -247,12 +246,11 @@ class control_en(nn.Module):
             nn.Conv2d(16, out_channels, width, padding=2),
         )
 
-    def forward(self, f):
+    def forward(self, ctr):
         # [batch_size] ——> [batch_size, nx, ny, 1]
-        f = f.reshape(f.shape[0], 1, 1, 1).repeat(1, self.nx, self.ny, 1)   
-        f = f.permute(0, 3, 1, 2)
-        f = self.net(f)
-        return f    # [batch_size, out_channels, nx, ny]
+        ctr = ctr.permute(0, 3, 1, 2)
+        ctr = self.net(ctr)
+        return ctr    # [batch_size, out_channels, nx, ny]
     
 
 class control_de(nn.Module):
@@ -269,10 +267,9 @@ class control_de(nn.Module):
             nn.Conv2d(16, 1, width, padding=2),
         )
 
-    def forward(self, f):
-        f = self.net(f)
-        f = torch.mean(f.reshape(f.shape[0], -1), 1)
-        return f    # [batch_size]
+    def forward(self, ctr):
+        ctr = self.net(ctr)
+        return ctr    # [batch_size]
 
 
 class trans_net(nn.Module):
@@ -284,9 +281,8 @@ class trans_net(nn.Module):
         self.trans += [ FNO_layer(modes1, modes2, width, last=True) ]
         self.trans = nn.Sequential(*self.trans)
 
-    def forward(self, x_latent, f_latent):
-        trans_in = torch.cat((x_latent, f_latent), dim=1)
-        # print(f'trans_in: {trans_in.size()}')
+    def forward(self, x_latent, ctr_latent):
+        trans_in = torch.cat((x_latent, ctr_latent), dim=1)
         trans_out = self.trans(trans_in)
 
         return trans_out
@@ -314,7 +310,7 @@ class state_mo(nn.Module):
 
     def forward(self, x, ctr, x_next):
         grid = self.get_grid(x.shape, x.device) # 2
-        ctr = ctr.reshape(ctr.shape[0], 1, 1, 1).repeat(1, x.shape[1], x.shape[2], 1) # 1
+        # ctr # 1
         u_bf = x[..., :-1]   # 2
         p_bf = x[..., -1].reshape(-1, x.shape[1], x.shape[2], 1)
         u_af = x_next[..., :-1]  # 2
@@ -375,13 +371,13 @@ class FNO_ensemble(nn.Module):
         shape = params['shape']
         f_channels = params['f_channels']
         Lx, Ly = params['Lxy']
-        nx, ny = shape[0], shape[1]
+        self.nx, self.ny = shape[0], shape[1]
 
         self.stat_en = state_en(modes1, modes2, width, L, Lx, Ly)
         self.stat_de = state_de(modes1, modes2, width, L)
         # self.state_mo = state_mo(modes1, modes2, width, L+2)
 
-        self.ctr_en = control_en(nx, ny, f_channels)
+        self.ctr_en = control_en(f_channels)
         self.ctr_de = control_de(f_channels)
 
         self.trans = trans_net(modes1, modes2, width, L, f_channels)
@@ -412,13 +408,13 @@ class FNO_ensemble_test(nn.Module):
         L = params['L']
         shape = params['shape']
         f_channels = params['f_channels']
-        nx, ny = shape[0], shape[1]
+        self.nx, self.ny = shape[0], shape[1]
 
         self.stat_en = state_en(modes1, modes2, width, L)
         self.stat_de = state_de(modes1, modes2, width, L)
         self.state_mo = state_mo_prev(modes1, modes2, width, L)
 
-        self.ctr_en = control_en(nx, ny, f_channels)
+        self.ctr_en = control_en(f_channels)
         self.ctr_de = control_de(f_channels)
 
         self.trans = trans_net(modes1, modes2, width, L, f_channels)
@@ -451,13 +447,13 @@ class FNO_ensemble_RBC(nn.Module):
         shape = params['shape']
         f_channels = params['f_channels']
         Lx, Ly = params['Lxy']
-        nx, ny = shape[0], shape[1]
+        self.nx, self.ny = shape[0], shape[1]
 
         self.stat_en = state_en(modes1, modes2, width, L, Lx, Ly)
         self.stat_de = state_de_rbc(modes1, modes2, width, L)
         # self.state_mo = state_mo(modes1, modes2, width, L+2)
 
-        self.ctr_en = control_en(nx, ny, f_channels)
+        self.ctr_en = control_en(f_channels)
         self.ctr_de = control_de(f_channels)
 
         self.trans = trans_net(modes1, modes2, width, L, f_channels)
@@ -468,9 +464,11 @@ class FNO_ensemble_RBC(nn.Module):
         x_latent = self.stat_en(x)
         x_rec = self.stat_de(x_latent)
 
+        # ctr encode & decode
         ctr_latent = self.ctr_en(ctr)
         ctr_rec = self.ctr_de(ctr_latent)
 
+        # trans layer
         trans_out = self.trans(x_latent, ctr_latent)
         pred = self.stat_de(trans_out)
         
@@ -500,74 +498,7 @@ class FNO_ensemble_RBC1(nn.Module):
         x_latent = self.stat_en(x)
         x_rec = self.stat_de(x_latent)
         
-        ctr_rec = ctr.reshape(ctr.shape[0], 1, 1, 1).repeat(1, 1, self.nx, self.ny)
-        trans_out = self.trans(x_latent, ctr_rec)
+        ctr_latent = ctr.permute(0, 3, 1, 2)
+        trans_out = self.trans(x_latent, ctr_latent)
         pred = self.stat_de(trans_out)
         return pred, x_rec, ctr, trans_out
-
-
-class FNO_ensemble_RBC2(nn.Module):
-    def __init__(self, params):
-        super(FNO_ensemble_RBC1, self).__init__()
-        modes1 = params['modes']
-        modes2 = params['modes']
-        width = params['width']
-        L = params['L']
-        shape = params['shape']
-        f_channels = params['f_channels']
-        Lx, Ly = params['Lxy']
-        nx, ny = shape[0], shape[1]
-
-        self.stat_en = state_en(modes1, modes2, width, L, Lx, Ly)
-        self.stat_de = state_de_rbc(modes1, modes2, width, L)
-
-        self.trans = trans_net(modes1, modes2, width, L, f_channels)
-
-    # def forward(self, x, f, modify=True):
-    def forward(self, x, ctr):
-        # x: [batch_size, nx, ny, 3]; f: [1]
-        x_latent = self.stat_en(x)
-        x_rec = self.stat_de(x_latent)
-        
-        ctr_rec = ctr.reshape(ctr.shape[0], 1, 1, 1).repeat(1, 1, 64, 64)
-        trans_out = self.trans(x_latent, ctr_rec)
-        pred = self.stat_de(trans_out)
-        return pred, x_rec, ctr_rec, trans_out
-
-
-class FNO_ensemble_test_RBC(nn.Module):
-    def __init__(self, params):
-        super(FNO_ensemble_test_RBC, self).__init__()
-
-        modes1 = params['modes']
-        modes2 = params['modes']
-        width = params['width']
-        L = params['L']
-        shape = params['shape']
-        f_channels = params['f_channels']
-        nx, ny = shape[0], shape[1]
-
-        self.stat_en = state_en(modes1, modes2, width, L)
-        self.stat_de = state_de(modes1, modes2, width, L)
-        self.state_mo = state_mo_prev(modes1, modes2, width, L)
-
-        self.ctr_en = control_en(nx, ny, f_channels)
-        self.ctr_de = control_de(f_channels)
-
-        self.trans = trans_net(modes1, modes2, width, L, f_channels)
-
-    # def forward(self, x, f, modify=True):
-    def forward(self, x, ctr):
-        # x: [batch_size, nx, ny, 3]; f: [1]
-        x_latent = self.stat_en(x)
-        x_rec = self.stat_de(x_latent)
-
-        ctr_latent = self.ctr_en(ctr)
-        ctr_rec = self.ctr_de(ctr_latent)
-
-        trans_out = self.trans(x_latent, ctr_latent)
-        mod = self.state_mo(trans_out)
-        
-        pred = self.stat_de(trans_out)
-        
-        return pred, x_rec, ctr_rec, trans_out, mod

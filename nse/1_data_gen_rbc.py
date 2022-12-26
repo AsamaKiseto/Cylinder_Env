@@ -15,8 +15,7 @@ from env.RBC_env import RBC
 params = {'dt':  0.05, 'T':  0.01, 'dimx': 64, 'dimy': 32, 'min_x' : 0, 'max_x' : 2.0, 'min_y' : 0.0, 'max_y' : 1.0 ,'Ra':1E2}
 simulator = RBC(params)
 
-Nf = 10 + 1
-Nf = 5
+Nf = 20 + 1
 N0 = Nf ** 2
 nx = simulator.params['dimx']
 ny = simulator.params['dimy']
