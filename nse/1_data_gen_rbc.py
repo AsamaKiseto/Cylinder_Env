@@ -12,7 +12,7 @@ import math
 import torch.nn as nn
 from env.RBC_env import RBC
 
-params = {'dt':  0.05, 'T':  0.01, 'dimx': 64, 'dimy': 32, 'min_x' : 0, 'max_x' : 2.0, 'min_y' : 0.0, 'max_y' : 1.0 ,'Ra':1E2}
+params = {'dt':  0.05, 'T':  0.01, 'dimx': 64, 'dimy': 32, 'min_x' : 0, 'max_x' : 2.0, 'min_y' : 0.0, 'max_y' : 1.0 ,'Ra':1E6}
 simulator = RBC(params)
 
 Nf = 20 + 1
@@ -80,14 +80,14 @@ print(ctr.shape, obs.shape)
 # torch.save([obs, temp], 'data/nse_data_reg_rbc_test')
 
 # torch.save([obs, temp, ctr], 'data/nse_data_reg_rbc_orig5')
-torch.save([obs, temp], 'data/nse_data_reg_rbc7')
+torch.save([obs, temp], 'data/nse_data_reg_rbc6')
 # torch.save([obs, temp], 'data/test_data/nse_data_reg_rbc7')
 
 # evaluate
 from scripts.draw_utils import *
 
 data_path = 'data/nse_data_reg_rbc7'
-data = LoadDataRBC1(data_path)
+data = LoadDataRBC2(data_path)
 obs, temp, ctr = data.get_data()
 temp = torch.cat((temp, torch.zeros(temp.shape)), dim=-1)
 # temp = torch.cat((torch.zeros(temp.shape), temp), dim=-1)
