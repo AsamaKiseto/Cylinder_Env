@@ -84,14 +84,14 @@ torch.save([obs, temp], 'data/nse_data_reg_rbc7')
 # torch.save([obs, temp], 'data/test_data/nse_data_reg_rbc7')
 
 # evaluate
-# from scripts.draw_utils import *
+from scripts.draw_utils import *
 
-# data_path = 'data/nse_data_reg_rbc_test'
-# data = LoadDataRBC1(data_path)
-# obs, temp, ctr = data.get_data()
-# temp = torch.cat((temp, torch.zeros(temp.shape)), dim=-1)
-# # temp = torch.cat((torch.zeros(temp.shape), temp), dim=-1)
-# print(obs.shape, temp.shape)
+data_path = 'data/nse_data_reg_rbc7'
+data = LoadDataRBC1(data_path)
+obs, temp, ctr = data.get_data()
+temp = torch.cat((temp, torch.zeros(temp.shape)), dim=-1)
+# temp = torch.cat((torch.zeros(temp.shape), temp), dim=-1)
+print(obs.shape, temp.shape)
 
 # obs_bf = obs[:, :-1]
 # obs_af = obs[:, 1:]
