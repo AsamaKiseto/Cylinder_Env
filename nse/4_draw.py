@@ -62,22 +62,30 @@ log_list = ['phys_inc', 'data_based', 'trivial', 'test1']
 # coef_plot(t_nn, scale_k, [Cd, Cl], test_data_name)
 
 log_list_orig = ['data_based', 'phys_inc', 'no_random', 'random_select_0.0001', 'ps_0.01', 'pe_5', 'pe_15', 'psp_1', 'psp_3']
-
 t_nn = (np.arange(80) + 1) * 0.05   ### %%%
-print('begin plot train method')
-log_list = ['data_based', 'phys_inc', 'no_random', 'random_select_0.0001', 'ps_0.01', 'pe_5', 'pe_15', 'psp_1', 'psp_3']
+
+# print('begin plot train method')
+# log_list = ['data_based', 'phys_inc', 'no_random', 'random_select_0.0001', 'ps_0.01', 'pe_5', 'pe_15', 'psp_1', 'psp_3']
 # test_plot(t_nn, log_list, scale_k, ex_name='rbc', fig_name='train_method1_0', dict = 'rbc')
 
-
-t_nn = (np.arange(80) + 1) * 0.05   ### %%%
 print('begin plot train method')
 log_list = []
 for file_name in log_list_orig:
-    file_name = file_name + '_6'
+    file_name = file_name + '_6_1'
     print(file_name)
     log_list.append(file_name)
     
-test_plot(t_nn, log_list, scale_k, ex_name='rbc', fig_name='train_method1_6', dict = 'rbc')
+test_plot(t_nn, log_list, scale_k, ex_name='rbc', fig_name='train_method1_6_1', dict = 'rbc')
+
+print('begin plot train method')
+log_list = []
+for file_name in log_list_orig:
+    file_name = file_name + '_7'
+    print(file_name)
+    log_list.append(file_name)
+    
+test_plot(t_nn, log_list, scale_k, ex_name='rbc', fig_name='train_method1_7', dict = 'rbc')
+
 
 # print('begin plot phys scales')
 # # # log_list = ['baseline', 'ps_0.01', 'ps_0.05', 'ps_0.2', 'ps_0.5']

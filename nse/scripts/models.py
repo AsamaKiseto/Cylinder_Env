@@ -455,7 +455,7 @@ class RBCModel_FNO(RBCModel):
         super().__init__(shape, dt, args)
         self.Lx = 2.0
         self.Ly = 1.0
-        self.Re = 0.1
+        self.Re = 0.001
         self.set_model(FNO_ensemble_RBC, state_mo)
         print(f'Lx: {self.Lx}, Ly: {self.Ly}, Re: {self.Re}')
     

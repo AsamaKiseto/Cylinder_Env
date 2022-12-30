@@ -35,8 +35,8 @@ ctr = np.linspace(1, 3, N0).reshape(N0, 1).repeat(nc, 1) + (np.random.rand(N0, n
 ctr1 = np.linspace(1.0, 3.0, Nf).reshape(Nf, 1).repeat(Nf, 1).reshape(N0)
 ctr2 = np.linspace(1.0, 3.0, Nf).reshape(1, Nf).repeat(Nf, 0).reshape(N0)
 ctr = np.concatenate((ctr1, ctr2), -1)
-ctr1 = np.linspace(1.0, 2.0, Nf)
-ctr2 = np.linspace(1.0, 2.0, Nf)
+ctr1 = np.linspace(1.0, 3.0, Nf)
+ctr2 = np.linspace(1.0, 3.0, Nf)
 # ctr1 = np.random.rand(Nf) + 1
 # ctr2 = np.random.rand(Nf) + 1
 print(ctr1, ctr2)
@@ -80,5 +80,5 @@ print(ctr.shape, obs.shape)
 # torch.save([obs, temp], 'data/nse_data_reg_rbc_test')
 
 # torch.save([obs, temp, ctr], 'data/nse_data_reg_rbc_orig5')
-torch.save([obs, temp], 'data/nse_data_reg_rbc7')
+torch.save([obs, temp], 'data/nse_data_reg_rbc7_1')
 # torch.save([obs, temp], 'data/test_data/nse_data_reg_rbc7')
