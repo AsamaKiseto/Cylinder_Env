@@ -53,5 +53,5 @@ for file_name in log_list:
 # log_list = ['phys_inc', 'data_based']
 # animate2D_comp(obs, log_list, num_k, xy_mesh, 'comp1')
 
-# log_list = ['phys_inc', 'data_based', 'random_select_0.001', 'no_random']
-# animate2D_comp(obs, log_list, num_k, xy_mesh, 'comp2')
+log_list = ['phys_inc', 'data_based', 'random_select_0.001', 'no_random']
+animate2D_comp(obs, log_list, num_k, xy_mesh, 'comp2')

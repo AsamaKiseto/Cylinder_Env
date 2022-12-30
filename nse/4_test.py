@@ -37,6 +37,7 @@ tg = 5
     
 log_list = ['data_based', 'phys_inc', 'no_random', 'random_select', 'random_select_0.0001', 'ps_0.01', 'ps_0.1', 'pe_5', 'pe_15', 'psp_1', 'psp_3']
 data_path = 'data/nse_data_reg_rbc6'
+# data_path = 'data/test_data/nse_data_reg_rbc6'
 print(data_path)
 data = LoadDataRBC2(data_path)
 for file_name in log_list:
@@ -44,9 +45,10 @@ for file_name in log_list:
     test_log(data, file_name,  'rbc', model_loaded = RBCModel_FNO,  dict = 'rbc', dt = 0.05)
 
 
-data_path = 'data/nse_data_reg_rbc7'
-print(data_path)
-data = LoadDataRBC2(data_path)
-for file_name in log_list:
-    file_name = file_name + '_7'
-    test_log(data, file_name,  'rbc', model_loaded = RBCModel_FNO,  dict = 'rbc', dt = 0.05)
+# data_path = 'data/nse_data_reg_rbc7'
+# data_path = 'data/test_data/nse_data_reg_rbc7'
+# print(data_path)
+# data = LoadDataRBC2(data_path)
+# for file_name in log_list:
+#     file_name = file_name + '_7'
+#     test_log(data, file_name,  'rbc', model_loaded = RBCModel_FNO,  dict = 'rbc', dt = 0.05)
